@@ -34,6 +34,7 @@ class Driver(Base):
     tg_id = Column(BigInteger, unique=True, index=True, nullable=False)
     name = Column(String, nullable=True)
     phone = Column(String, nullable=True)
+    language = Column(String, default="ru", nullable=False)
     status = Column(String, default=DriverStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
