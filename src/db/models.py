@@ -63,6 +63,8 @@ class Trip(Base):
     start_odometer = Column(Integer, nullable=True)
     end_odometer = Column(Integer, nullable=True)
     
+    closing_document_id = Column(String, nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
 

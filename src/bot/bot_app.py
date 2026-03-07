@@ -14,7 +14,9 @@ from src.db.crud import get_driver_by_tg_id, create_driver, get_vehicle_by_plate
 from antigravity_modules.trip_opening import get_trip_conversation_handler, open_trip_handler
 from antigravity_modules.expense_flow import get_expense_conversation_handler, add_expense_handler
 from antigravity_modules.location_flow import get_location_conversation_handler
+from antigravity_modules.trip_closing import get_trip_closing_conversation_handler
 from antigravity_modules.translations import get_text, get_main_menu
+from antigravity_modules.expense_crud import get_active_trip_for_driver
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +49,13 @@ async def receive_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         driver = await get_driver_by_tg_id(session, tg_id)
         if driver:
             await update_driver_language(session, tg_id, lang_code)
+            
+            trip = await get_active_trip_for_driver(session, driver.id)
+            has_active_trip = trip is not None
+            
             await update.message.reply_text(
                 get_text(lang_code, "welcome_back", name=driver.name),
-                reply_markup=get_main_menu(lang_code)
+                reply_markup=get_main_menu(lang_code, has_active_trip)
             )
             return ConversationHandler.END
             
@@ -109,16 +115,17 @@ async def receive_vehicle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     await update.message.reply_text(
         get_text(lang, "reg_success", name=name, phone=phone, plate=plate),
-        reply_markup=get_main_menu(lang)
+        reply_markup=get_main_menu(lang, False)
     )
     context.user_data.clear()
     return ConversationHandler.END
 
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = context.user_data.get('lang', 'ru')
+    # Can't know if has_active_trip without query, but registration means usually no trip 
     await update.message.reply_text(
         get_text(lang, "reg_cancelled"),
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=get_main_menu(lang, False)
     )
     return ConversationHandler.END
 
@@ -152,5 +159,6 @@ def create_bot_app() -> Application:
     app.add_handler(get_trip_conversation_handler())
     app.add_handler(get_expense_conversation_handler())
     app.add_handler(get_location_conversation_handler())
+    app.add_handler(get_trip_closing_conversation_handler())
     
     return app
