@@ -11,8 +11,9 @@ from telegram.ext import (
 from src.core.config import settings
 from src.db.database import async_session
 from src.db.crud import get_driver_by_tg_id, create_driver, get_vehicle_by_plate, create_vehicle, update_driver_language
-from antigravity_modules.trip_opening import get_trip_conversation_handler
-from antigravity_modules.translations import get_text
+from antigravity_modules.trip_opening import get_trip_conversation_handler, open_trip_handler
+from antigravity_modules.expense_flow import get_expense_conversation_handler, add_expense_handler
+from antigravity_modules.translations import get_text, get_main_menu
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ async def receive_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update_driver_language(session, tg_id, lang_code)
             await update.message.reply_text(
                 get_text(lang_code, "welcome_back", name=driver.name),
-                reply_markup=ReplyKeyboardRemove()
+                reply_markup=get_main_menu(lang_code)
             )
             return ConversationHandler.END
             
@@ -106,7 +107,8 @@ async def receive_vehicle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # But MVP just registers them.
         
     await update.message.reply_text(
-        get_text(lang, "reg_success", name=name, phone=phone, plate=plate)
+        get_text(lang, "reg_success", name=name, phone=phone, plate=plate),
+        reply_markup=get_main_menu(lang)
     )
     context.user_data.clear()
     return ConversationHandler.END
@@ -118,6 +120,15 @@ async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardRemove()
     )
     return ConversationHandler.END
+
+async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    # We will trigger the appropriate handlers directly based on text match
+    # A cleaner architecture would be routing everything through a central state,
+    # but since these are all independent conversation handlers, we can just let
+    # regex entry points hit the individual conversations!
+    # Let's handle it purely by adding filters to the entry_points of those Conversations!
+    pass
 
 def create_bot_app() -> Application:
     app = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
@@ -138,5 +149,6 @@ def create_bot_app() -> Application:
     
     app.add_handler(registration_conv)
     app.add_handler(get_trip_conversation_handler())
+    app.add_handler(get_expense_conversation_handler())
     
     return app
