@@ -146,6 +146,7 @@
 | ALERT-02 | Phase 2 | Pending |
 | ALERT-03 | Phase 2 | Pending |
 | ALERT-04 | Phase 2 | Pending |
+| FLEET-03 | Phase 2 | Pending |
 | TRIP-01 | Phase 3 | Pending |
 | TRIP-02 | Phase 3 | Pending |
 | TRIP-03 | Phase 3 | Pending |
@@ -153,13 +154,12 @@
 | TRIP-05 | Phase 3 | Pending |
 | TRIP-06 | Phase 3 | Pending |
 | TRIP-07 | Phase 3 | Pending |
+| FLEET-01 | Phase 3 | Pending |
+| FLEET-02 | Phase 3 | Pending |
 | LOC-01 | Phase 4 | Pending |
 | LOC-02 | Phase 4 | Pending |
 | LOC-03 | Phase 4 | Pending |
 | LOC-04 | Phase 4 | Pending |
-| FLEET-01 | Phase 3 | Pending |
-| FLEET-02 | Phase 3 | Pending |
-| FLEET-03 | Phase 2 | Pending |
 | DIR-01 | Phase 5 | Pending |
 | DIR-02 | Phase 5 | Pending |
 | DIR-03 | Phase 5 | Pending |
@@ -167,10 +167,10 @@
 | DIR-05 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 38 total
-- Mapped to phases: 38
-- Unmapped: 0 ✓
+- v1 requirements: 43 total
+- Mapped to phases: 43
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-08 after initial definition*
+*Last updated: 2026-03-08 after milestone v1.0 roadmap created*
