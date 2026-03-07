@@ -85,3 +85,17 @@ class Expense(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     trip = relationship("Trip", back_populates="expenses")
+
+class LocationUpdate(Base):
+    __tablename__ = "locations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=True) # Optional, driver might be off trip
+    
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    driver = relationship("Driver") # Basic relation for now

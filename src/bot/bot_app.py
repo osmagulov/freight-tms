@@ -13,6 +13,7 @@ from src.db.database import async_session
 from src.db.crud import get_driver_by_tg_id, create_driver, get_vehicle_by_plate, create_vehicle, update_driver_language
 from antigravity_modules.trip_opening import get_trip_conversation_handler, open_trip_handler
 from antigravity_modules.expense_flow import get_expense_conversation_handler, add_expense_handler
+from antigravity_modules.location_flow import get_location_conversation_handler
 from antigravity_modules.translations import get_text, get_main_menu
 
 logger = logging.getLogger(__name__)
@@ -150,5 +151,6 @@ def create_bot_app() -> Application:
     app.add_handler(registration_conv)
     app.add_handler(get_trip_conversation_handler())
     app.add_handler(get_expense_conversation_handler())
+    app.add_handler(get_location_conversation_handler())
     
     return app
