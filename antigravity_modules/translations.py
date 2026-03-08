@@ -1,0 +1,128 @@
+TRANSLATIONS = {
+    "ru": {
+        "welcome_back": "👋 Здравствуйте, {name}!",
+        "welcome_new": "👋 Здравствуйте! Я помощник диспетчера.\nПожалуйста, выберите язык / Тілді таңдаңыз:",
+        "ask_name": "✍️ Напишите ваши Имя и Фамилию:",
+        "btn_phone": "📱 Отправить мой номер",
+        "ask_phone": "👍 Хорошо, {name}. Теперь нажмите на выделенную кнопку внизу экрана, чтобы отправить свой номер телефона.",
+        "ask_vehicle": "🚚 Напишите гос. номер вашей машины (например: 123 ABC 01):",
+        "reg_success": "✅ Вы успешно зарегистрированы!\nИмя: {name}\nМашина: {plate}\n\n👇 Нажимайте на кнопки внизу для работы.",
+        "reg_cancelled": "❌ Отменено. Нажмите /start чтобы начать заново.",
+        "need_reg": "⚠️ Нажмите /start для регистрации.",
+        
+        "open_trip_ask_route": "📍 Напишите откуда и куда вы едете (например: Алматы - Москва):",
+        "open_trip_ask_cargo": "🚚 Напишите ГОС. НОМЕР машины и прицепа на которых вы едете (например: 123 ABC 01):",
+        "open_trip_ask_docs": "📸 Сфотографируйте накладную (CMR) и отправьте фото:",
+        "open_trip_docs_error": "⚠️ Отправьте именно ФОТО документа.",
+        "open_trip_ask_odo": "🔢 Напишите пробег машины СЕЙЧАС (только цифры):",
+        "open_trip_odo_error": "⚠️ Напишите ТОЛЬКО ЦИФРЫ (без букв).",
+        "open_trip_success": "✅ Вы в пути! Счастливой дороги!\nМаршрут: {route}\nМашина: {cargo}\nПробег: {odometer} км.\n\n👇 Не забывайте добавлять расходы внизу экрана.",
+        "open_trip_cancelled": "❌ Действие отменено.",
+        
+        "exp_no_trip": "У вас нет активного рейса. Сначала откройте рейс (/open_trip).",
+        "exp_no_trip": "⚠️ Вы не в рейсе. Сначала нажмите '🚚 Открыть рейс'.",
+        "exp_ask_type": "Какую трату вы хотите добавить?",
+        "exp_type_fuel": "⛽ Заправил топливо",
+        "exp_type_diem": "🍔 Еда (суточные)",
+        "exp_type_fine": "👮 Заплатил штраф",
+        "exp_type_repair": "🔧 Починил машину",
+        "exp_type_other": "📦 Другое",
+        "exp_ask_amount": "🔢 Напишите потраченную СУММУ (только цифры):",
+        "exp_ask_currency": "💵 В какой валюте платили?",
+        "exp_ask_photo": "📸 Отправьте ФОТО ЧЕКА (или нажмите /skip_photo если чека нет):",
+        "exp_ask_card_photo": "💳 Теперь отправьте ФОТО КАРТЫ или ТЕРМИНАЛА, с которых была оплата (или нажмите /skip_card если платили наличными):",
+        "exp_ask_comment": "✍️ Напишите комментарий (за что заплатили) или нажмите /skip_comment:",
+        "exp_success": "✅ Сохранено: {type} на {amount} {currency}!",
+        "exp_cancelled": "❌ Действие отменено.",
+        
+        "menu_open_trip": "🚚 НАЧАТЬ РЕЙС",
+        "menu_add_expense": "💸 ДОБАВИТЬ РАСХОД",
+        "menu_share_location": "📍 ОТПРАВИТЬ ГЕОЛОКАЦИЮ",
+        
+        "loc_ask": "👇 Нажмите на БОЛЬШУЮ КНОПКУ внизу чтобы отправить где вы сейчас находитесь.",
+        "loc_btn": "📍 ОТПРАВИТЬ МОЮ ГЕОЛОКАЦИЮ",
+        "loc_success": "✅ Геопозиция получена. Спасибо!",
+        "loc_error": "⚠️ Нажмите на кнопку внизу экрана.",
+        
+        "menu_close_trip": "🏁 ЗАВЕРШИТЬ РЕЙС",
+        "close_trip_no_trip": "⚠️ У вас нет открытого рейса.",
+        "close_trip_ask_odo": "🔢 Рейс завершен. Напишите пробег машины СЕЙЧАС (только цифры):",
+        "close_trip_odo_error": "⚠️ Ошибка. Пробег должен быть больше начального и состоять только из цифр.",
+        "close_trip_ask_doc": "📸 Сфотографируйте закрывающую накладную (CMR) и отправьте фото:",
+        "close_trip_doc_error": "⚠️ Отправьте именно ФОТО документа.",
+        "close_trip_success": "✅ Рейс завершен!\nВы проехали: {diff} км.\nЖдем вас на новых маршрутах!",
+        "close_trip_cancelled": "❌ Действие отменено."
+    },
+    "kk": {
+        "welcome_back": "👋 Сәлеметсіз бе, {name}!",
+        "welcome_new": "👋 Сәлеметсіз бе! Мен диспетчердің көмекшісімін.\nПожалуйста, выберите язык / Тілді таңдаңыз:",
+        "ask_name": "✍️ Толық аты-жөніңізді жазыңыз:",
+        "btn_phone": "📱 Өз нөмірімді жіберу",
+        "ask_phone": "👍 Жақсы, {name}. Енді телефон нөміріңізді жіберу үшін экранның астындағы батырманы басыңыз.",
+        "ask_vehicle": "🚚 Көлігіңіздің мемлекеттік нөмірін жазыңыз (мысалы: 123 ABC 01):",
+        "reg_success": "✅ Сіз сәтті тіркелдіңіз!\nАты-жөні: {name}\nКөлік: {plate}\n\n👇 Жұмысты бастау үшін төмендегі батырмаларды басыңыз.",
+        "reg_cancelled": "❌ Тоқтатылды. Қайта бастау үшін /start басыңыз.",
+        "need_reg": "⚠️ Тіркелу үшін /start басыңыз.",
+        
+        "open_trip_ask_route": "📍 Қайдан және қайда бара жатқаныңызды жазыңыз (мысалы: Алматы - Мәскеу):",
+        "open_trip_ask_cargo": "🚚 Көліктің немесе тіркеменің МЕМЛЕКЕТТІК НӨМІРІН жазыңыз (мысалы: 123 ABC 01):",
+        "open_trip_ask_docs": "📸 Жүкқұжатты (CMR) суретке түсіріп, жіберіңіз:",
+        "open_trip_docs_error": "⚠️ Міндетті түрде құжаттың СУРЕТІН жіберіңіз.",
+        "open_trip_ask_odo": "🔢 Көліктің ҚАЗІРГІ жүрісін жазыңыз (тек сандар):",
+        "open_trip_odo_error": "⚠️ ТЕК САНДАРДЫ жазыңыз (әріптерсіз).",
+        "open_trip_success": "✅ Сіз жолдасыз! Сәт сапар!\nМаршрут: {route}\nКөлік: {cargo}\nЖүріс: {odometer} км.\n\n👇 Экранның астындағы шығындарды қосуды ұмытпаңыз.",
+        "open_trip_cancelled": "❌ Әрекет тоқтатылды.",
+
+        "exp_no_trip": "⚠️ Сіз рейсте емессіз. Алдымен '🚚 РЕЙСТІ БАСТАУ' батырмасын басыңыз.",
+        "exp_ask_type": "Қандай шығын қосасыз?",
+        "exp_type_fuel": "⛽ Жанармай құйдым",
+        "exp_type_diem": "🍔 Тамақ (тәуліктік)",
+        "exp_type_fine": "👮 Айыппұл төледім",
+        "exp_type_repair": "🔧 Көлікті жөндедім",
+        "exp_type_other": "📦 Басқа",
+        "exp_ask_amount": "🔢 Жұмсалған СОМАНЫ жазыңыз (тек сандар):",
+        "exp_ask_currency": "💵 Қандай валютада төледіңіз?",
+        "exp_ask_photo": "📸 ЧЕКТІҢ СУРЕТІН жіберіңіз (немесе чек жоқ болса /skip_photo басыңыз):",
+        "exp_ask_card_photo": "💳 Енді төленген КАРТАНЫҢ немесе ТЕРМИНАЛДЫҢ СУРЕТІН жіберіңіз (қолма-қол төлесеңіз /skip_card басыңыз):",
+        "exp_ask_comment": "✍️ Комментарий жазыңыз (не үшін төледіңіз) немесе /skip_comment басыңыз:",
+        "exp_success": "✅ Сақталды: {type} - {amount} {currency}!",
+        "exp_cancelled": "❌ Әрекет тоқтатылды.",
+
+        "menu_open_trip": "🚚 РЕЙСТІ БАСТАУ",
+        "menu_add_expense": "💸 ШЫҒЫН ҚОСУ",
+        "menu_share_location": "📍 ГЕОЛОКАЦИЯ ЖІБЕРУ",
+        
+        "loc_ask": "👇 Қазір қайда екеніңізді жіберу үшін астындағы ҮЛКЕН БАТЫРМАНЫ басыңыз.",
+        "loc_btn": "📍 МЕНІҢ ГЕОЛОКАЦИЯМДЫ ЖІБЕРУ",
+        "loc_success": "✅ Геопозиция қабылданды. Рақмет!",
+        "loc_error": "⚠️ Экранның астындағы батырманы басыңыз.",
+        
+        "menu_close_trip": "🏁 РЕЙСТІ АЯҚТАУ",
+        "close_trip_no_trip": "⚠️ Сізде ашық рейс жоқ.",
+        "close_trip_ask_odo": "🔢 Рейс аяқталды. Көліктің ҚАЗІРГІ жүрісін жазыңыз (тек сандар):",
+        "close_trip_odo_error": "⚠️ Қате. Жүріс бастапқыдан көп болуы керек және тек сандардан тұруы керек.",
+        "close_trip_ask_doc": "📸 Жабылатын жүкқұжатты (CMR) суретке түсіріп, жіберіңіз:",
+        "close_trip_doc_error": "⚠️ Міндетті түрде құжаттың СУРЕТІН жіберіңіз.",
+        "close_trip_success": "✅ Рейс аяқталды!\nСіздің жүріп өткен жолыңыз: {diff} км.\nЖаңа маршруттарда күтеміз!",
+        "close_trip_cancelled": "❌ Әрекет тоқтатылды."
+    }
+}
+
+def get_text(lang: str, key: str, **kwargs) -> str:
+    # Default to ru if lang not found
+    lang_dict = TRANSLATIONS.get(lang, TRANSLATIONS["ru"])
+    text = lang_dict.get(key, TRANSLATIONS["ru"].get(key, key))
+    if kwargs:
+        return text.format(**kwargs)
+    return text
+
+def get_main_menu(lang: str, has_active_trip: bool = False):
+    from telegram import ReplyKeyboardMarkup, KeyboardButton
+    keyboard = []
+    if has_active_trip:
+        keyboard.append([KeyboardButton(get_text(lang, "menu_add_expense")), KeyboardButton(get_text(lang, "menu_close_trip"))])
+        keyboard.append([KeyboardButton(get_text(lang, "menu_share_location"))])
+    else:
+        keyboard.append([KeyboardButton(get_text(lang, "menu_open_trip"))])
+        
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
