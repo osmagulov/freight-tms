@@ -30,7 +30,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A receipt photo sent through the bot is stored durably in Cloudflare R2 and retrievable via URL
   4. Railway redeploy does not lose a driver's in-progress bot conversation (FSM state persists)
   5. Dispatcher and director can log into the web panel with a password; unauthenticated requests are redirected to login
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 01-PLAN.md — Database & configuration foundation (PostgreSQL URL, Settings, models, Alembic migration)
+- [ ] 02-PLAN.md — FastAPI + PTB webhook integration (lifespan, /telegram route, receive_vehicle() FK fix)
+- [ ] 03-PLAN.md — FSM persistence (persistent=True on all 4 remaining ConversationHandlers)
+- [ ] 04-PLAN.md — Cloudflare R2 photo storage (r2.py service, expense_flow photo upload, photo_r2_url column)
+- [ ] 05-PLAN.md — Web panel foundation (JWT auth, /panel/login, /panel/drivers, vehicle edit form)
+- [ ] 06-PLAN.md — Railway deployment (railway.toml, .env.example, smoke test on production)
 
 ### Phase 2: Expense Control
 **Goal**: Drivers can submit all expense types through the bot and dispatchers can approve or reject them inline, with automated fuel anomaly detection alerting the director
@@ -85,7 +93,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure & Foundation | 0/? | Not started | - |
+| 1. Infrastructure & Foundation | 0/6 | Not started | - |
 | 2. Expense Control | 0/? | Not started | - |
 | 3. Trip Management | 0/? | Not started | - |
 | 4. Location & Map | 0/? | Not started | - |
