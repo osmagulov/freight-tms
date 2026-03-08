@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 1 of 5 (Infrastructure & Foundation)
-Plan: 5 of 6 in current phase
-Status: Executing
-Last activity: 2026-03-09 — Completed plan 05 (JWT cookie auth + Jinja2 web panel for dispatcher drivers/vehicle management)
+Plan: 6 of 6 in current phase
+Status: Checkpoint — awaiting human smoke test
+Last activity: 2026-03-09 — Completed plan 06 Task 1 (railway.toml, .env.example, alembic/env.py fix); human-verify checkpoint reached
 
-Progress: [████░░░░░░] 17%
+Progress: [█████░░░░░] 20%
 
 ## Performance Metrics
 
@@ -27,10 +27,10 @@ Progress: [████░░░░░░] 17%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-infrastructure-and-foundation | 5/6 | 47 min | 9.4 min |
+| 01-infrastructure-and-foundation | 6/6 | 52 min | 8.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (2 min), 01-03 (2 min), 01-04 (8 min), 01-05 (32 min)
+- Last 6 plans: 01-01 (3 min), 01-02 (2 min), 01-03 (2 min), 01-04 (8 min), 01-05 (32 min), 01-06 (5 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -58,6 +58,8 @@ Recent decisions affecting current work:
 - [Phase 01-04]: photo_file_id kept alongside photo_r2_url for backward compat; R2 upload gracefully degrades to None if credentials absent (no crash)
 - [Phase 01-05]: HTTPException(302) raised inline at each auth guard in get_current_user_from_cookie() — no helper function to avoid unreachable-raise confusion
 - [Phase 01-05]: 302 exception handler added to FastAPI app so browser follows auth redirects from Depends() cookie guard dependency
+- [Phase 01-06]: alembic/env.py get_url() must return settings.async_database_url not settings.DATABASE_URL — asyncpg rejects bare postgresql:// scheme
+- [Phase 01-06]: railway.toml preDeployCommand uses array format ["alembic","upgrade","head"]; runs in separate Railway container with only DATABASE_URL, no Volume mount
 
 ### Pending Todos
 
@@ -72,5 +74,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 01-05-PLAN.md (JWT cookie auth + Jinja2 web panel for dispatcher drivers/vehicle management — human-verify checkpoint pending)
+Stopped at: 01-06-PLAN.md Task 2 — checkpoint:human-verify (smoke test Phase 1 on Railway production)
 Resume file: None
