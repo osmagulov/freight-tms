@@ -4,11 +4,14 @@ from http import HTTPStatus
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import HTTPException as _HTTPException
+from fastapi.responses import JSONResponse, RedirectResponse as _RR
 from telegram import Update
 from telegram.ext import Application, PicklePersistence
 
 from src.core.config import settings
 from src.bot.bot_app import register_handlers
+from src.web.panel import router as panel_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,6 +56,15 @@ async def lifespan(app: FastAPI):
         await ptb_app.stop()
 
 app = FastAPI(title="Freight TMS API", lifespan=lifespan)
+app.include_router(panel_router)
+
+
+@app.exception_handler(_HTTPException)
+async def http_exception_handler(request, exc):
+    if exc.status_code == 302 and "Location" in exc.headers:
+        return _RR(url=exc.headers["Location"], status_code=302)
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc.detail)})
+
 
 @app.get("/")
 async def healthcheck():

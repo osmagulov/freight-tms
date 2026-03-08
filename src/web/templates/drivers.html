@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Водители — Freight TMS{% endblock %}
+{% block content %}
+<h2>Водители и борта</h2>
+<table>
+    <thead>
+        <tr>
+            <th>ФИО</th>
+            <th>Телефон</th>
+            <th>Борт (гос. номер)</th>
+            <th>Марка</th>
+            <th>Модель</th>
+            <th>Норма (л/100км)</th>
+            <th>Статус</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for driver, vehicle in rows %}
+        <tr>
+            <td>{{ driver.name or '—' }}</td>
+            <td>{{ driver.phone or '—' }}</td>
+            <td>{{ vehicle.license_plate if vehicle else '—' }}</td>
+            <td>{{ vehicle.make if vehicle else '—' }}</td>
+            <td>{{ vehicle.model if vehicle else '—' }}</td>
+            <td>{{ vehicle.fuel_norm_per_100km if vehicle and vehicle.fuel_norm_per_100km else '—' }}</td>
+            <td>{{ driver.status }}</td>
+            <td>
+                {% if vehicle %}
+                <a class="btn" href="/panel/vehicles/{{ vehicle.id }}/edit">Изменить борт</a>
+                {% else %}
+                —
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center; color:#888;">Водители не зарегистрированы</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
