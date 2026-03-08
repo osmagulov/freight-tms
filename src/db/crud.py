@@ -33,3 +33,12 @@ async def create_vehicle(session: AsyncSession, license_plate: str) -> Vehicle:
     await session.commit()
     await session.refresh(vehicle)
     return vehicle
+
+async def link_driver_to_vehicle(session: AsyncSession, driver_id: int, vehicle_id: int) -> None:
+    """Set driver.vehicle_id = vehicle_id. Call after both driver and vehicle are created."""
+    result = await session.execute(select(Driver).where(Driver.id == driver_id))
+    driver = result.scalars().first()
+    if driver:
+        driver.vehicle_id = vehicle_id
+        session.add(driver)
+        await session.commit()

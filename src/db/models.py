@@ -37,8 +37,10 @@ class Driver(Base):
     language = Column(String, default="ru", nullable=False)
     status = Column(String, default=DriverStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
 
     trips = relationship("Trip", back_populates="driver")
+    vehicle = relationship("Vehicle", back_populates="drivers")
 
 class Vehicle(Base):
     __tablename__ = "vehicles"
@@ -46,8 +48,12 @@ class Vehicle(Base):
     id = Column(Integer, primary_key=True, index=True)
     license_plate = Column(String, unique=True, index=True, nullable=False)
     status = Column(String, default=VehicleStatus.AVAILABLE)
-    
+    make = Column(String, nullable=True)
+    model = Column(String, nullable=True)
+    fuel_norm_per_100km = Column(Float, nullable=True)
+
     trips = relationship("Trip", back_populates="vehicle")
+    drivers = relationship("Driver", back_populates="vehicle")
 
 class Trip(Base):
     __tablename__ = "trips"
@@ -55,16 +61,16 @@ class Trip(Base):
     id = Column(Integer, primary_key=True, index=True)
     driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
-    
+
     route_details = Column(String, nullable=True)
     load_info = Column(String, nullable=True)
     status = Column(String, default=TripStatus.PLANNED)
-    
+
     start_odometer = Column(Integer, nullable=True)
     end_odometer = Column(Integer, nullable=True)
-    
+
     closing_document_id = Column(String, nullable=True)
-    
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -78,12 +84,13 @@ class Expense(Base):
     id = Column(Integer, primary_key=True, index=True)
     trip_id = Column(Integer, ForeignKey("trips.id"), nullable=False)
     expense_type = Column(String, nullable=False)
-    
+
     amount = Column(Float, nullable=False)
-    currency = Column(String, default="RUB")
-    photo_file_id = Column(String, nullable=True)
+    currency = Column(String(3), default="RUB")
+    photo_file_id = Column(String, nullable=True) # Receipt
+    card_photo_file_id = Column(String, nullable=True) # Card/Terminal
     comment = Column(String, nullable=True)
-    
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     trip = relationship("Trip", back_populates="expenses")
@@ -94,10 +101,10 @@ class LocationUpdate(Base):
     id = Column(Integer, primary_key=True, index=True)
     driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
     trip_id = Column(Integer, ForeignKey("trips.id"), nullable=True) # Optional, driver might be off trip
-    
+
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
-    
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     driver = relationship("Driver") # Basic relation for now
