@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 1 of 5 (Infrastructure & Foundation)
-Plan: 3 of 6 in current phase
+Plan: 4 of 6 in current phase
 Status: Executing
-Last activity: 2026-03-09 — Completed plan 03 (persistent=True on all 4 remaining ConversationHandlers)
+Last activity: 2026-03-09 — Completed plan 04 (R2 photo storage service + expense_flow wiring + photo_r2_url migration)
 
-Progress: [██░░░░░░░░] 10%
+Progress: [███░░░░░░░] 13%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 2 min
-- Total execution time: 0.1 hours
+- Total plans completed: 4
+- Average duration: 3.75 min
+- Total execution time: 0.25 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-infrastructure-and-foundation | 3/6 | 7 min | 2.3 min |
+| 01-infrastructure-and-foundation | 4/6 | 15 min | 3.75 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (2 min), 01-03 (2 min)
+- Last 5 plans: 01-01 (3 min), 01-02 (2 min), 01-03 (2 min), 01-04 (8 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -54,6 +54,8 @@ Recent decisions affecting current work:
 - [01-02]: WEBHOOK_URL absence logged as warning (not error) to allow local development without Railway env vars
 - [01-03]: PTB requires both name= AND persistent=True on ConversationHandler; only persistent=True was missing in 4 of 5 handlers — added with no other changes
 - [01-03]: FSM persistence now complete across all 5 ConversationHandlers; bot conversation state survives Railway redeployments
+- [Phase 01-04]: boto3 is synchronous — wrapped in run_in_executor(None, partial(...)) to avoid blocking asyncio event loop during R2 uploads
+- [Phase 01-04]: photo_file_id kept alongside photo_r2_url for backward compat; R2 upload gracefully degrades to None if credentials absent (no crash)
 
 ### Pending Todos
 
@@ -68,5 +70,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 01-03-PLAN.md (persistent=True on all 4 remaining ConversationHandlers — FSM persistence complete)
+Stopped at: Completed 01-04-PLAN.md (R2 photo storage service + expense_flow wiring + photo_r2_url migration — durable receipt photos via Cloudflare R2)
 Resume file: None
