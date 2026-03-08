@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 1 of 5 (Infrastructure & Foundation)
-Plan: 4 of 6 in current phase
+Plan: 5 of 6 in current phase
 Status: Executing
-Last activity: 2026-03-09 — Completed plan 04 (R2 photo storage service + expense_flow wiring + photo_r2_url migration)
+Last activity: 2026-03-09 — Completed plan 05 (JWT cookie auth + Jinja2 web panel for dispatcher drivers/vehicle management)
 
-Progress: [███░░░░░░░] 13%
+Progress: [████░░░░░░] 17%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 3.75 min
-- Total execution time: 0.25 hours
+- Total plans completed: 5
+- Average duration: 9.4 min
+- Total execution time: 0.78 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-infrastructure-and-foundation | 4/6 | 15 min | 3.75 min |
+| 01-infrastructure-and-foundation | 5/6 | 47 min | 9.4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (2 min), 01-03 (2 min), 01-04 (8 min)
+- Last 5 plans: 01-01 (3 min), 01-02 (2 min), 01-03 (2 min), 01-04 (8 min), 01-05 (32 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -56,6 +56,8 @@ Recent decisions affecting current work:
 - [01-03]: FSM persistence now complete across all 5 ConversationHandlers; bot conversation state survives Railway redeployments
 - [Phase 01-04]: boto3 is synchronous — wrapped in run_in_executor(None, partial(...)) to avoid blocking asyncio event loop during R2 uploads
 - [Phase 01-04]: photo_file_id kept alongside photo_r2_url for backward compat; R2 upload gracefully degrades to None if credentials absent (no crash)
+- [Phase 01-05]: HTTPException(302) raised inline at each auth guard in get_current_user_from_cookie() — no helper function to avoid unreachable-raise confusion
+- [Phase 01-05]: 302 exception handler added to FastAPI app so browser follows auth redirects from Depends() cookie guard dependency
 
 ### Pending Todos
 
@@ -70,5 +72,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 01-04-PLAN.md (R2 photo storage service + expense_flow wiring + photo_r2_url migration — durable receipt photos via Cloudflare R2)
+Stopped at: Completed 01-05-PLAN.md (JWT cookie auth + Jinja2 web panel for dispatcher drivers/vehicle management — human-verify checkpoint pending)
 Resume file: None
