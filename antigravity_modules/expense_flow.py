@@ -1,4 +1,5 @@
 import logging
+import uuid
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import (
     Application,
@@ -14,6 +15,7 @@ from src.db.crud import get_driver_by_tg_id
 from src.db.models import ExpenseType
 from antigravity_modules.expense_crud import get_active_trip_for_driver, create_expense
 from antigravity_modules.translations import get_text, get_main_menu
+from src.services.r2 import upload_photo_to_r2
 
 logger = logging.getLogger(__name__)
 
@@ -113,13 +115,28 @@ async def receive_expense_currency(update: Update, context: ContextTypes.DEFAULT
 
 async def receive_expense_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = context.user_data.get('lang', 'ru')
+
     if update.message.photo:
-        context.user_data['photo_id'] = update.message.photo[-1].file_id
+        tg_file = await update.message.photo[-1].get_file()
     elif update.message.document:
-        context.user_data['photo_id'] = update.message.document.file_id
-    # If text is /skip_photo skip it, but python-telegram-bot routes commands differently
-    # Let's handle it manually or gracefully skip
-        
+        tg_file = await update.message.document.get_file()
+    else:
+        await update.message.reply_text(get_text(lang, "exp_ask_photo"))
+        return AWAITING_EXPENSE_PHOTO
+
+    # Download photo bytes from Telegram servers
+    file_bytes = await tg_file.download_as_bytearray()
+
+    # Generate unique R2 key: receipts/{trip_id}/{uuid}.jpg
+    trip_id = context.user_data.get('trip_id', 'unknown')
+    key = f"receipts/{trip_id}/{uuid.uuid4()}.jpg"
+
+    # Upload to R2 (runs in thread executor, non-blocking)
+    r2_url = await upload_photo_to_r2(bytes(file_bytes), key)
+    context.user_data['photo_r2_url'] = r2_url
+    # Keep legacy photo_id for backward compat during transition
+    context.user_data['photo_id'] = tg_file.file_id
+
     await update.message.reply_text(
         get_text(lang, "exp_ask_card_photo")
     )
@@ -128,6 +145,7 @@ async def receive_expense_photo(update: Update, context: ContextTypes.DEFAULT_TY
 async def skip_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = context.user_data.get('lang', 'ru')
     context.user_data['photo_id'] = None
+    context.user_data['photo_r2_url'] = None
     await update.message.reply_text(
         get_text(lang, "exp_ask_card_photo")
     )
@@ -166,7 +184,8 @@ async def process_final_expense(update: Update, context: ContextTypes.DEFAULT_TY
     currency = context.user_data.get('currency')
     photo_id = context.user_data.get('photo_id')
     card_photo_id = context.user_data.get('card_photo_id')
-    
+    photo_r2_url = context.user_data.get('photo_r2_url')
+
     async with async_session() as session:
         await create_expense(
             session=session,
@@ -176,7 +195,8 @@ async def process_final_expense(update: Update, context: ContextTypes.DEFAULT_TY
             currency=currency,
             photo_file_id=photo_id,
             card_photo_file_id=card_photo_id,
-            comment=comment
+            comment=comment,
+            photo_r2_url=photo_r2_url,  # New R2 URL field
         )
         
     await update.message.reply_text(
