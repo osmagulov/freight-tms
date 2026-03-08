@@ -88,6 +88,7 @@ class Expense(Base):
     amount = Column(Float, nullable=False)
     currency = Column(String(3), default="RUB")
     photo_file_id = Column(String, nullable=True) # Receipt
+    photo_r2_url = Column(String, nullable=True)  # R2 durable storage URL (replaces Telegram file_id for receipts)
     card_photo_file_id = Column(String, nullable=True) # Card/Terminal
     comment = Column(String, nullable=True)
 
