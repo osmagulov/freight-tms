@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 from src.core.config import settings
 from src.db.database import async_session
-from src.db.crud import get_driver_by_tg_id, create_driver, get_vehicle_by_plate, create_vehicle, update_driver_language
+from src.db.crud import get_driver_by_tg_id, create_driver, get_vehicle_by_plate, create_vehicle, update_driver_language, link_driver_to_vehicle
 from antigravity_modules.trip_opening import get_trip_conversation_handler, open_trip_handler
 from antigravity_modules.expense_flow import get_expense_conversation_handler, add_expense_handler
 from antigravity_modules.location_flow import get_location_conversation_handler
@@ -101,18 +101,18 @@ async def receive_vehicle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phone = context.user_data.get('phone')
     
     async with async_session() as session:
-        # Create or verify vehicle
+        # Create or look up vehicle by license plate
         vehicle = await get_vehicle_by_plate(session, plate)
         if not vehicle:
             vehicle = await create_vehicle(session, plate)
-            
-        # Create driver
+
+        # Create driver record
         lang = context.user_data.get('lang', 'ru')
         driver = await create_driver(session, tg_id=tg_id, name=name, phone=phone, language=lang)
-        
-        # Note: In a complete flow, we'll want to link Driver and Vehicle.
-        # But MVP just registers them.
-        
+
+        # Link driver to vehicle (fixes REG-02: driver.vehicle_id FK was previously never set)
+        await link_driver_to_vehicle(session, driver.id, vehicle.id)
+
     await update.message.reply_text(
         get_text(lang, "reg_success", name=name, phone=phone, plate=plate),
         reply_markup=get_main_menu(lang, False)
@@ -129,18 +129,30 @@ async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    # We will trigger the appropriate handlers directly based on text match
-    # A cleaner architecture would be routing everything through a central state,
-    # but since these are all independent conversation handlers, we can just let
-    # regex entry points hit the individual conversations!
-    # Let's handle it purely by adding filters to the entry_points of those Conversations!
-    pass
-
-def create_bot_app() -> Application:
-    app = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
+async def menu_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    tg_id = user.id
     
+    async with async_session() as session:
+        driver = await get_driver_by_tg_id(session, tg_id)
+        if not driver:
+            await update.message.reply_text(get_text("ru", "need_reg"))
+            return
+            
+        lang = driver.language
+        trip = await get_active_trip_for_driver(session, driver.id)
+        has_active_trip = trip is not None
+        
+        await update.message.reply_text(
+            "Меню / Мәзір:",
+            reply_markup=get_main_menu(lang, has_active_trip)
+        )
+
+def register_handlers(app: Application) -> None:
+    """Register all ConversationHandlers and command handlers onto a PTB Application instance.
+    Called from main.py lifespan so that PicklePersistence is already attached to the app."""
+    app.add_handler(CommandHandler("menu", menu_command_handler))
+
     registration_conv = ConversationHandler(
         entry_points=[CommandHandler("start", start_handler)],
         states={
@@ -152,13 +164,19 @@ def create_bot_app() -> Application:
             AWAITING_VEHICLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_vehicle)]
         },
         fallbacks=[CommandHandler("cancel", cancel_handler)],
-        name="registration"
+        name="registration",
+        persistent=True,
     )
-    
+
     app.add_handler(registration_conv)
     app.add_handler(get_trip_conversation_handler())
     app.add_handler(get_expense_conversation_handler())
     app.add_handler(get_location_conversation_handler())
     app.add_handler(get_trip_closing_conversation_handler())
-    
+
+
+def create_bot_app() -> Application:
+    """Build a standalone PTB Application for local testing (polling mode, no persistence)."""
+    app = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
+    register_handlers(app)
     return app
