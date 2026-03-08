@@ -2,7 +2,7 @@
 phase: 01-infrastructure-and-foundation
 plan: 06
 type: execute
-wave: 3
+wave: 4
 depends_on:
   - "01-02"
   - "01-03"
@@ -11,6 +11,7 @@ depends_on:
 files_modified:
   - railway.toml
   - .env.example
+  - alembic/env.py
 autonomous: false
 requirements:
   - INFRA-01
@@ -66,6 +67,9 @@ must_haves:
     - path: ".env.example"
       provides: "Template of all required environment variables"
       contains: "WEBHOOK_URL"
+    - path: "alembic/env.py"
+      provides: "Alembic async migration runner using settings.async_database_url"
+      contains: "async_database_url"
   key_links:
     - from: "railway.toml preDeployCommand"
       to: "alembic upgrade head"
@@ -106,7 +110,7 @@ Output: railway.toml, .env.example, deployed Railway service passing smoke tests
 
 <task type="auto">
   <name>Task 1: Create railway.toml and .env.example</name>
-  <files>railway.toml, .env.example</files>
+  <files>railway.toml, .env.example, alembic/env.py</files>
   <action>
   Create railway.toml at the project root:
   ```toml
@@ -156,19 +160,16 @@ Output: railway.toml, .env.example, deployed Railway service passing smoke tests
   ADMIN_PASSWORD_HASH=your_bcrypt_hash_here
   ```
 
-  Also verify that `alembic/env.py` uses `settings.DATABASE_URL` (not `settings.async_database_url`) for the migration connection. Alembic uses a synchronous psycopg2-style URL during pre-deploy if using synchronous migration runner, or asyncpg if the existing env.py is configured for async. Read alembic/env.py and confirm:
-  - If env.py calls `get_url()` which returns `settings.DATABASE_URL` → Railway provides `postgresql://` format → works with psycopg2 sync driver if installed, or may need adjustment
-  - If env.py already uses async pattern (run_async_migrations) → ensure `settings.async_database_url` is used for `create_async_engine` in env.py
+  Read alembic/env.py and verify it uses `settings.async_database_url` (not `settings.DATABASE_URL`) for the async engine creation call. Railway provides DATABASE_URL as `postgresql://...`; the `async_database_url` property on settings converts it to `postgresql+asyncpg://...` which asyncpg requires.
 
-  Read alembic/env.py and update it if needed: replace any `settings.DATABASE_URL` call with `settings.async_database_url` in the `create_async_engine(...)` call. The pre-deploy container needs DATABASE_URL set but the `postgresql+asyncpg://` scheme is what asyncpg engine needs.
-
-  Add `psycopg2-binary>=2.9.0` to requirements.txt only if alembic/env.py uses synchronous (non-async) migration runner. If env.py already uses async runner with asyncpg, skip this — asyncpg is already in requirements.txt.
+  If alembic/env.py calls `create_async_engine(settings.DATABASE_URL, ...)` or `get_url()` returning the raw DATABASE_URL, replace it with `create_async_engine(settings.async_database_url, ...)`. Do NOT add psycopg2-binary — the project uses asyncpg exclusively for migrations via the async runner.
   </action>
   <verify>
   Run: `cat railway.toml` — shows preDeployCommand with alembic upgrade head and startCommand with uvicorn $PORT.
   Run: `cat .env.example` — shows all 10 required env var keys.
-  Run: `python -c "import toml; d = toml.load('railway.toml'); print(d['deploy']['preDeployCommand'])"` — OR just `grep preDeployCommand railway.toml` — matches.
+  Run: `grep "preDeployCommand" railway.toml` — matches.
   Run: `grep "WEBHOOK_URL\|R2_ACCOUNT_ID\|JWT_SECRET_KEY\|ADMIN_PASSWORD_HASH" .env.example | wc -l` — prints 4 (all present).
+  Run: `grep "async_database_url" alembic/env.py` — matches (confirms asyncpg URL used for engine creation).
   </verify>
   <done>railway.toml exists with preDeployCommand = ["alembic", "upgrade", "head"] and startCommand using $PORT. .env.example lists all 10 env vars with comments. alembic/env.py uses async_database_url for engine creation.</done>
 </task>
@@ -218,6 +219,7 @@ Final phase verification — all 5 success criteria confirmed by human smoke tes
 <success_criteria>
 - railway.toml created with preDeployCommand=["alembic","upgrade","head"] and startCommand with $PORT
 - .env.example lists all 10 required env vars
+- alembic/env.py uses settings.async_database_url for engine creation
 - Railway deploy completes without error (Alembic pre-deploy + app start)
 - All 5 Phase 1 success criteria verified by human smoke test:
   1. Driver registration creates PostgreSQL record with vehicle_id FK set

@@ -2,12 +2,14 @@
 phase: 01-infrastructure-and-foundation
 plan: 04
 type: execute
-wave: 2
+wave: 3
 depends_on:
   - "01-01"
+  - "01-03"
 files_modified:
   - src/services/r2.py
   - antigravity_modules/expense_flow.py
+  - antigravity_modules/expense_crud.py
   - src/db/models.py
   - alembic/versions/phase1_add_photo_r2_url.py
 autonomous: true
@@ -184,7 +186,7 @@ Output: src/services/r2.py with boto3 client; expense_flow.py updated to downloa
 
 <task type="auto">
   <name>Task 2: Wire R2 upload into expense_flow photo receipt step</name>
-  <files>antigravity_modules/expense_flow.py</files>
+  <files>antigravity_modules/expense_flow.py, antigravity_modules/expense_crud.py</files>
   <action>
   Update antigravity_modules/expense_flow.py to download the photo from Telegram and upload it to R2.
 

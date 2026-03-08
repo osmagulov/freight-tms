@@ -2,9 +2,10 @@
 phase: 01-infrastructure-and-foundation
 plan: 05
 type: execute
-wave: 2
+wave: 3
 depends_on:
   - "01-01"
+  - "01-02"
 files_modified:
   - src/web/__init__.py
   - src/web/auth.py
@@ -126,10 +127,9 @@ Output: src/web/ module with auth.py, panel.py, 4 Jinja2 templates, wired into s
 
 
   def get_current_user_from_cookie(access_token: str = Cookie(default=None)) -> dict:
-      """FastAPI dependency: extract user dict from JWT cookie. Redirect to /panel/login if invalid."""
+      """FastAPI dependency: extract user dict from JWT cookie. Raise 302 to /panel/login if invalid."""
       if not access_token:
-          # Raise as RedirectResponse so FastAPI returns 302 to login
-          raise _redirect_to_login()
+          raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
       try:
           payload = jwt.decode(
               access_token,
@@ -139,22 +139,13 @@ Output: src/web/ module with auth.py, panel.py, 4 Jinja2 templates, wired into s
           username: str = payload.get("sub")
           role: str = payload.get("role", "dispatcher")
           if username is None:
-              raise _redirect_to_login()
+              raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
           return {"username": username, "role": role}
       except JWTError:
-          raise _redirect_to_login()
-
-
-  def _redirect_to_login():
-      """Return a RedirectResponse that FastAPI can raise as an HTTPException."""
-      from fastapi import HTTPException
-      # Use a redirect response as exception so FastAPI sends 302 with Location header
-      response = RedirectResponse(url="/panel/login", status_code=302)
-      # Wrap in HTTPException so it can be raised from a dependency
-      # The actual redirect is handled by the exception handler in main.py
-      # Simpler: just raise an HTTPException with 302 status
-      raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
+          raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
   ```
+
+  Note: Import HTTPException at the top of the file — add `from fastapi import Cookie, HTTPException, Request` (replace the Cookie-only import line). There is no `_redirect_to_login()` helper function. Each guard site raises `HTTPException(status_code=302, headers={"Location": "/panel/login"})` directly to avoid the unreachable-raise confusion of a helper that itself raises.
 
   Create src/web/panel.py:
   ```python
@@ -285,8 +276,9 @@ Output: src/web/ module with auth.py, panel.py, 4 Jinja2 templates, wired into s
   Run: `python -c "from src.web.panel import router; print(len(router.routes), 'routes')"` — prints 6 routes (login GET, login POST, logout, drivers, vehicle edit GET, vehicle edit POST).
   Grep: `grep -n "outerjoin.*Vehicle\|Vehicle.*outerjoin" src/web/panel.py` — must match.
   Grep: `grep -n "Depends(get_current_user_from_cookie)" src/web/panel.py` — matches on list_drivers, vehicle edit routes.
+  Grep: `grep -n "_redirect_to_login" src/web/auth.py` — must NOT match (no such helper function exists).
   </verify>
-  <done>src/web/auth.py has create_access_token(), verify_password(), get_current_user_from_cookie(). src/web/panel.py router has 6 routes: login GET/POST, logout, drivers GET, vehicle edit GET/POST. drivers route uses outerjoin(Vehicle, Driver.vehicle_id == Vehicle.id). All protected routes use Depends(get_current_user_from_cookie).</done>
+  <done>src/web/auth.py has create_access_token(), verify_password(), get_current_user_from_cookie() with inline HTTPException raises (no _redirect_to_login helper). src/web/panel.py router has 6 routes: login GET/POST, logout, drivers GET, vehicle edit GET/POST. drivers route uses outerjoin(Vehicle, Driver.vehicle_id == Vehicle.id). All protected routes use Depends(get_current_user_from_cookie).</done>
 </task>
 
 <task type="auto">
@@ -451,7 +443,7 @@ Output: src/web/ module with auth.py, panel.py, 4 Jinja2 templates, wired into s
   app.include_router(panel_router)
   ```
 
-  Also add exception handler for 302 redirects from auth dependency so browser follows redirect correctly:
+  Also add exception handler for 302 HTTPExceptions from the auth dependency so the browser follows the redirect correctly:
   ```python
   from fastapi.responses import RedirectResponse as _RR
   from fastapi.exceptions import HTTPException as _HTTPException
