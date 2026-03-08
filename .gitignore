@@ -1,3 +1,10 @@
 venv/
 *.db
 __pycache__/
+bot_v2.log
+kill_bot.py
+run_migration.py
+set_commands.py
+run_bot.py
+data.sqlite3
+freight_tms.db
