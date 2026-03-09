@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Dispatcher always knows where every truck is, what it's carrying, and how much it has spent — and can assign a new trip before the truck returns
-**Current focus:** Phase 3 (Trip Management) — Plans 01, 02, 03, 04 complete
+**Current focus:** Phase 3 (Trip Management) — COMPLETE (all 5 plans done)
 
 ## Current Position
 
-Phase: 3 of 5 (Trip Management) — IN PROGRESS
-Plan: 4 of 5 in Phase 3 — COMPLETE
-Status: Phase 3 Plan 04 complete. Dispatcher trip creation UI with Telegram driver notification added to web panel.
-Last activity: 2026-03-09 — Phase 3 Plan 04 complete. notify_driver_trip_assignment() added to panel.py, GET/POST /panel/trips routes, trips_list.html and trips_create.html templates, Рейсы nav link in base.html.
+Phase: 3 of 5 (Trip Management) — COMPLETE
+Plan: 5 of 5 in Phase 3 — COMPLETE
+Status: Phase 3 fully complete. Trip detail page and fleet dashboard added to web panel.
+Last activity: 2026-03-09 — Phase 3 Plan 05 complete. GET /panel/trips/{id} and GET /panel/fleet routes in panel.py, trip_detail.html and fleet.html templates, Парк nav link in base.html, clickable trip rows in trips_list.html.
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 72%
 
 ## Performance Metrics
 
@@ -29,7 +29,7 @@ Progress: [██████░░░░] 60%
 |-------|-------|-------|----------|
 | 01-infrastructure-and-foundation | 6/6 | 52 min | 8.7 min |
 | 02-expense-control | 5/5 | 34 min | 6.8 min |
-| 03-trip-management | 4/5 | 25 min | 6.3 min |
+| 03-trip-management | 5/5 | 33 min | 6.6 min |
 
 **Recent Trend:**
 - Last 7 plans: 02-04 (18 min), 02-05 (9 min), 03-01 (3 min), 03-02 (8 min), 03-03 (8 min), 03-04 (6 min)
@@ -43,6 +43,7 @@ Progress: [██████░░░░] 60%
 | Phase 03-trip-management P02 | 8 | 3 tasks | 3 files |
 | Phase 03-trip-management P03 | 8 | 3 tasks | 3 files |
 | Phase 03-trip-management P04 | 6 | 3 tasks | 4 files |
+| Phase 03-trip-management P05 | 8 | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,10 @@ Recent decisions affecting current work:
 - [Phase 03-04]: notify_driver_trip_assignment reloads trip with selectinload after session.commit() — driver.tg_id accessible outside session
 - [Phase 03-04]: Trip list filter bar uses GET params (driver_id, vehicle_id) for bookmarkable URLs
 - [Phase 03-04]: parse_dt() helper converts datetime-local HTML string or empty string to Python datetime or None
+- [Phase 03-05]: trip_detail route registered after trips/create — FastAPI matches in order so /create pattern matched first
+- [Phase 03-05]: Fleet active trip detection done Python-side on loaded vehicle.trips — avoids extra DB query
+- [Phase 03-05]: total_kzt calculated server-side with fallback to raw amount when amount_kzt is None
+- [Phase 03-05]: Trip rows in trips_list use onclick JS navigation for clickability without breaking HTML table structure
 
 ### Pending Todos
 
@@ -82,5 +87,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Phase 3 Plan 04 complete — GET/POST /panel/trips routes in panel.py, trips_list.html and trips_create.html templates, Рейсы nav link in base.html. TRIP-01 and TRIP-02 requirements fulfilled. Ready for Phase 3 Plan 05.
+Stopped at: Phase 3 Plan 05 complete — GET /panel/trips/{id} and GET /panel/fleet routes, trip_detail.html and fleet.html templates, Парк nav link in base.html. Phase 3 fully complete. TRIP-06, TRIP-07, FLEET-01, FLEET-02 requirements fulfilled. Ready for Phase 4.
 Resume file: None
