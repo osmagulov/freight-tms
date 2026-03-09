@@ -11,7 +11,7 @@ from sqlalchemy import select, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
-from src.db.models import Driver, Expense, FuelAnomaly, Trip, TripDocument, TripStatus, Vehicle
+from src.db.models import Driver, Expense, FuelAnomaly, LocationUpdate, Trip, TripDocument, TripStatus, Vehicle, VehicleStatus
 from src.web.auth import (
     create_access_token,
     get_current_user_from_cookie,
@@ -390,3 +390,86 @@ async def create_trip_submit(
 
     await notify_driver_trip_assignment(trip)
     return RedirectResponse(url="/panel/trips", status_code=302)
+
+
+@router.get("/trips/{trip_id}", response_class=HTMLResponse)
+async def trip_detail(
+    request: Request,
+    trip_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(Trip)
+            .where(Trip.id == trip_id)
+            .options(
+                selectinload(Trip.driver),
+                selectinload(Trip.vehicle),
+                selectinload(Trip.expenses),
+                selectinload(Trip.documents),
+            )
+        )
+        trip = result.scalars().first()
+        if not trip:
+            return RedirectResponse(url="/panel/trips", status_code=302)
+
+        # Load location pings for this trip
+        locations_result = await session.execute(
+            select(LocationUpdate)
+            .where(LocationUpdate.trip_id == trip_id)
+            .order_by(LocationUpdate.created_at.desc())
+        )
+        locations = locations_result.scalars().all()
+
+    # Calculate total expenses in KZT
+    total_kzt = sum(
+        (e.amount_kzt if e.amount_kzt is not None else e.amount)
+        for e in trip.expenses
+    )
+
+    return templates.TemplateResponse(
+        "trip_detail.html",
+        {
+            "request": request,
+            "trip": trip,
+            "locations": locations,
+            "total_kzt": total_kzt,
+            "user": current_user,
+        },
+    )
+
+
+@router.get("/fleet", response_class=HTMLResponse)
+async def fleet_dashboard(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        vehicles_result = await session.execute(
+            select(Vehicle)
+            .options(
+                selectinload(Vehicle.trips).selectinload(Trip.driver),
+                selectinload(Vehicle.drivers),
+            )
+            .order_by(Vehicle.license_plate)
+        )
+        vehicles = vehicles_result.scalars().all()
+
+    # For each vehicle, find active trip (if any) — Python-side filter
+    vehicle_data = []
+    for vehicle in vehicles:
+        active_trip = next(
+            (t for t in vehicle.trips if t.status == TripStatus.ACTIVE),
+            None,
+        )
+        vehicle_data.append({"vehicle": vehicle, "active_trip": active_trip})
+
+    return templates.TemplateResponse(
+        "fleet.html",
+        {
+            "request": request,
+            "vehicle_data": vehicle_data,
+            "VehicleStatus": VehicleStatus,
+            "user": current_user,
+        },
+    )
