@@ -135,3 +135,40 @@ async def activate_trip(session: AsyncSession, trip_id: int, start_odometer: int
     await session.commit()
     await session.refresh(trip)
     return trip
+
+
+async def close_trip_db(
+    session: AsyncSession,
+    trip_id: int,
+    end_odometer: int,
+    delivery_status: str,
+    vehicle_id: int,
+) -> Trip | None:
+    """
+    Close a trip atomically: set Trip.status=COMPLETED, Trip.end_odometer,
+    Trip.delivery_status, Trip.completed_at, and Vehicle.status=AVAILABLE.
+    Returns the updated Trip on success, None if trip not found.
+    """
+    trip_result = await session.execute(
+        select(Trip).where(Trip.id == trip_id)
+    )
+    trip = trip_result.scalars().first()
+    if not trip:
+        return None
+
+    vehicle_result = await session.execute(
+        select(Vehicle).where(Vehicle.id == vehicle_id)
+    )
+    vehicle = vehicle_result.scalars().first()
+
+    trip.status = TripStatus.COMPLETED.value
+    trip.end_odometer = end_odometer
+    trip.delivery_status = delivery_status
+    trip.completed_at = datetime.utcnow()
+
+    if vehicle:
+        vehicle.status = VehicleStatus.AVAILABLE.value
+
+    await session.commit()
+    await session.refresh(trip)
+    return trip
