@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Float, Enum, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Float, Enum, DateTime, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -92,9 +92,56 @@ class Expense(Base):
     card_photo_file_id = Column(String, nullable=True) # Card/Terminal
     comment = Column(String, nullable=True)
 
+    # Approval workflow (EAPPR-01, EAPPR-02)
+    status = Column(String, default="PENDING", nullable=False)
+    approved_by = Column(String, nullable=True)          # dispatcher username from JWT
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    rejection_comment = Column(String, nullable=True)
+
+    # Fuel-specific fields (EXP-01, EXP-02)
+    liters = Column(Float, nullable=True)
+    odometer_reading = Column(Integer, nullable=True)
+    station = Column(String, nullable=True)
+
+    # Multi-currency normalization (EXP-07)
+    fx_rate = Column(Float, nullable=True)               # rate to KZT at submission time
+    amount_kzt = Column(Float, nullable=True)            # normalized amount in KZT
+
+    # Idempotency (EXP-08)
+    idempotency_minute = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'trip_id', 'expense_type', 'amount', 'idempotency_minute',
+            name='uq_expense_idempotent'
+        ),
+    )
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     trip = relationship("Trip", back_populates="expenses")
+
+class FuelAnomaly(Base):
+    __tablename__ = "fuel_anomalies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    expense_id = Column(Integer, ForeignKey("expenses.id"), nullable=False)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=False)
+
+    actual_per_100km = Column(Float, nullable=False)
+    norm_per_100km = Column(Float, nullable=False)
+    threshold_per_100km = Column(Float, nullable=False)
+    excess_percent = Column(Float, nullable=False)
+
+    is_false_alarm = Column(Boolean, default=False, nullable=False)
+    notified = Column(Boolean, default=False, nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    expense = relationship("Expense")
+    vehicle = relationship("Vehicle")
+    trip = relationship("Trip")
 
 class LocationUpdate(Base):
     __tablename__ = "locations"
