@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Dispatcher always knows where every truck is, what it's carrying, and how much it has spent — and can assign a new trip before the truck returns
-**Current focus:** Phase 4 (Location & Map) — COMPLETE (2 plans done)
+**Current focus:** Phase 5 (Director Dashboard) — COMPLETE (2 plans done)
 
 ## Current Position
 
-Phase: 4 of 5 (Location & Map) — COMPLETE
-Plan: 2 of 2 in Phase 4 — COMPLETE
-Status: Phase 4 fully complete. Leaflet fleet map with HTMX 30s auto-refresh added to web panel.
-Last activity: 2026-03-10 — Phase 4 complete. GET /panel/map (Leaflet map page) and GET /panel/map/markers (JSON endpoint for HTMX polling), map.html template with Leaflet + HTMX 30s polling, Карта nav link in base.html.
+Phase: 5 of 5 (Director Dashboard & Reporting) — COMPLETE
+Plan: 2 of 2 in Phase 5 — COMPLETE
+Status: ALL PHASES COMPLETE. Director dashboard with cost summary, per-truck breakdown, CSV export, anomaly history, and per-driver history.
+Last activity: 2026-03-10 — Phase 5 complete. src/web/director.py with 7 routes, 5 director templates, Директор nav link in base.html, director_router registered in main.py.
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -79,6 +79,13 @@ Recent decisions affecting current work:
 - [Phase 04]: _get_fleet_markers() uses subquery with func.max(created_at) GROUP BY driver_id for latest-per-driver query
 - [Phase 04]: /panel/map/markers returns JSONResponse; HTMX polls it every 30s via hx-trigger="every 30s" on hidden div
 - [Phase 04]: Leaflet markers updated in-place (setLatLng+setPopupContent) to avoid map flicker on refresh
+- [Phase 05]: director.py separate router at /panel/director — keeps panel.py manageable
+- [Phase 05]: _parse_date_range() defaults to current month (1st to today) when params absent
+- [Phase 05]: CSV uses UTF-8 BOM (\ufeff) for Excel compatibility on Windows
+- [Phase 05]: func.coalesce(amount_kzt, amount) for DB-side KZT totals in summary
+- [Phase 05]: director_trucks groups trips Python-side (defaultdict by license_plate) — avoids complex GROUP BY
+- [Phase 05]: Driver history uses select→join→where (Trip.driver_id) — no subquery needed
+- [Phase 05]: director_driver.html has inline <select> dropdown to switch drivers without returning to picker
 
 ### Pending Todos
 
@@ -92,5 +99,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Phase 4 complete — GET /panel/map + GET /panel/map/markers routes in panel.py, map.html Leaflet template with HTMX 30s polling, Карта nav link in base.html. LOC-02, LOC-03, LOC-04 requirements fulfilled (LOC-01 was already done). Ready for Phase 5 (Director Dashboard & Reporting).
+Stopped at: ALL 5 PHASES COMPLETE. Phase 5 added director dashboard: cost summary (DIR-01), per-truck breakdown (DIR-02), CSV export (DIR-03), anomaly history (DIR-04), per-driver history (DIR-05). v1 is feature-complete.
 Resume file: None

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Выбор водителя — Freight TMS{% endblock %}
+{% block content %}
+<h2>История расходов по водителю</h2>
+<p><a href="/panel/director" class="btn" style="background:#546e7a;">← Сводка</a></p>
+
+{% if drivers %}
+<table>
+  <thead>
+    <tr><th>ФИО</th><th>Телефон</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for d in drivers %}
+    <tr onclick="location='/panel/director/drivers/{{ d.id }}'" style="cursor:pointer;">
+      <td>{{ d.name or "—" }}</td>
+      <td>{{ d.phone or "—" }}</td>
+      <td><a href="/panel/director/drivers/{{ d.id }}" class="btn" style="font-size:13px;">Открыть</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:#888;">Нет активных водителей.</p>
+{% endif %}
+{% endblock %}

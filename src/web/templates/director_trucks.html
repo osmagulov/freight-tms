@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Расходы по бортам — Freight TMS{% endblock %}
+{% block content %}
+<h2>Расходы по бортам</h2>
+
+<form method="get" style="margin-bottom:20px; display:flex; gap:12px; align-items:center;">
+  <label style="font-size:14px;">С&nbsp;<input type="date" name="from_date" value="{{ from_date }}" style="padding:4px 8px;"></label>
+  <label style="font-size:14px;">По&nbsp;<input type="date" name="to_date" value="{{ to_date }}" style="padding:4px 8px;"></label>
+  <button type="submit" class="btn">Применить</button>
+  <a href="/panel/director?from_date={{ from_date }}&to_date={{ to_date }}" class="btn" style="background:#546e7a;">← Сводка</a>
+</form>
+
+{% if vehicle_trips %}
+  {% for plate, rows in vehicle_trips %}
+  <h3 style="margin-top:28px; margin-bottom:8px;">{{ plate }}</h3>
+  <table>
+    <thead>
+      <tr><th>Рейс</th><th>Маршрут</th><th>Водитель</th><th>Статус</th><th>Км</th><th>Расходы (KZT)</th></tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr onclick="location='/panel/trips/{{ row.trip.id }}'" style="cursor:pointer;">
+        <td>#{{ row.trip.id }}</td>
+        <td>{{ row.trip.route_details or '—' }}</td>
+        <td>{{ row.trip.driver.name if row.trip.driver else '—' }}</td>
+        <td>{{ row.trip.status }}</td>
+        <td>{{ row.km if row.km is not none else '—' }}</td>
+        <td>{{ "{:,.0f}".format(row.total_kzt) }}</td>
+      </tr>
+      {% endfor %}
+      <tr style="font-weight:bold; background:#f5f5f5;">
+        <td colspan="5">Итого по {{ plate }}</td>
+        <td>{{ "{:,.0f}".format(rows | sum(attribute='total_kzt')) }}</td>
+      </tr>
+    </tbody>
+  </table>
+  {% endfor %}
+{% else %}
+<p style="color:#888;">Нет рейсов за выбранный период.</p>
+{% endif %}
+{% endblock %}

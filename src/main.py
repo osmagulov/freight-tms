@@ -14,6 +14,7 @@ from src.core.config import settings
 from src.bot.bot_app import register_handlers
 from src.services.anomaly import run_anomaly_digest
 from src.web.panel import router as panel_router
+from src.web.director import router as director_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Freight TMS API", lifespan=lifespan)
 app.include_router(panel_router)
+app.include_router(director_router)
 
 
 @app.exception_handler(_HTTPException)
