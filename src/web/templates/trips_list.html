@@ -56,7 +56,7 @@
   </thead>
   <tbody>
     {% for trip in trips %}
-    <tr>
+    <tr style="cursor:pointer;" onclick="window.location='/panel/trips/{{ trip.id }}'">
       <td>{{ trip.id }}</td>
       <td>{{ trip.driver.name or trip.driver.tg_id }}</td>
       <td>{{ trip.vehicle.license_plate }}</td>
