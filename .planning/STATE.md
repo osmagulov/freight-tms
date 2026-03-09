@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Dispatcher always knows where every truck is, what it's carrying, and how much it has spent — and can assign a new trip before the truck returns
-**Current focus:** Phase 1: Infrastructure & Foundation
+**Current focus:** Phase 2: Expense Control
 
 ## Current Position
 
-Phase: 1 of 5 (Infrastructure & Foundation)
-Plan: 6 of 6 in current phase
-Status: Checkpoint — awaiting human smoke test
-Last activity: 2026-03-09 — Completed plan 06 Task 1 (railway.toml, .env.example, alembic/env.py fix); human-verify checkpoint reached
+Phase: 2 of 5 (Expense Control)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-09 — Phase 1 complete. Deployed to Railway: https://freight-tms-api-production.up.railway.app. Webhook active, healthcheck passing, web panel auth working.
 
-Progress: [█████░░░░░] 20%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
