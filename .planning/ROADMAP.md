@@ -50,7 +50,14 @@ Plans:
   3. Driver sees their own expense summary in the bot: pending approval, approved, and trip total
   4. Dispatcher sees the approval queue on the web panel, approves or rejects an expense inline (no page reload), and the driver receives a bot notification immediately
   5. When actual fuel consumption exceeds the truck's norm by more than 20% (after at least 2 prior fill-ups), the director receives a Telegram digest alert and the dispatcher sees the anomaly in the fleet feed with a "false alarm" button
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 01-PLAN.md — Schema migration (new Expense columns + FuelAnomaly table + DIRECTOR_TG_ID setting)
+- [ ] 02-PLAN.md — Bot expense flows refactor (FUEL with odometer validation, PER_DIEM, FINE, OTHER) + FX rates + idempotency
+- [ ] 03-PLAN.md — HTMX approval queue (/panel/expenses) + bot notifications on approve/reject
+- [ ] 04-PLAN.md — Anomaly detection service + APScheduler hourly digest + /panel/anomalies feed
+- [ ] 05-PLAN.md — /my_expenses bot command (expense summary) + end-to-end smoke test checkpoint
 
 ### Phase 3: Trip Management
 **Goal**: Dispatchers can create and assign trips, drivers receive and execute trips through the bot, and all historical trip data is searchable with full cost rollup
@@ -94,7 +101,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure & Foundation | 0/6 | Not started | - |
-| 2. Expense Control | 0/? | Not started | - |
+| 2. Expense Control | 0/5 | Not started | - |
 | 3. Trip Management | 0/? | Not started | - |
 | 4. Location & Map | 0/? | Not started | - |
 | 5. Director Dashboard & Reporting | 0/? | Not started | - |
