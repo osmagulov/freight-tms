@@ -24,12 +24,21 @@
             <td>{{ vehicle.make if vehicle else '—' }}</td>
             <td>{{ vehicle.model if vehicle else '—' }}</td>
             <td>{{ vehicle.fuel_norm_per_100km if vehicle and vehicle.fuel_norm_per_100km else '—' }}</td>
-            <td>{{ driver.status }}</td>
             <td>
-                {% if vehicle %}
-                <a class="btn" href="/panel/vehicles/{{ vehicle.id }}/edit">Изменить борт</a>
+                {% if driver.status == "ACTIVE" %}
+                  <span style="color:green; font-weight:bold;">ACTIVE</span>
                 {% else %}
-                —
+                  <span style="color:#e65100;">{{ driver.status }}</span>
+                {% endif %}
+            </td>
+            <td style="display:flex; gap:8px; flex-wrap:wrap;">
+                {% if driver.status != "ACTIVE" %}
+                <form method="post" action="/panel/drivers/{{ driver.id }}/activate" style="display:inline;">
+                  <button type="submit" class="btn" style="background:#2e7d32; font-size:13px;">✓ Активировать</button>
+                </form>
+                {% endif %}
+                {% if vehicle %}
+                <a class="btn" href="/panel/vehicles/{{ vehicle.id }}/edit" style="font-size:13px;">Изменить борт</a>
                 {% endif %}
             </td>
         </tr>

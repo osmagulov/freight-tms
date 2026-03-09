@@ -122,6 +122,21 @@ async def list_drivers(
     )
 
 
+@router.post("/drivers/{driver_id}/activate")
+async def activate_driver(
+    driver_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        if driver and driver.status != "ACTIVE":
+            driver.status = "ACTIVE"
+            session.add(driver)
+            await session.commit()
+    return RedirectResponse(url="/panel/drivers", status_code=302)
+
+
 @router.get("/vehicles/{vehicle_id}/edit", response_class=HTMLResponse)
 async def vehicle_edit_form(
     request: Request,
@@ -299,7 +314,7 @@ async def list_trips(
         trips = result.scalars().all()
 
         drivers_result = await session.execute(
-            select(Driver).where(Driver.status == "ACTIVE").order_by(Driver.name)
+            select(Driver).order_by(Driver.name)
         )
         drivers = drivers_result.scalars().all()
 
@@ -329,7 +344,7 @@ async def create_trip_form(
 ):
     async with async_session() as session:
         drivers_result = await session.execute(
-            select(Driver).where(Driver.status == "ACTIVE").order_by(Driver.name)
+            select(Driver).order_by(Driver.name)
         )
         drivers = drivers_result.scalars().all()
 
