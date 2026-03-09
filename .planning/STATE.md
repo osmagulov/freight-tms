@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 2 of 5 (Expense Control)
-Plan: 3 of ? in current phase
+Plan: 4 of ? in current phase
 Status: In progress
-Last activity: 2026-03-09 — Phase 2 Plan 03 complete. Dispatcher approval queue with HTMX inline approve/reject and Telegram driver notifications now operational.
+Last activity: 2026-03-09 — Phase 2 Plan 04 complete. Fuel anomaly detection service with APScheduler hourly Telegram digest and dispatcher anomaly feed page with HTMX false-alarm dismissal now operational.
 
 Progress: [███░░░░░░░] 25%
 
@@ -28,13 +28,15 @@ Progress: [███░░░░░░░] 25%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-infrastructure-and-foundation | 6/6 | 52 min | 8.7 min |
-| 02-expense-control | 3/? | 7 min | 2.3 min |
+| 02-expense-control | 4/? | 25 min | 6.3 min |
 
 **Recent Trend:**
-- Last 7 plans: 01-03 (2 min), 01-04 (8 min), 01-05 (32 min), 01-06 (5 min), 02-01 (5 min), 02-02 (?), 02-03 (2 min)
+- Last 7 plans: 01-04 (8 min), 01-05 (32 min), 01-06 (5 min), 02-01 (5 min), 02-02 (4 min), 02-03 (2 min), 02-04 (18 min)
 - Trend: Stable
 
 *Updated after each plan completion*
+| Phase 02-expense-control P02 | 4 | 2 tasks | 4 files |
+| Phase 02-expense-control P04 | 18 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -67,6 +69,9 @@ Recent decisions affecting current work:
 - [Phase 02-03]: Deferred import of ptb_app inside notify_driver_expense_decision() avoids circular import between main.py and panel.py
 - [Phase 02-03]: expense_row.html used as both include in expenses.html and direct TemplateResponse in POST handlers — single template, no duplication
 - [Phase 02-03]: HTMX 2.0.4 loaded via unpkg CDN in base.html head — applies to all panel pages; hx-post+hx-target+hx-swap=outerHTML pattern for inline row replacement
+- [Phase 02-04]: check_fuel_anomaly_after_expense() opens its own async_session and re-fetches expense/vehicle by ID — required because original create_expense() session is closed; avoids detached-instance error
+- [Phase 02-04]: APScheduler start() is NOT awaited (synchronous call); scheduler.shutdown(wait=False) on lifespan cleanup; scheduler starts before PTB async with block
+- [Phase 02-04]: Anomaly check wired into both process_final_expense() and process_final_expense_direct() — both paths save FUEL expenses in expense_flow.py
 
 ### Pending Todos
 
@@ -82,5 +87,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: 02-03-PLAN.md complete — Dispatcher approval queue with HTMX inline approve/reject and Telegram notifications
+Stopped at: 02-04-PLAN.md complete — Fuel anomaly detection service with APScheduler hourly Telegram digest and dispatcher anomaly feed page
 Resume file: None
