@@ -64,6 +64,12 @@ TRANSLATIONS = {
         "exp_ask_reason": "Укажите причину/категорию (например: ремонт тормозов, штраф за скорость):",
         "exp_ask_subcategory": "Категория расхода (ремонт / запчасти / паром / таможня / другое):",
         "exp_duplicate": "Такой расход уже зафиксирован в эту минуту. Если это ошибка, подождите минуту и попробуйте снова.",
+
+        # EXP-06: expense summary strings
+        "exp_summary_header": "Расходы по текущему рейсу:",
+        "exp_summary_line": "{status}: {count} поз. / {total:.0f} KZT",
+        "exp_summary_total": "ИТОГО одобрено: {total:.0f} KZT",
+        "exp_summary_empty": "По этому рейсу расходов пока нет.",
     },
     "kk": {
         "welcome_back": "👋 Сәлеметсіз бе, {name}!",
@@ -129,6 +135,12 @@ TRANSLATIONS = {
         "exp_ask_reason": "Себепті/санатты көрсетіңіз (мысалы: тежегіш жөндеу, жылдамдық айыбы):",
         "exp_ask_subcategory": "Шығын санаты (жөндеу / бөлшек / паром / кеден / басқа):",
         "exp_duplicate": "Бұл шығын осы минутта жазылды. Егер бұл қате болса, бір минут күтіп, қайта көріңіз.",
+
+        # EXP-06: expense summary strings
+        "exp_summary_header": "Ағымдағы рейс бойынша шығындар:",
+        "exp_summary_line": "{status}: {count} поз. / {total:.0f} KZT",
+        "exp_summary_total": "БАРЛЫҒЫ бекітілді: {total:.0f} KZT",
+        "exp_summary_empty": "Бұл рейс бойынша шығындар жоқ.",
     }
 }
 

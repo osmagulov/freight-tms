@@ -384,6 +384,61 @@ async def cancel_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
+
+async def expense_summary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """EXP-06: Show driver their expense summary for the active trip."""
+    tg_id = update.effective_user.id
+
+    async with async_session() as session:
+        driver = await get_driver_by_tg_id(session, tg_id)
+        if not driver:
+            await update.message.reply_text(get_text("ru", "need_reg"))
+            return
+        lang = driver.language
+
+        trip = await get_active_trip_for_driver(session, driver.id)
+        if not trip:
+            await update.message.reply_text(get_text(lang, "exp_no_trip"))
+            return
+
+        from sqlalchemy import func as sql_func, select as sa_select
+        from src.db.models import Expense as ExpenseModel
+        result = await session.execute(
+            sa_select(
+                ExpenseModel.status,
+                sql_func.count().label("cnt"),
+                sql_func.sum(ExpenseModel.amount_kzt).label("total_kzt"),
+            )
+            .where(ExpenseModel.trip_id == trip.id)
+            .group_by(ExpenseModel.status)
+        )
+        rows = result.all()
+
+    if not rows:
+        await update.message.reply_text(get_text(lang, "exp_summary_empty"))
+        return
+
+    STATUS_LABELS = {
+        "PENDING": "Ожидают" if lang == "ru" else "Күтуде",
+        "APPROVED": "Одобрены" if lang == "ru" else "Бекітілді",
+        "REJECTED": "Отклонены" if lang == "ru" else "Қабылданбады",
+    }
+
+    lines = [get_text(lang, "exp_summary_header")]
+    approved_total = 0.0
+    for status, count, total_kzt in rows:
+        label = STATUS_LABELS.get(status, status)
+        total = total_kzt or 0.0
+        lines.append(f"  {label}: {count} поз. / {total:.0f} KZT")
+        if status == "APPROVED":
+            approved_total = total
+
+    lines.append("")
+    lines.append(get_text(lang, "exp_summary_total", total=approved_total))
+
+    await update.message.reply_text("\n".join(lines))
+
+
 def get_expense_conversation_handler() -> ConversationHandler:
     return ConversationHandler(
         entry_points=[

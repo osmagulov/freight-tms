@@ -12,7 +12,7 @@ from src.core.config import settings
 from src.db.database import async_session
 from src.db.crud import get_driver_by_tg_id, create_driver, get_vehicle_by_plate, create_vehicle, update_driver_language, link_driver_to_vehicle
 from antigravity_modules.trip_opening import get_trip_conversation_handler, open_trip_handler
-from antigravity_modules.expense_flow import get_expense_conversation_handler, add_expense_handler
+from antigravity_modules.expense_flow import get_expense_conversation_handler, add_expense_handler, expense_summary_handler
 from antigravity_modules.location_flow import get_location_conversation_handler
 from antigravity_modules.trip_closing import get_trip_closing_conversation_handler
 from antigravity_modules.translations import get_text, get_main_menu
@@ -171,6 +171,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(registration_conv)
     app.add_handler(get_trip_conversation_handler())
     app.add_handler(get_expense_conversation_handler())
+    app.add_handler(CommandHandler("my_expenses", expense_summary_handler))
     app.add_handler(get_location_conversation_handler())
     app.add_handler(get_trip_closing_conversation_handler())
 
