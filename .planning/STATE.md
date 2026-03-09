@@ -5,39 +5,39 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Dispatcher always knows where every truck is, what it's carrying, and how much it has spent — and can assign a new trip before the truck returns
-**Current focus:** Phase 2: Expense Control
+**Current focus:** Phase 3 (next phase — Phase 2 complete)
 
 ## Current Position
 
-Phase: 2 of 5 (Expense Control)
-Plan: 5 of ? in current phase
-Status: Awaiting checkpoint — human-verify for Phase 2 smoke test on Railway
-Last activity: 2026-03-09 — Phase 2 Plan 05 Task 1 complete. /my_expenses command handler added. Paused at checkpoint:human-verify for full Phase 2 end-to-end test.
+Phase: 2 of 5 (Expense Control) — COMPLETE
+Plan: 5 of 5 in Phase 2 — COMPLETE
+Status: Phase 2 complete. Ready to begin Phase 3.
+Last activity: 2026-03-09 — Phase 2 Plan 05 complete. /my_expenses command verified. Full Phase 2 smoke test on Railway approved. Phase 2 Expense Control all 5 plans done.
 
-Progress: [███░░░░░░░] 25%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 6.9 min
-- Total execution time: 0.92 hours
+- Total plans completed: 9
+- Average duration: 6.8 min
+- Total execution time: ~1.0 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-infrastructure-and-foundation | 6/6 | 52 min | 8.7 min |
-| 02-expense-control | 4/? | 25 min | 6.3 min |
+| 02-expense-control | 5/5 | 34 min | 6.8 min |
 
 **Recent Trend:**
-- Last 7 plans: 01-04 (8 min), 01-05 (32 min), 01-06 (5 min), 02-01 (5 min), 02-02 (4 min), 02-03 (2 min), 02-04 (18 min)
+- Last 7 plans: 01-05 (32 min), 01-06 (5 min), 02-01 (5 min), 02-02 (4 min), 02-03 (2 min), 02-04 (18 min), 02-05 (9 min)
 - Trend: Stable
 
 *Updated after each plan completion*
 | Phase 02-expense-control P02 | 4 | 2 tasks | 4 files |
 | Phase 02-expense-control P04 | 18 | 2 tasks | 6 files |
-| Phase 02-expense-control P05 | 9 | 1 task | 3 files |
+| Phase 02-expense-control P05 | 9 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -82,13 +82,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- FX rate source for multi-currency expenses needs a decision before Phase 2 implementation (static table vs live API)
-- Photo mandatory vs optional in bot beta — decide before Phase 2 UX is written (2G upload reliability on driver routes)
-- Railway plan tier (Hobby vs Pro) should be confirmed before Phase 1 deploy to understand cold-start behavior
 - DIRECTOR_TG_ID must be set in Railway env vars before Phase 2 anomaly digest notifications are enabled
+- FX rate source for multi-currency expenses resolved as static table in Phase 2 — revisit if live rates needed
 
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: 02-05-PLAN.md Task 1 complete — paused at checkpoint:human-verify. Deploy to Railway and run full Phase 2 smoke test (FUEL/PER_DIEM flows, approval queue, anomaly feed, /my_expenses, duplicate prevention). Resume signal: "approved".
+Stopped at: Phase 2 Plan 05 complete — /my_expenses smoke test approved. Phase 2 Expense Control fully complete. Ready to begin Phase 3.
 Resume file: None
