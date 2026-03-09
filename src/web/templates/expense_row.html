@@ -1,35 +1,42 @@
 <tr id="expense-{{ expense.id }}">
-  <td>{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</td>
+  <td class="fw-bold">{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</td>
   <td>{{ expense.expense_type }}</td>
-  <td>{{ expense.amount }} {{ expense.currency }}
-      {% if expense.amount_kzt and expense.currency != 'KZT' %}
-      <small>({{ expense.amount_kzt | int }} KZT)</small>
-      {% endif %}
+  <td>
+    {{ expense.amount }} {{ expense.currency }}
+    {% if expense.amount_kzt and expense.currency != 'KZT' %}
+    <br><small class="text-muted">{{ expense.amount_kzt | int }} ₸</small>
+    {% endif %}
   </td>
   <td>
     {% if expense.photo_r2_url %}
-    <a href="{{ expense.photo_r2_url }}" target="_blank">Фото</a>
-    {% else %}нет{% endif %}
+    <a href="{{ expense.photo_r2_url }}" target="_blank" class="btn btn-xs btn-ghost">📎 Фото</a>
+    {% else %}<span class="text-muted">—</span>{% endif %}
   </td>
-  <td>{{ expense.created_at.strftime('%d.%m %H:%M') if expense.created_at else "—" }}</td>
+  <td class="text-muted">{{ expense.created_at.strftime('%d.%m %H:%M') if expense.created_at else "—" }}</td>
   <td>
     {% if expense.status == "PENDING" %}
-    <form hx-post="/panel/expenses/{{ expense.id }}/approve"
-          hx-target="#expense-{{ expense.id }}"
-          hx-swap="outerHTML"
-          style="display:inline">
-      <button type="submit">Одобрить</button>
-    </form>
-    <form hx-post="/panel/expenses/{{ expense.id }}/reject"
-          hx-target="#expense-{{ expense.id }}"
-          hx-swap="outerHTML"
-          style="display:inline">
-      <input name="comment" placeholder="Причина (необяз.)" style="width:120px">
-      <button type="submit">Отклонить</button>
-    </form>
+    <div class="action-group">
+      <form hx-post="/panel/expenses/{{ expense.id }}/approve"
+            hx-target="#expense-{{ expense.id }}"
+            hx-swap="outerHTML"
+            style="display:inline">
+        <button type="submit" class="btn btn-sm btn-success">✓ Одобрить</button>
+      </form>
+      <form hx-post="/panel/expenses/{{ expense.id }}/reject"
+            hx-target="#expense-{{ expense.id }}"
+            hx-swap="outerHTML"
+            style="display:inline; display:flex; gap:6px; align-items:center;">
+        <input name="comment" placeholder="Причина (необяз.)"
+               style="width:140px; padding:5px 9px; border:1px solid var(--border); border-radius:5px; font-size:13px;">
+        <button type="submit" class="btn btn-sm btn-danger">✕ Отклонить</button>
+      </form>
+    </div>
     {% else %}
-    <span>{{ expense.status }}</span>
-    {% if expense.rejection_comment %}<small> — {{ expense.rejection_comment }}</small>{% endif %}
+    {% if expense.status == 'APPROVED' %}<span class="badge badge-approved">Одобрен</span>
+    {% else %}<span class="badge badge-rejected">Отклонён</span>{% endif %}
+    {% if expense.rejection_comment %}
+    <div style="font-size:12px; color:var(--muted); margin-top:3px;">{{ expense.rejection_comment }}</div>
+    {% endif %}
     {% endif %}
   </td>
 </tr>

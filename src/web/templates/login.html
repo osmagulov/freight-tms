@@ -1,28 +1,42 @@
 {% extends "base.html" %}
 {% block title %}Вход — Freight TMS{% endblock %}
 {% block content %}
-<div style="max-width: 380px; margin: 80px auto; background: white; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); border-radius: 6px;">
-    <h2 style="margin-top: 0;">Вход в систему</h2>
-    <form method="post" action="/panel/login">
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-size: 14px;">Логин</label>
-            <input type="text" name="username" required autofocus
-                   style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+<style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f1f5f9; }
+    .auth-wrap { width:100%; max-width:380px; padding:20px; }
+    .auth-card { background:white; border-radius:10px; box-shadow:0 4px 24px rgba(0,0,0,.1); overflow:hidden; }
+    .auth-top  { background:#0f172a; padding:26px 28px 22px; }
+    .auth-top-title { color:white; font-size:17px; font-weight:700; }
+    .auth-top-sub   { color:rgba(255,255,255,.4); font-size:12px; margin-top:3px; }
+    .auth-body { padding:26px 28px; }
+    .auth-body label { font-size:12.5px; font-weight:500; color:#64748b; display:block; margin-bottom:5px; }
+    .auth-body input  { width:100%; padding:9px 12px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; }
+    .auth-body input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+    .auth-submit { width:100%; padding:10px; background:#2563eb; color:white; border:none; border-radius:6px; font-size:14.5px; font-weight:500; cursor:pointer; font-family:inherit; }
+    .auth-submit:hover { background:#1d4ed8; }
+    .auth-foot { text-align:center; margin-top:16px; font-size:12.5px; color:#94a3b8; }
+    .auth-foot a { color:#2563eb; text-decoration:none; }
+    .error { color:#dc2626; font-size:13px; padding:9px 12px; background:#fee2e2; border-radius:6px; margin-bottom:14px; }
+</style>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-top">
+            <div class="auth-top-title">🚛 Freight TMS</div>
+            <div class="auth-top-sub">Управление грузоперевозками</div>
         </div>
-        <div style="margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 6px; font-size: 14px;">Пароль</label>
-            <input type="password" name="password" required
-                   style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        <div class="auth-body">
+            <form method="post" action="/panel/login">
+                <label>Логин</label>
+                <input type="text" name="username" required autofocus placeholder="dispatcher">
+                <label>Пароль</label>
+                <input type="password" name="password" required placeholder="••••••••">
+                {% if error %}
+                <div class="error">{{ error }}</div>
+                {% endif %}
+                <button type="submit" class="auth-submit">Войти</button>
+            </form>
+            <div class="auth-foot">Нет аккаунта? <a href="/panel/setup">Создать →</a></div>
         </div>
-        {% if error %}
-        <p class="error">{{ error }}</p>
-        {% endif %}
-        <button type="submit" style="width: 100%; padding: 12px; background: #1a1a2e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
-            Войти
-        </button>
-    </form>
-    <p style="text-align:center; margin-top:20px; font-size:13px; color:#888;">
-        Нет аккаунта? <a href="/panel/setup" style="color:#1a1a2e;">Создать →</a>
-    </p>
+    </div>
 </div>
 {% endblock %}

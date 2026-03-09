@@ -1,63 +1,111 @@
 {% extends "base.html" %}
 {% block title %}Отчёт директора — Freight TMS{% endblock %}
 {% block content %}
-<h2>Отчёт директора</h2>
 
-<form method="get" style="margin-bottom:20px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-  <label style="font-size:14px;">С&nbsp;<input type="date" name="from_date" value="{{ from_date }}" style="padding:4px 8px;"></label>
-  <label style="font-size:14px;">По&nbsp;<input type="date" name="to_date" value="{{ to_date }}" style="padding:4px 8px;"></label>
-  <button type="submit" class="btn">Применить</button>
-  <a href="/panel/director/export?from_date={{ from_date }}&to_date={{ to_date }}" class="btn" style="background:#2e7d32;">↓ CSV</a>
-  <a href="/panel/director/trucks?from_date={{ from_date }}&to_date={{ to_date }}" class="btn" style="background:#1565c0;">По бортам</a>
-  <a href="/panel/director/anomalies" class="btn" style="background:#b71c1c;">Аномалии</a>
-  <a href="/panel/director/drivers" class="btn" style="background:#4a148c;">По водителям</a>
-</form>
+<div class="page-hdr">
+    <h1>Отчёт директора</h1>
+</div>
 
-<p style="color:#666; font-size:14px;">Рейсов за период: <strong>{{ trip_count }}</strong></p>
+<!-- Period filter -->
+<div class="filter-bar" style="margin-bottom:22px;">
+    <form method="get" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+        <label>С
+            <input type="date" name="from_date" value="{{ from_date }}" style="width:145px;">
+        </label>
+        <label>По
+            <input type="date" name="to_date" value="{{ to_date }}" style="width:145px;">
+        </label>
+        <button type="submit" class="btn btn-sm">Применить</button>
+    </form>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-left:auto;">
+        <a href="/panel/director/export?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-sm btn-success">↓ CSV</a>
+        <a href="/panel/director/trucks?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-sm">По бортам</a>
+        <a href="/panel/director/anomalies" class="btn btn-sm btn-danger">Аномалии</a>
+        <a href="/panel/director/drivers" class="btn btn-sm btn-purple">По водителям</a>
+    </div>
+</div>
 
+<!-- KPIs -->
+<div class="kpi-grid">
+    <div class="kpi">
+        <div class="kpi-label">Рейсов за период</div>
+        <div class="kpi-value">{{ trip_count }}</div>
+    </div>
+    <div class="kpi green">
+        <div class="kpi-label">Итого расходов</div>
+        <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(grand_total) }} ₸</div>
+    </div>
+    {% if summary %}
+    <div class="kpi amber">
+        <div class="kpi-label">Категорий расходов</div>
+        <div class="kpi-value">{{ summary | length }}</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Summary table -->
 {% if summary %}
-<table>
-  <thead>
-    <tr><th>Категория</th><th>Записей</th><th>Сумма (KZT)</th></tr>
-  </thead>
-  <tbody>
-    {% for row in summary %}
-    <tr>
-      <td>{{ row.expense_type }}</td>
-      <td>{{ row.cnt }}</td>
-      <td>{{ "{:,.0f}".format(row.total_kzt or 0) }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-  <tfoot>
-    <tr style="font-weight:bold; background:#f0f0f0;">
-      <td>ИТОГО</td>
-      <td>{{ summary | sum(attribute='cnt') }}</td>
-      <td>{{ "{:,.0f}".format(grand_total) }}</td>
-    </tr>
-  </tfoot>
-</table>
+<div class="table-wrap" style="margin-bottom:24px;">
+    <table>
+        <thead>
+            <tr>
+                <th>Категория</th>
+                <th>Записей</th>
+                <th>Сумма (KZT)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in summary %}
+            <tr>
+                <td class="fw-bold">{{ row.expense_type }}</td>
+                <td class="text-muted">{{ row.cnt }}</td>
+                <td>{{ "{:,.0f}".format(row.total_kzt or 0) }} ₸</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>ИТОГО</td>
+                <td>{{ summary | sum(attribute='cnt') }}</td>
+                <td>{{ "{:,.0f}".format(grand_total) }} ₸</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
 {% else %}
-<p style="color:#888;">Нет расходов за выбранный период.</p>
-{% endif %}
-
-{% if drivers %}
-<h3 style="margin-top:32px;">Экспорт по водителю</h3>
-<div style="display:flex; gap:8px; flex-wrap:wrap;">
-  {% for d in drivers %}
-  <a href="/panel/director/export?from_date={{ from_date }}&to_date={{ to_date }}&driver_id={{ d.id }}"
-     class="btn" style="font-size:13px; background:#546e7a;">↓ {{ d.name or d.id }}</a>
-  {% endfor %}
+<div class="table-wrap" style="margin-bottom:24px;">
+    <div class="empty"><div class="empty-icon">📊</div><p>Нет расходов за выбранный период.</p></div>
 </div>
 {% endif %}
 
-{% if vehicles %}
-<h3 style="margin-top:24px;">Экспорт по борту</h3>
-<div style="display:flex; gap:8px; flex-wrap:wrap;">
-  {% for v in vehicles %}
-  <a href="/panel/director/export?from_date={{ from_date }}&to_date={{ to_date }}&vehicle_id={{ v.id }}"
-     class="btn" style="font-size:13px; background:#546e7a;">↓ {{ v.license_plate }}</a>
-  {% endfor %}
+<!-- Export by driver/vehicle -->
+{% if drivers or vehicles %}
+<div class="card">
+    <div class="card-hdr"><span class="card-title">Экспорт по объекту</span></div>
+    <div class="card-body">
+        {% if drivers %}
+        <div style="margin-bottom:14px;">
+            <div style="font-size:12px; color:var(--muted); font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px;">По водителям</div>
+            <div class="action-group">
+                {% for d in drivers %}
+                <a href="/panel/director/export?from_date={{ from_date }}&to_date={{ to_date }}&driver_id={{ d.id }}"
+                   class="btn btn-sm btn-ghost">↓ {{ d.name or d.id }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% if vehicles %}
+        <div>
+            <div style="font-size:12px; color:var(--muted); font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px;">По бортам</div>
+            <div class="action-group">
+                {% for v in vehicles %}
+                <a href="/panel/director/export?from_date={{ from_date }}&to_date={{ to_date }}&vehicle_id={{ v.id }}"
+                   class="btn btn-sm btn-ghost">↓ {{ v.license_plate }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
 {% endblock %}

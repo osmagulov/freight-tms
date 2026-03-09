@@ -1,49 +1,59 @@
 {% extends "base.html" %}
 {% block title %}История аномалий — Freight TMS{% endblock %}
 {% block content %}
-<h2>История аномалий топлива</h2>
-<p style="margin-bottom:16px;">
-  <a href="/panel/director" class="btn" style="background:#546e7a;">← Сводка</a>
-  &nbsp;
-  <a href="/panel/anomalies" class="btn" style="background:#b71c1c;">Очередь диспетчера</a>
-</p>
+
+<div class="page-hdr">
+    <h1>История аномалий топлива</h1>
+    <div class="action-group">
+        <a href="/panel/director" class="btn btn-ghost">← Сводка</a>
+        <a href="/panel/anomalies" class="btn btn-danger">Очередь диспетчера</a>
+    </div>
+</div>
 
 {% if anomalies %}
-<table>
-  <thead>
-    <tr>
-      <th>Дата</th>
-      <th>Борт</th>
-      <th>Водитель</th>
-      <th>Факт л/100км</th>
-      <th>Норма</th>
-      <th>Превышение</th>
-      <th>Статус</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for a in anomalies %}
-    <tr>
-      <td>{{ a.created_at.strftime("%d.%m.%Y") if a.created_at else "—" }}</td>
-      <td>{{ a.vehicle.license_plate if a.vehicle else "—" }}</td>
-      <td>{{ a.trip.driver.name if a.trip and a.trip.driver else "—" }}</td>
-      <td>{{ "%.1f"|format(a.actual_per_100km) }}</td>
-      <td>{{ "%.1f"|format(a.norm_per_100km) }}</td>
-      <td style="color:{% if not a.is_false_alarm %}#c62828{% else %}#888{% endif %};">
-        +{{ "%.0f"|format(a.excess_percent) }}%
-      </td>
-      <td>
-        {% if a.is_false_alarm %}
-          <span style="color:#888;">Ложная тревога</span>
-        {% else %}
-          <span style="color:#c62828; font-weight:bold;">Активна</span>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Борт</th>
+                <th>Водитель</th>
+                <th>Факт (л/100км)</th>
+                <th>Норма</th>
+                <th>Превышение</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in anomalies %}
+            <tr>
+                <td class="text-muted">{{ a.created_at.strftime("%d.%m.%Y") if a.created_at else "—" }}</td>
+                <td>{{ a.vehicle.license_plate if a.vehicle else "—" }}</td>
+                <td>{{ a.trip.driver.name if a.trip and a.trip.driver else "—" }}</td>
+                <td>{{ "%.1f"|format(a.actual_per_100km) }}</td>
+                <td class="text-muted">{{ "%.1f"|format(a.norm_per_100km) }}</td>
+                <td>
+                    {% if not a.is_false_alarm %}
+                    <span class="badge badge-cancelled">+{{ "%.0f"|format(a.excess_percent) }}%</span>
+                    {% else %}
+                    <span class="text-muted">+{{ "%.0f"|format(a.excess_percent) }}%</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if a.is_false_alarm %}
+                    <span class="badge badge-pending">Ложная тревога</span>
+                    {% else %}
+                    <span class="badge badge-cancelled">Активна</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
-<p style="color:#888;">Аномалий нет.</p>
+<div class="table-wrap">
+    <div class="empty"><div class="empty-icon">✅</div><p>Аномалий нет.</p></div>
+</div>
 {% endif %}
 {% endblock %}

@@ -1,78 +1,70 @@
 {% extends "base.html" %}
 {% block title %}Новый рейс — Freight TMS{% endblock %}
 {% block content %}
-<style>
-  .form-card { background: white; padding: 32px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); max-width: 640px; }
-  .form-group { margin-bottom: 18px; }
-  .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #333; }
-  .form-group input,
-  .form-group select,
-  .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
-  .form-group select { height: 38px; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-actions { display: flex; gap: 12px; margin-top: 24px; }
-</style>
 
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
-  <a href="/panel/trips" style="color:#555; text-decoration:none;">&#8592; Рейсы</a>
-  <h2 style="margin:0;">Новый рейс</h2>
+<a href="/panel/trips" class="back-link">← Рейсы</a>
+
+<div class="page-hdr" style="margin-bottom:20px;">
+    <h1>Новый рейс</h1>
 </div>
 
-<div class="form-card">
-  <form action="/panel/trips/create" method="post">
+<div class="card" style="max-width:680px;">
+    <div class="card-hdr"><span class="card-title">Данные рейса</span></div>
+    <div class="card-body">
+        <form action="/panel/trips/create" method="post">
 
-    <div class="form-row">
-      <div class="form-group">
-        <label for="driver_id">Водитель *</label>
-        <select name="driver_id" id="driver_id" required>
-          <option value="">— выберите водителя —</option>
-          {% for d in drivers %}
-          <option value="{{ d.id }}">{{ d.name or d.tg_id }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="vehicle_id">Транспорт *</label>
-        <select name="vehicle_id" id="vehicle_id" required>
-          <option value="">— выберите транспорт —</option>
-          {% for v in vehicles %}
-          <option value="{{ v.id }}">{{ v.license_plate }}{% if v.make %} — {{ v.make }} {{ v.model or '' }}{% endif %}</option>
-          {% endfor %}
-        </select>
-      </div>
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label for="driver_id">Водитель *</label>
+                    <select name="driver_id" id="driver_id" required>
+                        <option value="">— выберите водителя —</option>
+                        {% for d in drivers %}
+                        <option value="{{ d.id }}">{{ d.name or d.tg_id }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="vehicle_id">Транспорт *</label>
+                    <select name="vehicle_id" id="vehicle_id" required>
+                        <option value="">— выберите борт —</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}">{{ v.license_plate }}{% if v.make %} — {{ v.make }} {{ v.model or '' }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label for="route_details">Маршрут</label>
+                <input type="text" name="route_details" id="route_details" placeholder="Например: Алматы — Астана" maxlength="500">
+            </div>
+
+            <div class="form-row">
+                <label for="load_info">Груз</label>
+                <input type="text" name="load_info" id="load_info" placeholder="Тип и объём груза" maxlength="500">
+            </div>
+
+            <div class="form-row">
+                <label for="client_name">Клиент</label>
+                <input type="text" name="client_name" id="client_name" placeholder="Наименование клиента" maxlength="255">
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label for="planned_departure">Планируемое отправление</label>
+                    <input type="datetime-local" name="planned_departure" id="planned_departure">
+                </div>
+                <div class="form-row">
+                    <label for="planned_arrival">Планируемое прибытие</label>
+                    <input type="datetime-local" name="planned_arrival" id="planned_arrival">
+                </div>
+            </div>
+
+            <div class="action-group" style="margin-top:8px;">
+                <button type="submit" class="btn">Создать рейс</button>
+                <a href="/panel/trips" class="btn btn-ghost">Отмена</a>
+            </div>
+        </form>
     </div>
-
-    <div class="form-group">
-      <label for="route_details">Маршрут</label>
-      <input type="text" name="route_details" id="route_details" placeholder="Например: Алматы — Астана" maxlength="500">
-    </div>
-
-    <div class="form-group">
-      <label for="load_info">Груз</label>
-      <input type="text" name="load_info" id="load_info" placeholder="Тип и объём груза" maxlength="500">
-    </div>
-
-    <div class="form-group">
-      <label for="client_name">Клиент</label>
-      <input type="text" name="client_name" id="client_name" placeholder="Наименование клиента" maxlength="255">
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="planned_departure">Планируемое отправление</label>
-        <input type="datetime-local" name="planned_departure" id="planned_departure">
-      </div>
-      <div class="form-group">
-        <label for="planned_arrival">Планируемое прибытие</label>
-        <input type="datetime-local" name="planned_arrival" id="planned_arrival">
-      </div>
-    </div>
-
-    <div class="form-actions">
-      <button type="submit" class="btn">Создать рейс</button>
-      <a href="/panel/trips" class="btn" style="background:#888;">Отмена</a>
-    </div>
-
-  </form>
 </div>
 {% endblock %}

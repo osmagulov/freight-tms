@@ -1,110 +1,81 @@
 {% extends "base.html" %}
-
 {% block title %}Парк — Freight TMS{% endblock %}
-
 {% block content %}
-<style>
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-    .badge-available { background: #e8f5e9; color: #2e7d32; }
-    .badge-on-trip { background: #e3f2fd; color: #1565c0; }
-    .badge-maintenance { background: #fff3e0; color: #e65100; }
-    .trip-link { color: #1a1a2e; font-weight: 500; text-decoration: none; }
-    .trip-link:hover { text-decoration: underline; }
-    .summary-bar { display: flex; gap: 16px; margin-bottom: 24px; }
-    .summary-card { background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 16px 20px; min-width: 130px; }
-    .summary-card .count { font-size: 28px; font-weight: 700; color: #1a1a2e; }
-    .summary-card .label { font-size: 12px; color: #888; margin-top: 4px; }
-</style>
 
-<div class="page-header">
-    <h1 style="margin: 0; font-size: 22px;">Парк транспорта</h1>
+{% set available_count   = vehicle_data | selectattr('vehicle.status', 'equalto', 'AVAILABLE')   | list | length %}
+{% set on_trip_count     = vehicle_data | selectattr('vehicle.status', 'equalto', 'ON_TRIP')      | list | length %}
+{% set maintenance_count = vehicle_data | selectattr('vehicle.status', 'equalto', 'MAINTENANCE')  | list | length %}
+
+<div class="page-hdr">
+    <h1>Парк транспорта</h1>
 </div>
 
-{% set available_count = vehicle_data | selectattr('vehicle.status', 'equalto', 'AVAILABLE') | list | length %}
-{% set on_trip_count = vehicle_data | selectattr('vehicle.status', 'equalto', 'ON_TRIP') | list | length %}
-{% set maintenance_count = vehicle_data | selectattr('vehicle.status', 'equalto', 'MAINTENANCE') | list | length %}
-
-<div class="summary-bar">
-    <div class="summary-card">
-        <div class="count">{{ vehicle_data | length }}</div>
-        <div class="label">Всего ТС</div>
+<div class="kpi-grid">
+    <div class="kpi">
+        <div class="kpi-label">Всего ТС</div>
+        <div class="kpi-value">{{ vehicle_data | length }}</div>
     </div>
-    <div class="summary-card">
-        <div class="count" style="color: #2e7d32;">{{ on_trip_count }}</div>
-        <div class="label">В рейсе</div>
+    <div class="kpi green">
+        <div class="kpi-label">В рейсе</div>
+        <div class="kpi-value">{{ on_trip_count }}</div>
     </div>
-    <div class="summary-card">
-        <div class="count" style="color: #1565c0;">{{ available_count }}</div>
-        <div class="label">Свободно</div>
+    <div class="kpi">
+        <div class="kpi-label">Свободно</div>
+        <div class="kpi-value">{{ available_count }}</div>
     </div>
-    <div class="summary-card">
-        <div class="count" style="color: #e65100;">{{ maintenance_count }}</div>
-        <div class="label">На ТО</div>
+    <div class="kpi amber">
+        <div class="kpi-label">На ТО</div>
+        <div class="kpi-value">{{ maintenance_count }}</div>
     </div>
 </div>
 
 {% if vehicle_data %}
-<table>
-    <thead>
-        <tr>
-            <th>Гос. номер</th>
-            <th>Марка / Модель</th>
-            <th>Статус</th>
-            <th>Текущий водитель</th>
-            <th>Маршрут</th>
-            <th>Рейс</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in vehicle_data %}
-        {% set vehicle = row.vehicle %}
-        {% set active_trip = row.active_trip %}
-        <tr>
-            <td><strong>{{ vehicle.license_plate }}</strong></td>
-            <td>
-                {% if vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}
-                {% else %}—{% endif %}
-            </td>
-            <td>
-                {% if vehicle.status == 'AVAILABLE' %}
-                    <span class="badge badge-available">Свободен</span>
-                {% elif vehicle.status == 'ON_TRIP' %}
-                    <span class="badge badge-on-trip">В рейсе</span>
-                {% elif vehicle.status == 'MAINTENANCE' %}
-                    <span class="badge badge-maintenance">На ТО</span>
-                {% else %}
-                    <span class="badge">{{ vehicle.status }}</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if active_trip and active_trip.driver %}
-                    {{ active_trip.driver.name or '—' }}
-                {% else %}
-                    —
-                {% endif %}
-            </td>
-            <td>
-                {% if active_trip %}
-                    {{ active_trip.route_details or '—' }}
-                {% else %}
-                    —
-                {% endif %}
-            </td>
-            <td>
-                {% if active_trip %}
-                    <a href="/panel/trips/{{ active_trip.id }}" class="trip-link">Рейс #{{ active_trip.id }}</a>
-                {% else %}
-                    —
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Гос. номер</th>
+                <th>Марка / Модель</th>
+                <th>Статус</th>
+                <th>Водитель</th>
+                <th>Маршрут</th>
+                <th>Рейс</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in vehicle_data %}
+            {% set vehicle = row.vehicle %}
+            {% set active_trip = row.active_trip %}
+            <tr>
+                <td class="fw-bold">{{ vehicle.license_plate }}</td>
+                <td class="text-muted">
+                    {% if vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    {% if vehicle.status == 'AVAILABLE' %}<span class="badge badge-available">Свободен</span>
+                    {% elif vehicle.status == 'ON_TRIP' %}<span class="badge badge-on-trip">В рейсе</span>
+                    {% elif vehicle.status == 'MAINTENANCE' %}<span class="badge badge-maintenance">На ТО</span>
+                    {% else %}<span class="badge">{{ vehicle.status }}</span>{% endif %}
+                </td>
+                <td>{{ active_trip.driver.name if active_trip and active_trip.driver else '—' }}</td>
+                <td class="text-muted">{{ active_trip.route_details if active_trip else '—' }}</td>
+                <td>
+                    {% if active_trip %}
+                    <a href="/panel/trips/{{ active_trip.id }}" class="btn btn-xs btn-ghost">Рейс #{{ active_trip.id }}</a>
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
-<div style="background: white; padding: 32px; text-align: center; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: #888;">
-    Транспортных средств пока нет.
+<div class="table-wrap">
+    <div class="empty">
+        <div class="empty-icon">🚚</div>
+        <p>Транспортных средств пока нет.</p>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

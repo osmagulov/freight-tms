@@ -1,46 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Аномалии расхода{% endblock %}
+{% block title %}Аномалии — Freight TMS{% endblock %}
 {% block content %}
-<h1>Аномалии расхода топлива</h1>
+
+<div class="page-hdr">
+    <h1>Аномалии расхода топлива</h1>
+    {% if anomalies %}
+    <span class="badge badge-cancelled">{{ anomalies | length }} активных</span>
+    {% endif %}
+</div>
+
 {% if not anomalies %}
-<p>Нет активных аномалий.</p>
+<div class="table-wrap">
+    <div class="empty">
+        <div class="empty-icon">✅</div>
+        <p>Нет активных аномалий расхода топлива.</p>
+    </div>
+</div>
 {% else %}
-<table>
-  <thead>
-    <tr>
-      <th>Дата</th>
-      <th>Борт ID</th>
-      <th>Рейс</th>
-      <th>Факт (л/100км)</th>
-      <th>Норма (л/100км)</th>
-      <th>Превышение</th>
-      <th>Статус</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for anomaly in anomalies %}
-    <tr id="anomaly-{{ anomaly.id }}">
-      <td>{{ anomaly.created_at.strftime('%d.%m %H:%M') if anomaly.created_at else "—" }}</td>
-      <td>{{ anomaly.vehicle_id }}</td>
-      <td>{{ anomaly.trip_id }}</td>
-      <td>{{ "%.1f"|format(anomaly.actual_per_100km) }}</td>
-      <td>{{ "%.1f"|format(anomaly.norm_per_100km) }}</td>
-      <td>+{{ "%.0f"|format(anomaly.excess_percent) }}%</td>
-      <td>
-        {% if not anomaly.is_false_alarm %}
-        <form hx-post="/panel/anomalies/{{ anomaly.id }}/dismiss"
-              hx-target="#anomaly-{{ anomaly.id }}"
-              hx-swap="outerHTML"
-              style="display:inline">
-          <button type="submit">Ложная тревога</button>
-        </form>
-        {% else %}
-        <span>Ложная тревога</span>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Борт ID</th>
+                <th>Рейс</th>
+                <th>Факт (л/100км)</th>
+                <th>Норма (л/100км)</th>
+                <th>Превышение</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for anomaly in anomalies %}
+            <tr id="anomaly-{{ anomaly.id }}">
+                <td class="text-muted">{{ anomaly.created_at.strftime('%d.%m %H:%M') if anomaly.created_at else "—" }}</td>
+                <td>{{ anomaly.vehicle_id }}</td>
+                <td><a href="/panel/trips/{{ anomaly.trip_id }}" class="btn btn-xs btn-ghost">#{{ anomaly.trip_id }}</a></td>
+                <td>{{ "%.1f"|format(anomaly.actual_per_100km) }}</td>
+                <td class="text-muted">{{ "%.1f"|format(anomaly.norm_per_100km) }}</td>
+                <td><span class="badge badge-cancelled">+{{ "%.0f"|format(anomaly.excess_percent) }}%</span></td>
+                <td>
+                    {% if not anomaly.is_false_alarm %}
+                    <form hx-post="/panel/anomalies/{{ anomaly.id }}/dismiss"
+                          hx-target="#anomaly-{{ anomaly.id }}"
+                          hx-swap="outerHTML"
+                          style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-ghost">Ложная тревога</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">Ложная тревога</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endif %}
 {% endblock %}

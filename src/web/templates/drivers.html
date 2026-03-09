@@ -1,50 +1,59 @@
 {% extends "base.html" %}
 {% block title %}Водители — Freight TMS{% endblock %}
 {% block content %}
-<h2>Водители и борта</h2>
-<table>
-    <thead>
-        <tr>
-            <th>ФИО</th>
-            <th>Телефон</th>
-            <th>Борт (гос. номер)</th>
-            <th>Марка</th>
-            <th>Модель</th>
-            <th>Норма (л/100км)</th>
-            <th>Статус</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for driver, vehicle in rows %}
-        <tr>
-            <td>{{ driver.name or '—' }}</td>
-            <td>{{ driver.phone or '—' }}</td>
-            <td>{{ vehicle.license_plate if vehicle else '—' }}</td>
-            <td>{{ vehicle.make if vehicle else '—' }}</td>
-            <td>{{ vehicle.model if vehicle else '—' }}</td>
-            <td>{{ vehicle.fuel_norm_per_100km if vehicle and vehicle.fuel_norm_per_100km else '—' }}</td>
-            <td>
-                {% if driver.status == "ACTIVE" %}
-                  <span style="color:green; font-weight:bold;">ACTIVE</span>
-                {% else %}
-                  <span style="color:#e65100;">{{ driver.status }}</span>
-                {% endif %}
-            </td>
-            <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                {% if driver.status != "ACTIVE" %}
-                <form method="post" action="/panel/drivers/{{ driver.id }}/activate" style="display:inline;">
-                  <button type="submit" class="btn" style="background:#2e7d32; font-size:13px;">✓ Активировать</button>
-                </form>
-                {% endif %}
-                {% if vehicle %}
-                <a class="btn" href="/panel/vehicles/{{ vehicle.id }}/edit" style="font-size:13px;">Изменить борт</a>
-                {% endif %}
-            </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="8" style="text-align:center; color:#888;">Водители не зарегистрированы</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+
+<div class="page-hdr">
+    <h1>Водители и борта</h1>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>ФИО</th>
+                <th>Телефон</th>
+                <th>Борт</th>
+                <th>Марка / Модель</th>
+                <th>Норма (л/100км)</th>
+                <th>Статус</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for driver, vehicle in rows %}
+            <tr>
+                <td class="fw-bold">{{ driver.name or '—' }}</td>
+                <td class="text-muted">{{ driver.phone or '—' }}</td>
+                <td>{{ vehicle.license_plate if vehicle else '—' }}</td>
+                <td class="text-muted">
+                    {% if vehicle and vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ vehicle.fuel_norm_per_100km if vehicle and vehicle.fuel_norm_per_100km else '—' }}</td>
+                <td>
+                    {% if driver.status == "ACTIVE" %}
+                    <span class="badge badge-active">Активен</span>
+                    {% else %}
+                    <span class="badge badge-pending">{{ driver.status }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-group">
+                        {% if driver.status != "ACTIVE" %}
+                        <form method="post" action="/panel/drivers/{{ driver.id }}/activate" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-success">✓ Активировать</button>
+                        </form>
+                        {% endif %}
+                        {% if vehicle %}
+                        <a class="btn btn-sm btn-ghost" href="/panel/vehicles/{{ vehicle.id }}/edit">Изменить борт</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align:center; color:var(--muted); padding:32px;">Водителей нет</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

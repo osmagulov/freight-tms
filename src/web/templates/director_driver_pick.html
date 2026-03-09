@@ -1,25 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Выбор водителя — Freight TMS{% endblock %}
 {% block content %}
-<h2>История расходов по водителю</h2>
-<p><a href="/panel/director" class="btn" style="background:#546e7a;">← Сводка</a></p>
+
+<div class="page-hdr">
+    <h1>История расходов по водителю</h1>
+    <a href="/panel/director" class="btn btn-ghost">← Сводка</a>
+</div>
 
 {% if drivers %}
-<table>
-  <thead>
-    <tr><th>ФИО</th><th>Телефон</th><th></th></tr>
-  </thead>
-  <tbody>
-    {% for d in drivers %}
-    <tr onclick="location='/panel/director/drivers/{{ d.id }}'" style="cursor:pointer;">
-      <td>{{ d.name or "—" }}</td>
-      <td>{{ d.phone or "—" }}</td>
-      <td><a href="/panel/director/drivers/{{ d.id }}" class="btn" style="font-size:13px;">Открыть</a></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th>ФИО</th><th>Телефон</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for d in drivers %}
+            <tr onclick="location='/panel/director/drivers/{{ d.id }}'" style="cursor:pointer;">
+                <td class="fw-bold">{{ d.name or "—" }}</td>
+                <td class="text-muted">{{ d.phone or "—" }}</td>
+                <td><a href="/panel/director/drivers/{{ d.id }}" class="btn btn-sm">Открыть →</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
-<p style="color:#888;">Нет активных водителей.</p>
+<div class="table-wrap">
+    <div class="empty"><div class="empty-icon">👤</div><p>Нет активных водителей.</p></div>
+</div>
 {% endif %}
 {% endblock %}

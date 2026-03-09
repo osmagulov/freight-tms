@@ -1,54 +1,79 @@
 {% extends "base.html" %}
 {% block title %}{{ driver.name or "Водитель" }} — Freight TMS{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-  <h2>{{ driver.name or "Водитель #" ~ driver.id }}</h2>
-  <div>
-    <a href="/panel/director/drivers" class="btn" style="background:#546e7a;">← Все водители</a>
-    &nbsp;
-    <a href="/panel/director/export?driver_id={{ driver.id }}" class="btn" style="background:#2e7d32;">↓ CSV</a>
-  </div>
+
+<div class="page-hdr">
+    <div class="page-hdr-left">
+        <a href="/panel/director/drivers" class="btn btn-ghost btn-sm">← Все</a>
+        <h1>{{ driver.name or "Водитель #" ~ driver.id }}</h1>
+    </div>
+    <a href="/panel/director/export?driver_id={{ driver.id }}" class="btn btn-success">↓ CSV</a>
 </div>
 
 {% if all_drivers %}
-<div style="margin-bottom:16px;">
-  <select onchange="location='/panel/director/drivers/' + this.value" style="padding:6px 10px;">
-    {% for d in all_drivers %}
-    <option value="{{ d.id }}" {% if d.id == driver.id %}selected{% endif %}>{{ d.name or "ID " ~ d.id }}</option>
-    {% endfor %}
-  </select>
+<div style="margin-bottom:18px;">
+    <label style="font-size:12px; color:var(--muted); margin-bottom:6px; display:block;">Переключить водителя</label>
+    <select onchange="location='/panel/director/drivers/' + this.value" style="max-width:260px;">
+        {% for d in all_drivers %}
+        <option value="{{ d.id }}" {% if d.id == driver.id %}selected{% endif %}>{{ d.name or "ID " ~ d.id }}</option>
+        {% endfor %}
+    </select>
 </div>
 {% endif %}
 
-<p>Телефон: <strong>{{ driver.phone or "—" }}</strong></p>
-<p>Итого расходов: <strong>{{ "{:,.0f}".format(total_kzt) }} KZT</strong></p>
+<div class="kpi-grid" style="margin-bottom:22px;">
+    <div class="kpi">
+        <div class="kpi-label">Телефон</div>
+        <div class="kpi-value" style="font-size:16px;">{{ driver.phone or "—" }}</div>
+    </div>
+    <div class="kpi green">
+        <div class="kpi-label">Итого расходов</div>
+        <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(total_kzt) }} ₸</div>
+    </div>
+    {% if expenses %}
+    <div class="kpi">
+        <div class="kpi-label">Записей</div>
+        <div class="kpi-value">{{ expenses | length }}</div>
+    </div>
+    {% endif %}
+</div>
 
 {% if expenses %}
-<table>
-  <thead>
-    <tr><th>Дата</th><th>Борт</th><th>Рейс</th><th>Тип</th><th>Сумма</th><th>Валюта</th><th>Сумма KZT</th><th>Статус</th></tr>
-  </thead>
-  <tbody>
-    {% for e in expenses %}
-    <tr onclick="location='/panel/trips/{{ e.trip_id }}'" style="cursor:pointer;">
-      <td>{{ e.created_at.strftime("%d.%m.%Y") if e.created_at else "—" }}</td>
-      <td>{{ e.trip.vehicle.license_plate if e.trip and e.trip.vehicle else "—" }}</td>
-      <td>#{{ e.trip_id }}</td>
-      <td>{{ e.expense_type }}</td>
-      <td>{{ e.amount }}</td>
-      <td>{{ e.currency }}</td>
-      <td>{{ "{:,.0f}".format(e.amount_kzt if e.amount_kzt is not none else e.amount) }}</td>
-      <td>
-        {% if e.status == "APPROVED" %}<span style="color:green;">✓</span>
-        {% elif e.status == "REJECTED" %}<span style="color:red;">✗</span>
-        {% else %}<span style="color:#999;">⏳</span>{% endif %}
-        {{ e.status }}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Борт</th>
+                <th>Рейс</th>
+                <th>Тип</th>
+                <th>Сумма</th>
+                <th>Сумма (₸)</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in expenses %}
+            <tr onclick="location='/panel/trips/{{ e.trip_id }}'" style="cursor:pointer;">
+                <td class="text-muted">{{ e.created_at.strftime("%d.%m.%Y") if e.created_at else "—" }}</td>
+                <td>{{ e.trip.vehicle.license_plate if e.trip and e.trip.vehicle else "—" }}</td>
+                <td class="text-muted">#{{ e.trip_id }}</td>
+                <td>{{ e.expense_type }}</td>
+                <td>{{ e.amount }} {{ e.currency }}</td>
+                <td class="fw-bold">{{ "{:,.0f}".format(e.amount_kzt if e.amount_kzt is not none else e.amount) }} ₸</td>
+                <td>
+                    {% if e.status == "APPROVED" %}<span class="badge badge-approved">Одобрен</span>
+                    {% elif e.status == "REJECTED" %}<span class="badge badge-rejected">Отклонён</span>
+                    {% else %}<span class="badge badge-pending">На проверке</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
-<p style="color:#888;">Нет расходов по этому водителю.</p>
+<div class="table-wrap">
+    <div class="empty"><div class="empty-icon">📋</div><p>Нет расходов по этому водителю.</p></div>
+</div>
 {% endif %}
 {% endblock %}

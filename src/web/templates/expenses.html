@@ -1,26 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Очередь расходов — Freight TMS{% endblock %}
+{% block title %}Расходы — Freight TMS{% endblock %}
 {% block content %}
-<h2>Расходы на одобрение</h2>
+
+<div class="page-hdr">
+    <h1>Расходы на одобрение</h1>
+    {% if expenses %}
+    <span class="badge badge-pending">{{ expenses | length }} ожидают</span>
+    {% endif %}
+</div>
+
 {% if not expenses %}
-<p>Нет расходов, ожидающих одобрения.</p>
+<div class="table-wrap">
+    <div class="empty">
+        <div class="empty-icon">✅</div>
+        <p>Нет расходов, ожидающих одобрения.</p>
+    </div>
+</div>
 {% else %}
-<table>
-  <thead>
-    <tr>
-      <th>Водитель</th>
-      <th>Тип</th>
-      <th>Сумма</th>
-      <th>Фото</th>
-      <th>Дата</th>
-      <th>Действие</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for expense in expenses %}
-      {% include "expense_row.html" %}
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Водитель</th>
+                <th>Тип</th>
+                <th>Сумма</th>
+                <th>Фото</th>
+                <th>Дата</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            {% include "expense_row.html" %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endif %}
 {% endblock %}
