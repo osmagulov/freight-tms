@@ -11,7 +11,7 @@ from sqlalchemy import select, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
-from src.db.models import Driver, Expense, Trip, Vehicle
+from src.db.models import Driver, Expense, FuelAnomaly, Trip, Vehicle
 from src.web.auth import (
     create_access_token,
     get_current_user_from_cookie,
@@ -219,3 +219,42 @@ async def reject_expense(
         "expense_row.html",
         {"request": request, "expense": expense},
     )
+
+
+@router.get("/anomalies", response_class=HTMLResponse)
+async def list_anomalies(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(FuelAnomaly)
+            .where(FuelAnomaly.is_false_alarm == False)
+            .order_by(FuelAnomaly.created_at.desc())
+        )
+        anomalies = result.scalars().all()
+    return templates.TemplateResponse(
+        "anomalies.html",
+        {"request": request, "anomalies": anomalies, "user": current_user},
+    )
+
+
+@router.post("/anomalies/{anomaly_id}/dismiss", response_class=HTMLResponse)
+async def dismiss_anomaly(
+    request: Request,
+    anomaly_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(FuelAnomaly).where(FuelAnomaly.id == anomaly_id)
+        )
+        anomaly = result.scalars().first()
+        if anomaly:
+            anomaly.is_false_alarm = True
+            session.add(anomaly)
+            await session.commit()
+            await session.refresh(anomaly)
+    # Return a replacement row showing "false alarm" state
+    dismissed_row = f'<tr id="anomaly-{anomaly_id}"><td colspan="7"><em>Отмечена как ложная тревога</em></td></tr>'
+    return HTMLResponse(content=dismissed_row)
