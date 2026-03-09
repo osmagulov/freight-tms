@@ -6,10 +6,11 @@ from fastapi import Cookie, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
+from pwdlib.hashers.bcrypt import BcryptHasher
 
 from src.core.config import settings
 
-password_hash = PasswordHash.recommended()
+password_hash = PasswordHash((BcryptHasher(),))
 
 
 def create_access_token(data: dict, expires_minutes: Optional[int] = None) -> str:
