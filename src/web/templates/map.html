@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Карта парка — Freight TMS{% endblock %}
+{% block content %}
+<h2>Карта парка</h2>
+<p style="color:#666; font-size:14px;">Показаны последние позиции машин с активными рейсами. Обновление каждые 30 сек.</p>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<div id="map" style="height:600px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.15);"></div>
+
+<!-- HTMX polling: every 30s fetch /panel/map/markers and update Leaflet markers -->
+<div id="map-poller"
+     hx-get="/panel/map/markers"
+     hx-trigger="every 30s"
+     hx-swap="none"
+     style="display:none;"></div>
+
+<script>
+  const map = L.map('map').setView([48.0, 68.0], 4);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+
+  let markers = {};
+
+  function updateMarkers(data) {
+    // Remove markers no longer in data
+    const newPlates = new Set(data.map(d => d.plate));
+    for (const plate in markers) {
+      if (!newPlates.has(plate)) {
+        map.removeLayer(markers[plate]);
+        delete markers[plate];
+      }
+    }
+    // Add or update markers
+    data.forEach(function(truck) {
+      const popupHtml = '<b>' + truck.plate + '</b><br>' + (truck.driver_name || '—') + '<br><small>' + truck.updated_at + '</small>';
+      if (markers[truck.plate]) {
+        markers[truck.plate].setLatLng([truck.lat, truck.lng]);
+        markers[truck.plate].setPopupContent(popupHtml);
+      } else {
+        markers[truck.plate] = L.marker([truck.lat, truck.lng])
+          .bindPopup(popupHtml)
+          .addTo(map);
+      }
+    });
+  }
+
+  // Render initial markers from server
+  const initialMarkers = {{ markers | tojson }};
+  updateMarkers(initialMarkers);
+
+  // HTMX: after each poll, parse JSON response and update markers
+  document.getElementById('map-poller').addEventListener('htmx:afterRequest', function(evt) {
+    if (evt.detail.successful) {
+      try {
+        const data = JSON.parse(evt.detail.xhr.responseText);
+        updateMarkers(data);
+      } catch (e) {
+        console.error('Failed to parse marker data:', e);
+      }
+    }
+  });
+</script>
+
+{% if not markers %}
+<p style="margin-top:16px; color:#888;">Нет машин с активными рейсами и геопозицией.</p>
+{% endif %}
+{% endblock %}

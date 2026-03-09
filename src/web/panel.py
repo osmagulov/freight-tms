@@ -5,9 +5,9 @@ from pathlib import Path
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, update as sa_update
+from sqlalchemy import func, select, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
@@ -473,3 +473,76 @@ async def fleet_dashboard(
             "user": current_user,
         },
     )
+
+
+async def _get_fleet_markers(session) -> list[dict]:
+    """Return latest location for each driver with an active trip."""
+    active_trips_result = await session.execute(
+        select(Trip)
+        .where(Trip.status == TripStatus.ACTIVE)
+        .options(selectinload(Trip.driver), selectinload(Trip.vehicle))
+    )
+    active_trips = active_trips_result.scalars().all()
+
+    if not active_trips:
+        return []
+
+    driver_ids = [t.driver_id for t in active_trips]
+
+    # Latest LocationUpdate per driver
+    subq = (
+        select(
+            LocationUpdate.driver_id,
+            func.max(LocationUpdate.created_at).label("max_ts"),
+        )
+        .where(LocationUpdate.driver_id.in_(driver_ids))
+        .group_by(LocationUpdate.driver_id)
+        .subquery()
+    )
+    locs_result = await session.execute(
+        select(LocationUpdate).join(
+            subq,
+            (LocationUpdate.driver_id == subq.c.driver_id)
+            & (LocationUpdate.created_at == subq.c.max_ts),
+        )
+    )
+    latest_locations = {loc.driver_id: loc for loc in locs_result.scalars().all()}
+
+    markers = []
+    for trip in active_trips:
+        loc = latest_locations.get(trip.driver_id)
+        if loc:
+            markers.append(
+                {
+                    "lat": loc.latitude,
+                    "lng": loc.longitude,
+                    "driver_name": trip.driver.name or "—",
+                    "plate": trip.vehicle.license_plate,
+                    "updated_at": loc.created_at.strftime("%d.%m %H:%M")
+                    if loc.created_at
+                    else "—",
+                }
+            )
+    return markers
+
+
+@router.get("/map", response_class=HTMLResponse)
+async def fleet_map(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        markers = await _get_fleet_markers(session)
+    return templates.TemplateResponse(
+        "map.html",
+        {"request": request, "markers": markers, "user": current_user},
+    )
+
+
+@router.get("/map/markers")
+async def fleet_map_markers(
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        markers = await _get_fleet_markers(session)
+    return JSONResponse(content=markers)
