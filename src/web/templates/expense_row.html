@@ -1,0 +1,35 @@
+<tr id="expense-{{ expense.id }}">
+  <td>{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</td>
+  <td>{{ expense.expense_type }}</td>
+  <td>{{ expense.amount }} {{ expense.currency }}
+      {% if expense.amount_kzt and expense.currency != 'KZT' %}
+      <small>({{ expense.amount_kzt | int }} KZT)</small>
+      {% endif %}
+  </td>
+  <td>
+    {% if expense.photo_r2_url %}
+    <a href="{{ expense.photo_r2_url }}" target="_blank">Фото</a>
+    {% else %}нет{% endif %}
+  </td>
+  <td>{{ expense.created_at.strftime('%d.%m %H:%M') if expense.created_at else "—" }}</td>
+  <td>
+    {% if expense.status == "PENDING" %}
+    <form hx-post="/panel/expenses/{{ expense.id }}/approve"
+          hx-target="#expense-{{ expense.id }}"
+          hx-swap="outerHTML"
+          style="display:inline">
+      <button type="submit">Одобрить</button>
+    </form>
+    <form hx-post="/panel/expenses/{{ expense.id }}/reject"
+          hx-target="#expense-{{ expense.id }}"
+          hx-swap="outerHTML"
+          style="display:inline">
+      <input name="comment" placeholder="Причина (необяз.)" style="width:120px">
+      <button type="submit">Отклонить</button>
+    </form>
+    {% else %}
+    <span>{{ expense.status }}</span>
+    {% if expense.rejection_comment %}<small> — {{ expense.rejection_comment }}</small>{% endif %}
+    {% endif %}
+  </td>
+</tr>

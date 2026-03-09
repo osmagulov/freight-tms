@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Очередь расходов — Freight TMS{% endblock %}
+{% block content %}
+<h2>Расходы на одобрение</h2>
+{% if not expenses %}
+<p>Нет расходов, ожидающих одобрения.</p>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>Водитель</th>
+      <th>Тип</th>
+      <th>Сумма</th>
+      <th>Фото</th>
+      <th>Дата</th>
+      <th>Действие</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for expense in expenses %}
+      {% include "expense_row.html" %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}
