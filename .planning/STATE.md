@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 2 of 5 (Expense Control)
-Plan: 4 of ? in current phase
-Status: In progress
-Last activity: 2026-03-09 — Phase 2 Plan 04 complete. Fuel anomaly detection service with APScheduler hourly Telegram digest and dispatcher anomaly feed page with HTMX false-alarm dismissal now operational.
+Plan: 5 of ? in current phase
+Status: Awaiting checkpoint — human-verify for Phase 2 smoke test on Railway
+Last activity: 2026-03-09 — Phase 2 Plan 05 Task 1 complete. /my_expenses command handler added. Paused at checkpoint:human-verify for full Phase 2 end-to-end test.
 
 Progress: [███░░░░░░░] 25%
 
@@ -37,6 +37,7 @@ Progress: [███░░░░░░░] 25%
 *Updated after each plan completion*
 | Phase 02-expense-control P02 | 4 | 2 tasks | 4 files |
 | Phase 02-expense-control P04 | 18 | 2 tasks | 6 files |
+| Phase 02-expense-control P05 | 9 | 1 task | 3 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Recent decisions affecting current work:
 - [Phase 02-04]: check_fuel_anomaly_after_expense() opens its own async_session and re-fetches expense/vehicle by ID — required because original create_expense() session is closed; avoids detached-instance error
 - [Phase 02-04]: APScheduler start() is NOT awaited (synchronous call); scheduler.shutdown(wait=False) on lifespan cleanup; scheduler starts before PTB async with block
 - [Phase 02-04]: Anomaly check wired into both process_final_expense() and process_final_expense_direct() — both paths save FUEL expenses in expense_flow.py
+- [Phase 02-05]: Local imports (sqlalchemy func, Expense model) kept inside expense_summary_handler() body — consistent with existing pattern in process_final_expense(); avoids any top-level import ordering issues
+- [Phase 02-05]: STATUS_LABELS dict defined inline in expense_summary_handler() rather than in translations — keeps status-to-label mapping co-located with formatting logic
 
 ### Pending Todos
 
@@ -87,5 +90,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: 02-04-PLAN.md complete — Fuel anomaly detection service with APScheduler hourly Telegram digest and dispatcher anomaly feed page
+Stopped at: 02-05-PLAN.md Task 1 complete — paused at checkpoint:human-verify. Deploy to Railway and run full Phase 2 smoke test (FUEL/PER_DIEM flows, approval queue, anomaly feed, /my_expenses, duplicate prevention). Resume signal: "approved".
 Resume file: None
