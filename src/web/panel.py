@@ -2,13 +2,16 @@
 import logging
 from pathlib import Path
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, update as sa_update
+from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
-from src.db.models import Driver, Vehicle
+from src.db.models import Driver, Expense, Trip, Vehicle
 from src.web.auth import (
     create_access_token,
     get_current_user_from_cookie,
@@ -17,6 +20,25 @@ from src.web.auth import (
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+async def notify_driver_expense_decision(expense: Expense, approved: bool, rejection_comment: str = None) -> None:
+    """Send Telegram message to driver about expense approval or rejection."""
+    from src.main import ptb_app  # deferred import — ptb_app is set at lifespan startup
+    if ptb_app is None:
+        return
+    try:
+        driver_tg_id = expense.trip.driver.tg_id
+        if approved:
+            text = f"Расход одобрен: {expense.expense_type} {expense.amount} {expense.currency}"
+        else:
+            text = f"Расход отклонен: {expense.expense_type} {expense.amount} {expense.currency}"
+            if rejection_comment:
+                text += f"\nПричина: {rejection_comment}"
+        await ptb_app.bot.send_message(chat_id=driver_tg_id, text=text)
+    except Exception as e:
+        logger.error(f"Failed to notify driver: {e}")
+
 
 router = APIRouter(prefix="/panel", tags=["panel"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -118,3 +140,82 @@ async def vehicle_edit_submit(
             session.add(vehicle)
             await session.commit()
     return RedirectResponse(url="/panel/drivers", status_code=302)
+
+
+@router.get("/expenses", response_class=HTMLResponse)
+async def list_expenses(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(Expense)
+            .join(Trip, Expense.trip_id == Trip.id)
+            .join(Driver, Trip.driver_id == Driver.id)
+            .where(Expense.status == "PENDING")
+            .order_by(Expense.created_at.desc())
+            .options(
+                selectinload(Expense.trip).selectinload(Trip.driver)
+            )
+        )
+        expenses = result.scalars().all()
+    return templates.TemplateResponse(
+        "expenses.html",
+        {"request": request, "expenses": expenses, "user": current_user},
+    )
+
+
+@router.post("/expenses/{expense_id}/approve", response_class=HTMLResponse)
+async def approve_expense(
+    request: Request,
+    expense_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(Expense)
+            .where(Expense.id == expense_id)
+            .options(selectinload(Expense.trip).selectinload(Trip.driver))
+        )
+        expense = result.scalars().first()
+        if expense:
+            expense.status = "APPROVED"
+            expense.approved_by = current_user.get("sub", "dispatcher")
+            expense.approved_at = datetime.utcnow()
+            session.add(expense)
+            await session.commit()
+            await session.refresh(expense)
+    await notify_driver_expense_decision(expense, approved=True)
+    return templates.TemplateResponse(
+        "expense_row.html",
+        {"request": request, "expense": expense},
+    )
+
+
+@router.post("/expenses/{expense_id}/reject", response_class=HTMLResponse)
+async def reject_expense(
+    request: Request,
+    expense_id: int,
+    comment: str = Form(default=""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(Expense)
+            .where(Expense.id == expense_id)
+            .options(selectinload(Expense.trip).selectinload(Trip.driver))
+        )
+        expense = result.scalars().first()
+        if expense:
+            expense.status = "REJECTED"
+            expense.rejection_comment = comment or None
+            expense.approved_by = current_user.get("sub", "dispatcher")
+            expense.approved_at = datetime.utcnow()
+            session.add(expense)
+            await session.commit()
+            await session.refresh(expense)
+    await notify_driver_expense_decision(expense, approved=False, rejection_comment=comment)
+    return templates.TemplateResponse(
+        "expense_row.html",
+        {"request": request, "expense": expense},
+    )
