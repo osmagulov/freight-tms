@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     ADMIN_USERNAME: str = "dispatcher"
     ADMIN_PASSWORD_HASH: str = ""  # Generate with: python -c "from pwdlib import PasswordHash; print(PasswordHash.recommended().hash('yourpassword'))"
 
+    # Director Telegram ID for anomaly digest notifications (ALERT-04)
+    DIRECTOR_TG_ID: int = 0  # Set to actual director's Telegram user ID in env
+
     @property
     def async_database_url(self) -> str:
         """Convert Railway's postgresql:// to postgresql+asyncpg:// for asyncpg driver."""
