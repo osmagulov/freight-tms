@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Рейс #{{ trip.id }} — Freight TMS{% endblock %}
+
+{% block content %}
+<style>
+    .section { background: white; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; padding: 20px 24px; }
+    .section h2 { margin: 0 0 16px 0; font-size: 16px; color: #1a1a2e; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; }
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .info-item label { display: block; font-size: 12px; color: #888; margin-bottom: 2px; }
+    .info-item span { font-size: 14px; font-weight: 500; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .badge-planned { background: #e3f2fd; color: #1565c0; }
+    .badge-active { background: #e8f5e9; color: #2e7d32; }
+    .badge-completed { background: #f3e5f5; color: #6a1b9a; }
+    .badge-cancelled { background: #fbe9e7; color: #bf360c; }
+    .badge-approved { background: #e8f5e9; color: #2e7d32; }
+    .badge-pending { background: #fff3e0; color: #e65100; }
+    .badge-rejected { background: #fbe9e7; color: #bf360c; }
+    .total-block { background: #1a1a2e; color: white; border-radius: 6px; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .total-block .label { font-size: 14px; opacity: 0.8; }
+    .total-block .amount { font-size: 24px; font-weight: 700; }
+    .empty-state { color: #aaa; font-size: 14px; padding: 12px 0; }
+    .doc-link { color: #1a1a2e; font-weight: 500; }
+    .back-link { display: inline-block; margin-bottom: 16px; color: #1a1a2e; text-decoration: none; font-size: 14px; }
+    .back-link:hover { text-decoration: underline; }
+</style>
+
+<a href="/panel/trips" class="back-link">&larr; К списку рейсов</a>
+
+<h1 style="margin-bottom: 20px; font-size: 22px;">Рейс #{{ trip.id }}</h1>
+
+<!-- Section 1: Trip Info -->
+<div class="section">
+    <h2>Информация о рейсе</h2>
+    <div class="info-grid">
+        <div class="info-item">
+            <label>Статус</label>
+            <span>
+                {% set s = trip.status %}
+                {% if s == 'PLANNED' %}<span class="badge badge-planned">Запланирован</span>
+                {% elif s == 'ACTIVE' %}<span class="badge badge-active">Активен</span>
+                {% elif s == 'COMPLETED' %}<span class="badge badge-completed">Завершён</span>
+                {% elif s == 'CANCELLED' %}<span class="badge badge-cancelled">Отменён</span>
+                {% else %}<span class="badge">{{ s }}</span>{% endif %}
+            </span>
+        </div>
+        <div class="info-item">
+            <label>Водитель</label>
+            <span>{{ trip.driver.name or '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Транспорт</label>
+            <span>{{ trip.vehicle.license_plate }}{% if trip.vehicle.make %} ({{ trip.vehicle.make }} {{ trip.vehicle.model or '' }}){% endif %}</span>
+        </div>
+        <div class="info-item">
+            <label>Маршрут</label>
+            <span>{{ trip.route_details or '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Груз</label>
+            <span>{{ trip.load_info or '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Клиент</label>
+            <span>{{ trip.client_name or '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Выезд (план)</label>
+            <span>{{ trip.planned_departure.strftime('%d.%m.%Y %H:%M') if trip.planned_departure else '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Прибытие (план)</label>
+            <span>{{ trip.planned_arrival.strftime('%d.%m.%Y %H:%M') if trip.planned_arrival else '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Начало (одометр)</label>
+            <span>{{ trip.start_odometer or '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Конец (одометр)</label>
+            <span>{{ trip.end_odometer or '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Статус доставки</label>
+            <span>{{ trip.delivery_status or '—' }}</span>
+        </div>
+        <div class="info-item">
+            <label>Создан</label>
+            <span>{{ trip.created_at.strftime('%d.%m.%Y %H:%M') if trip.created_at else '—' }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Section 2: Expenses -->
+<div class="section">
+    <h2>Расходы</h2>
+    {% if trip.expenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>Тип</th>
+                <th>Сумма</th>
+                <th>Валюта</th>
+                <th>Сумма (KZT)</th>
+                <th>Статус</th>
+                <th>Дата</th>
+                <th>Комментарий</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in trip.expenses %}
+            <tr>
+                <td>{{ expense.expense_type }}</td>
+                <td>{{ "%.2f"|format(expense.amount) }}</td>
+                <td>{{ expense.currency }}</td>
+                <td>{{ "%.2f"|format(expense.amount_kzt) if expense.amount_kzt is not none else '—' }}</td>
+                <td>
+                    {% if expense.status == 'APPROVED' %}<span class="badge badge-approved">Одобрен</span>
+                    {% elif expense.status == 'REJECTED' %}<span class="badge badge-rejected">Отклонён</span>
+                    {% else %}<span class="badge badge-pending">На проверке</span>{% endif %}
+                </td>
+                <td>{{ expense.created_at.strftime('%d.%m.%Y') if expense.created_at else '—' }}</td>
+                <td>{{ expense.comment or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">Расходов нет</p>
+    {% endif %}
+</div>
+
+<!-- Section 3: Total -->
+<div class="total-block" style="margin-bottom: 24px;">
+    <span class="label">Итого расходов (KZT)</span>
+    <span class="amount">{{ "%.2f"|format(total_kzt) }} ₸</span>
+</div>
+
+<!-- Section 4: Documents -->
+<div class="section">
+    <h2>Документы</h2>
+    {% if trip.documents %}
+    <table>
+        <thead>
+            <tr>
+                <th>Тип</th>
+                <th>Ссылка (R2)</th>
+                <th>Дата загрузки</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in trip.documents %}
+            <tr>
+                <td>{{ doc.file_type }}</td>
+                <td>
+                    {% if doc.r2_url %}
+                    <a href="{{ doc.r2_url }}" target="_blank" class="doc-link">Открыть</a>
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
+                <td>{{ doc.uploaded_at.strftime('%d.%m.%Y %H:%M') if doc.uploaded_at else '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">Документов нет</p>
+    {% endif %}
+</div>
+
+<!-- Section 5: Location Pings -->
+<div class="section">
+    <h2>Геопозиции</h2>
+    {% if locations %}
+    <table>
+        <thead>
+            <tr>
+                <th>Время</th>
+                <th>Широта</th>
+                <th>Долгота</th>
+                <th>Карта</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loc in locations %}
+            <tr>
+                <td>{{ loc.created_at.strftime('%d.%m.%Y %H:%M:%S') if loc.created_at else '—' }}</td>
+                <td>{{ "%.6f"|format(loc.latitude) }}</td>
+                <td>{{ "%.6f"|format(loc.longitude) }}</td>
+                <td><a href="https://www.google.com/maps?q={{ loc.latitude }},{{ loc.longitude }}" target="_blank" class="doc-link">Открыть</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">Геопозиций нет</p>
+    {% endif %}
+</div>
+{% endblock %}
