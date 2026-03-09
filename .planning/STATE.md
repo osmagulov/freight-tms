@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 2 of 5 (Expense Control)
-Plan: 1 of ? in current phase
+Plan: 3 of ? in current phase
 Status: In progress
-Last activity: 2026-03-09 — Phase 2 Plan 01 complete. Schema migration gate in place. All Phase 2 bot flows, approval queue, and anomaly detection can now be built.
+Last activity: 2026-03-09 — Phase 2 Plan 03 complete. Dispatcher approval queue with HTMX inline approve/reject and Telegram driver notifications now operational.
 
-Progress: [██░░░░░░░░] 20%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 8.7 min
-- Total execution time: 0.83 hours
+- Total plans completed: 8
+- Average duration: 6.9 min
+- Total execution time: 0.92 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-infrastructure-and-foundation | 6/6 | 52 min | 8.7 min |
-| 02-expense-control | 1/? | 5 min | 5 min |
+| 02-expense-control | 3/? | 7 min | 2.3 min |
 
 **Recent Trend:**
-- Last 7 plans: 01-01 (3 min), 01-02 (2 min), 01-03 (2 min), 01-04 (8 min), 01-05 (32 min), 01-06 (5 min), 02-01 (5 min)
+- Last 7 plans: 01-03 (2 min), 01-04 (8 min), 01-05 (32 min), 01-06 (5 min), 02-01 (5 min), 02-02 (?), 02-03 (2 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -64,6 +64,9 @@ Recent decisions affecting current work:
 - [Phase 02-01]: status column uses both ORM default="PENDING" and migration server_default='PENDING' — both needed for Railway pre-deploy hook correctness on existing rows
 - [Phase 02-01]: DIRECTOR_TG_ID defaults to 0 (int) in Settings — must be set in Railway env before anomaly alerts go live
 - [Phase 02-01]: threshold_per_100km added to FuelAnomaly model to store per-vehicle threshold at detection time for audit trail (false positive review)
+- [Phase 02-03]: Deferred import of ptb_app inside notify_driver_expense_decision() avoids circular import between main.py and panel.py
+- [Phase 02-03]: expense_row.html used as both include in expenses.html and direct TemplateResponse in POST handlers — single template, no duplication
+- [Phase 02-03]: HTMX 2.0.4 loaded via unpkg CDN in base.html head — applies to all panel pages; hx-post+hx-target+hx-swap=outerHTML pattern for inline row replacement
 
 ### Pending Todos
 
@@ -79,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: 02-01-PLAN.md complete — Phase 2 schema migration gate done
+Stopped at: 02-03-PLAN.md complete — Dispatcher approval queue with HTMX inline approve/reject and Telegram notifications
 Resume file: None
