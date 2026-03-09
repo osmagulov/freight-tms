@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
-from src.db.models import Trip, Expense, ExpenseType, FuelAnomaly
+from src.db.models import Trip, Expense, ExpenseType, FuelAnomaly, TripStatus, Vehicle, VehicleStatus
 
 logger = logging.getLogger(__name__)
 
@@ -95,3 +95,43 @@ async def create_expense(
     except IntegrityError:
         await session.rollback()
         return None  # Duplicate — caller shows "already submitted" message
+
+
+async def get_planned_trip_for_driver(session: AsyncSession, driver_id: int) -> Trip | None:
+    """Return the single PLANNED trip assigned to this driver, or None if none exists."""
+    result = await session.execute(
+        select(Trip)
+        .where(Trip.driver_id == driver_id)
+        .where(Trip.status == TripStatus.PLANNED.value)
+        .order_by(Trip.created_at.asc())
+        .limit(1)
+    )
+    return result.scalars().first()
+
+
+async def activate_trip(session: AsyncSession, trip_id: int, start_odometer: int, vehicle_id: int) -> Trip | None:
+    """
+    Set trip status to ACTIVE and vehicle status to ON_TRIP atomically.
+    Returns the updated Trip on success, None if trip not found.
+    """
+    trip_result = await session.execute(
+        select(Trip).where(Trip.id == trip_id)
+    )
+    trip = trip_result.scalars().first()
+    if not trip:
+        return None
+
+    vehicle_result = await session.execute(
+        select(Vehicle).where(Vehicle.id == vehicle_id)
+    )
+    vehicle = vehicle_result.scalars().first()
+
+    trip.status = TripStatus.ACTIVE.value
+    trip.start_odometer = start_odometer
+
+    if vehicle:
+        vehicle.status = VehicleStatus.ON_TRIP.value
+
+    await session.commit()
+    await session.refresh(trip)
+    return trip
