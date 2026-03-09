@@ -27,6 +27,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return password_hash.verify(plain_password, hashed_password)
 
 
+def hash_password(plain_password: str) -> str:
+    """Hash a plain-text password with bcrypt."""
+    return password_hash.hash(plain_password)
+
+
 def get_current_user_from_cookie(access_token: str = Cookie(default=None)) -> dict:
     """FastAPI dependency: extract user dict from JWT cookie. Raise 302 to /panel/login if invalid."""
     if not access_token:

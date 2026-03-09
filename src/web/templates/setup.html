@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Первоначальная настройка — Freight TMS{% endblock %}
+{% block content %}
+<div style="max-width: 420px; margin: 80px auto; background: white; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); border-radius: 6px;">
+    <h2 style="margin-top: 0;">🚛 Freight TMS</h2>
+    <p style="color:#555; font-size:14px; margin-bottom:24px;">
+        Первый запуск. Создайте учётную запись диспетчера.
+    </p>
+    <form method="post" action="/panel/setup">
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-size: 14px;">Логин</label>
+            <input type="text" name="username" required autofocus value="dispatcher"
+                   style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-size: 14px;">Пароль (мин. 6 символов)</label>
+            <input type="password" name="password" required
+                   style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 6px; font-size: 14px;">Повторите пароль</label>
+            <input type="password" name="password2" required
+                   style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+        <button type="submit" style="width: 100%; padding: 12px; background: #1a1a2e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+            Создать аккаунт
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -1,5 +1,7 @@
 # src/web/panel.py
+import json
 import logging
+import os
 from pathlib import Path
 
 from datetime import datetime
@@ -15,6 +17,7 @@ from src.db.models import Driver, Expense, FuelAnomaly, LocationUpdate, Trip, Tr
 from src.web.auth import (
     create_access_token,
     get_current_user_from_cookie,
+    hash_password,
     verify_password,
 )
 from src.core.config import settings
@@ -58,12 +61,38 @@ async def notify_driver_trip_assignment(trip: Trip) -> None:
         logger.error(f"Failed to notify driver about trip assignment: {e}")
 
 
+
+_CREDS_FILE = Path(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", "/data")) / "admin_creds.json"
+
+
+def _load_admin_creds() -> tuple[str, str]:
+    if _CREDS_FILE.exists():
+        try:
+            data = json.loads(_CREDS_FILE.read_text())
+            return data.get("username", settings.ADMIN_USERNAME), data.get("password_hash", "")
+        except Exception:
+            pass
+    return settings.ADMIN_USERNAME, settings.ADMIN_PASSWORD_HASH
+
+
+def _save_admin_creds(username: str, password_hash: str) -> None:
+    _CREDS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _CREDS_FILE.write_text(json.dumps({"username": username, "password_hash": password_hash}))
+
+
+def _has_admin_creds() -> bool:
+    _, ph = _load_admin_creds()
+    return bool(ph)
+
+
 router = APIRouter(prefix="/panel", tags=["panel"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
+    if not _has_admin_creds():
+        return RedirectResponse(url="/panel/setup", status_code=302)
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 
@@ -73,11 +102,12 @@ async def login_submit(
     username: str = Form(),
     password: str = Form(),
 ):
-    # Validate against env-based credentials (Phase 1: single admin account)
+    # Validate against file-based or env-based credentials
+    admin_user, admin_hash = _load_admin_creds()
     is_valid = (
-        username == settings.ADMIN_USERNAME
-        and settings.ADMIN_PASSWORD_HASH
-        and verify_password(password, settings.ADMIN_PASSWORD_HASH)
+        username == admin_user
+        and admin_hash
+        and verify_password(password, admin_hash)
     )
     if not is_valid:
         return templates.TemplateResponse(
@@ -95,6 +125,44 @@ async def login_submit(
         max_age=settings.JWT_EXPIRE_MINUTES * 60,
     )
     return response
+
+
+@router.get("/setup", response_class=HTMLResponse)
+async def setup_page(request: Request):
+    if _has_admin_creds():
+        return RedirectResponse(url="/panel/login", status_code=302)
+    return templates.TemplateResponse("setup.html", {"request": request, "error": None})
+
+
+@router.post("/setup")
+async def setup_submit(
+    request: Request,
+    username: str = Form(),
+    password: str = Form(),
+    password2: str = Form(),
+):
+    if _has_admin_creds():
+        return RedirectResponse(url="/panel/login", status_code=302)
+    if not username or not password:
+        return templates.TemplateResponse(
+            "setup.html",
+            {"request": request, "error": "Заполните все поля"},
+            status_code=400,
+        )
+    if password != password2:
+        return templates.TemplateResponse(
+            "setup.html",
+            {"request": request, "error": "Пароли не совпадают"},
+            status_code=400,
+        )
+    if len(password) < 6:
+        return templates.TemplateResponse(
+            "setup.html",
+            {"request": request, "error": "Пароль должен быть не менее 6 символов"},
+            status_code=400,
+        )
+    _save_admin_creds(username, hash_password(password))
+    return RedirectResponse(url="/panel/login", status_code=302)
 
 
 @router.get("/logout")
