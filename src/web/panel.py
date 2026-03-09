@@ -11,7 +11,7 @@ from sqlalchemy import select, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
-from src.db.models import Driver, Expense, FuelAnomaly, Trip, Vehicle
+from src.db.models import Driver, Expense, FuelAnomaly, Trip, TripDocument, TripStatus, Vehicle
 from src.web.auth import (
     create_access_token,
     get_current_user_from_cookie,
@@ -38,6 +38,24 @@ async def notify_driver_expense_decision(expense: Expense, approved: bool, rejec
         await ptb_app.bot.send_message(chat_id=driver_tg_id, text=text)
     except Exception as e:
         logger.error(f"Failed to notify driver: {e}")
+
+
+async def notify_driver_trip_assignment(trip: Trip) -> None:
+    """Send Telegram message to driver about new trip assignment."""
+    from src.main import ptb_app  # deferred import — ptb_app is set at lifespan startup
+    if ptb_app is None:
+        return
+    try:
+        driver_tg_id = trip.driver.tg_id
+        text = (
+            f"Вам назначен новый рейс #{trip.id}!\n"
+            f"Маршрут: {trip.route_details or '—'}\n"
+            f"Груз: {trip.load_info or '—'}\n"
+            f"Клиент: {trip.client_name or '—'}"
+        )
+        await ptb_app.bot.send_message(chat_id=driver_tg_id, text=text)
+    except Exception as e:
+        logger.error(f"Failed to notify driver about trip assignment: {e}")
 
 
 router = APIRouter(prefix="/panel", tags=["panel"])
@@ -258,3 +276,117 @@ async def dismiss_anomaly(
     # Return a replacement row showing "false alarm" state
     dismissed_row = f'<tr id="anomaly-{anomaly_id}"><td colspan="7"><em>Отмечена как ложная тревога</em></td></tr>'
     return HTMLResponse(content=dismissed_row)
+
+
+@router.get("/trips", response_class=HTMLResponse)
+async def list_trips(
+    request: Request,
+    driver_id: int | None = None,
+    vehicle_id: int | None = None,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        stmt = (
+            select(Trip)
+            .options(selectinload(Trip.driver), selectinload(Trip.vehicle))
+            .order_by(Trip.created_at.desc())
+        )
+        if driver_id is not None:
+            stmt = stmt.where(Trip.driver_id == driver_id)
+        if vehicle_id is not None:
+            stmt = stmt.where(Trip.vehicle_id == vehicle_id)
+        result = await session.execute(stmt)
+        trips = result.scalars().all()
+
+        drivers_result = await session.execute(
+            select(Driver).where(Driver.status == "ACTIVE").order_by(Driver.name)
+        )
+        drivers = drivers_result.scalars().all()
+
+        vehicles_result = await session.execute(
+            select(Vehicle).order_by(Vehicle.license_plate)
+        )
+        vehicles = vehicles_result.scalars().all()
+
+    return templates.TemplateResponse(
+        "trips_list.html",
+        {
+            "request": request,
+            "trips": trips,
+            "drivers": drivers,
+            "vehicles": vehicles,
+            "filter_driver_id": driver_id,
+            "filter_vehicle_id": vehicle_id,
+            "user": current_user,
+        },
+    )
+
+
+@router.get("/trips/create", response_class=HTMLResponse)
+async def create_trip_form(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        drivers_result = await session.execute(
+            select(Driver).where(Driver.status == "ACTIVE").order_by(Driver.name)
+        )
+        drivers = drivers_result.scalars().all()
+
+        vehicles_result = await session.execute(
+            select(Vehicle).order_by(Vehicle.license_plate)
+        )
+        vehicles = vehicles_result.scalars().all()
+
+    return templates.TemplateResponse(
+        "trips_create.html",
+        {"request": request, "drivers": drivers, "vehicles": vehicles, "user": current_user},
+    )
+
+
+@router.post("/trips/create")
+async def create_trip_submit(
+    request: Request,
+    driver_id: int = Form(),
+    vehicle_id: int = Form(),
+    route_details: str = Form(default=""),
+    load_info: str = Form(default=""),
+    client_name: str = Form(default=""),
+    planned_departure: str = Form(default=""),
+    planned_arrival: str = Form(default=""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from datetime import datetime as dt
+
+    def parse_dt(value: str):
+        if not value:
+            return None
+        try:
+            return dt.fromisoformat(value)
+        except ValueError:
+            return None
+
+    async with async_session() as session:
+        trip = Trip(
+            driver_id=driver_id,
+            vehicle_id=vehicle_id,
+            route_details=route_details or None,
+            load_info=load_info or None,
+            client_name=client_name or None,
+            planned_departure=parse_dt(planned_departure),
+            planned_arrival=parse_dt(planned_arrival),
+            status=TripStatus.PLANNED,
+        )
+        session.add(trip)
+        await session.commit()
+        await session.refresh(trip)
+        # Eager-load driver for notification
+        result = await session.execute(
+            select(Trip)
+            .where(Trip.id == trip.id)
+            .options(selectinload(Trip.driver), selectinload(Trip.vehicle))
+        )
+        trip = result.scalars().first()
+
+    await notify_driver_trip_assignment(trip)
+    return RedirectResponse(url="/panel/trips", status_code=302)
