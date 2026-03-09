@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Dispatcher always knows where every truck is, what it's carrying, and how much it has spent — and can assign a new trip before the truck returns
-**Current focus:** Phase 3 (Trip Management) — Plans 01, 02, 03 complete
+**Current focus:** Phase 3 (Trip Management) — Plans 01, 02, 03, 04 complete
 
 ## Current Position
 
 Phase: 3 of 5 (Trip Management) — IN PROGRESS
-Plan: 3 of 5 in Phase 3 — COMPLETE
-Status: Phase 3 Plan 03 complete. Trip close flow production-ready with R2 doc upload and delivery status FSM.
-Last activity: 2026-03-09 — Phase 3 Plan 03 complete. r2.py extended with upload_to_r2(content_type), close_trip_db CRUD added, trip_closing.py rewritten with 3-state FSM (odometer → delivery status → closing doc).
+Plan: 4 of 5 in Phase 3 — COMPLETE
+Status: Phase 3 Plan 04 complete. Dispatcher trip creation UI with Telegram driver notification added to web panel.
+Last activity: 2026-03-09 — Phase 3 Plan 04 complete. notify_driver_trip_assignment() added to panel.py, GET/POST /panel/trips routes, trips_list.html and trips_create.html templates, Рейсы nav link in base.html.
 
-Progress: [█████░░░░░] 52%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 6.3 min
-- Total execution time: ~1.26 hours
+- Total plans completed: 13
+- Average duration: 6.2 min
+- Total execution time: ~1.34 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [█████░░░░░] 52%
 |-------|-------|-------|----------|
 | 01-infrastructure-and-foundation | 6/6 | 52 min | 8.7 min |
 | 02-expense-control | 5/5 | 34 min | 6.8 min |
-| 03-trip-management | 3/5 | 19 min | 6.3 min |
+| 03-trip-management | 4/5 | 25 min | 6.3 min |
 
 **Recent Trend:**
-- Last 7 plans: 02-04 (18 min), 02-05 (9 min), 03-01 (3 min), 03-02 (8 min), 03-03 (8 min)
+- Last 7 plans: 02-04 (18 min), 02-05 (9 min), 03-01 (3 min), 03-02 (8 min), 03-03 (8 min), 03-04 (6 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -42,6 +42,7 @@ Progress: [█████░░░░░] 52%
 | Phase 03-trip-management P01 | 3 | 2 tasks | 2 files |
 | Phase 03-trip-management P02 | 8 | 3 tasks | 3 files |
 | Phase 03-trip-management P03 | 8 | 3 tasks | 3 files |
+| Phase 03-trip-management P04 | 6 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - [Phase 03-03]: close_trip_db takes vehicle_id as explicit param — stored in user_data at FSM entry to avoid extra DB round-trip
 - [Phase 03-03]: Delivery status keyboard labels hardcoded inline in trip_closing.py — translations.py owned by Plan 02
 - [Phase 03-03]: TripDocument and close_trip_db share the same AsyncSession — committed atomically via close_trip_db's session.commit()
+- [Phase 03-04]: notify_driver_trip_assignment reloads trip with selectinload after session.commit() — driver.tg_id accessible outside session
+- [Phase 03-04]: Trip list filter bar uses GET params (driver_id, vehicle_id) for bookmarkable URLs
+- [Phase 03-04]: parse_dt() helper converts datetime-local HTML string or empty string to Python datetime or None
 
 ### Pending Todos
 
@@ -78,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Phase 3 Plan 03 complete — upload_to_r2(content_type) in r2.py, close_trip_db CRUD, trip_closing.py 3-state FSM with R2 doc upload and TripDocument record. Ready for Phase 3 Plan 04.
+Stopped at: Phase 3 Plan 04 complete — GET/POST /panel/trips routes in panel.py, trips_list.html and trips_create.html templates, Рейсы nav link in base.html. TRIP-01 and TRIP-02 requirements fulfilled. Ready for Phase 3 Plan 05.
 Resume file: None
