@@ -249,13 +249,11 @@
         <a href="/panel/logout"><span>⎋</span> Выйти</a>
     </div>
 </aside>
-<div class="main-wrap">
-    <div class="container">
+{% endif %}
+<div class="{% if request.cookies.get('access_token') %}main-wrap{% endif %}">
+    <div class="{% if request.cookies.get('access_token') %}container{% endif %}">
         {% block content %}{% endblock %}
     </div>
 </div>
-{% else %}
-{% block content %}{% endblock %}
-{% endif %}
 </body>
 </html>
