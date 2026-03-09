@@ -287,6 +287,21 @@ async def process_final_expense_direct(update: Update, context: ContextTypes.DEF
         context.user_data.clear()
         return
 
+    # Anomaly check for FUEL expenses (ALERT-01 to ALERT-03)
+    if expense is not None and expense.expense_type == ExpenseType.FUEL.value:
+        from src.services.anomaly import check_fuel_anomaly_after_expense
+        from sqlalchemy import select as sa_select
+        from src.db.models import Trip, Vehicle
+        async with async_session() as session:
+            # Re-fetch expense and vehicle in a new session for anomaly check
+            trip_result = await session.get(Trip, expense.trip_id)
+            if trip_result:
+                vehicle_result = await session.get(Vehicle, trip_result.vehicle_id)
+                if vehicle_result:
+                    exp_result = await session.get(Expense, expense.id)
+                    if exp_result:
+                        await check_fuel_anomaly_after_expense(session, exp_result, vehicle_result)
+
     await update.message.reply_text(
         get_text(lang, "exp_success", type=expense_type_name, amount=amount, currency=currency),
         reply_markup=get_main_menu(lang, True)
@@ -340,6 +355,21 @@ async def process_final_expense(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text(get_text(lang, "exp_duplicate"), reply_markup=get_main_menu(lang, True))
         context.user_data.clear()
         return ConversationHandler.END
+
+    # Anomaly check for FUEL expenses (ALERT-01 to ALERT-03)
+    if expense is not None and expense.expense_type == ExpenseType.FUEL.value:
+        from src.services.anomaly import check_fuel_anomaly_after_expense
+        from sqlalchemy import select as sa_select
+        from src.db.models import Trip, Vehicle
+        async with async_session() as session:
+            # Re-fetch expense and vehicle in a new session for anomaly check
+            trip_result = await session.get(Trip, expense.trip_id)
+            if trip_result:
+                vehicle_result = await session.get(Vehicle, trip_result.vehicle_id)
+                if vehicle_result:
+                    exp_result = await session.get(Expense, expense.id)
+                    if exp_result:
+                        await check_fuel_anomaly_after_expense(session, exp_result, vehicle_result)
 
     await update.message.reply_text(
         get_text(lang, "exp_success", type=expense_type_name, amount=amount, currency=currency),

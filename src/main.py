@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from http import HTTPStatus
 from pathlib import Path
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import HTTPException as _HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse as _RR
@@ -11,12 +12,14 @@ from telegram.ext import Application, PicklePersistence
 
 from src.core.config import settings
 from src.bot.bot_app import register_handlers
+from src.services.anomaly import run_anomaly_digest
 from src.web.panel import router as panel_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 ptb_app: Application = None
+scheduler = AsyncIOScheduler(timezone="UTC")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,6 +44,10 @@ async def lifespan(app: FastAPI):
     # Register all bot handlers
     register_handlers(ptb_app)
 
+    # Start APScheduler before PTB (independent of bot lifecycle)
+    scheduler.add_job(run_anomaly_digest, 'interval', hours=1, id='anomaly_digest')
+    scheduler.start()  # NOTE: do NOT await — APScheduler 3.x start() is synchronous
+
     async with ptb_app:
         if settings.WEBHOOK_URL:
             await ptb_app.bot.set_webhook(
@@ -54,6 +61,8 @@ async def lifespan(app: FastAPI):
         await ptb_app.start()
         yield
         await ptb_app.stop()
+
+    scheduler.shutdown(wait=False)
 
 app = FastAPI(title="Freight TMS API", lifespan=lifespan)
 app.include_router(panel_router)
