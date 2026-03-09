@@ -74,9 +74,16 @@ class Trip(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Phase 3: Trip Management (TRIP-01, TRIP-04, TRIP-05)
+    client_name = Column(String, nullable=True)
+    planned_departure = Column(DateTime(timezone=True), nullable=True)
+    planned_arrival = Column(DateTime(timezone=True), nullable=True)
+    delivery_status = Column(String, nullable=True)
+
     driver = relationship("Driver", back_populates="trips")
     vehicle = relationship("Vehicle", back_populates="trips")
     expenses = relationship("Expense", back_populates="trip")
+    documents = relationship("TripDocument", back_populates="trip")
 
 class Expense(Base):
     __tablename__ = "expenses"
@@ -156,3 +163,19 @@ class LocationUpdate(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     driver = relationship("Driver") # Basic relation for now
+
+
+class TripDocument(Base):
+    __tablename__ = "trip_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=False)
+
+    # Document classification and storage (TRIP-04, TRIP-05)
+    file_type = Column(String, nullable=False)   # e.g. "waybill", "invoice", "cmr"
+    r2_url = Column(String, nullable=True)       # Cloudflare R2 durable URL
+    tg_file_id = Column(String, nullable=True)   # Telegram file_id for re-download
+
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    trip = relationship("Trip", back_populates="documents")
