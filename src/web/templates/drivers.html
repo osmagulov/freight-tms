@@ -18,6 +18,7 @@
                 <th>Марка / Модель</th>
                 <th>Норма (л/100км)</th>
                 <th>Статус</th>
+                <th>PWA</th>
                 <th>Действия</th>
             </tr>
         </thead>
@@ -44,6 +45,13 @@
                     {% endif %}
                 </td>
                 <td>
+                    {% if driver.password_hash %}
+                    <span class="badge badge-active" title="Пароль PWA установлен">✓ Есть</span>
+                    {% else %}
+                    <span class="badge badge-pending" title="Водитель не может войти в приложение">✗ Нет</span>
+                    {% endif %}
+                </td>
+                <td>
                     <div class="action-group">
                         <a class="btn btn-sm btn-ghost" href="/panel/drivers/{{ driver.id }}/edit">Изменить</a>
                         <a class="btn btn-sm btn-ghost" href="/panel/drivers/{{ driver.id }}/documents">📄 Документы</a>
@@ -59,7 +67,7 @@
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="8" style="text-align:center; color:var(--muted); padding:32px;">Водителей нет</td></tr>
+            <tr><td colspan="9" style="text-align:center; color:var(--muted); padding:32px;">Водителей нет</td></tr>
             {% endfor %}
         </tbody>
     </table>
