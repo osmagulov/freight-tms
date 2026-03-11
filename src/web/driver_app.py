@@ -15,10 +15,40 @@ from src.web.auth import verify_password
 import os
 import uuid
 import secrets
+import logging
 from pathlib import Path
+
+from fastapi.responses import FileResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/app", tags=["Mobile Driver App"])
 templates = Jinja2Templates(directory="src/web/templates")
+
+# Local photo storage (fallback when R2 not configured)
+PHOTO_DIR = Path("/data/photos")
+PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+
+
+async def _save_photo_local(file_bytes: bytes, key: str) -> str:
+    """Save photo to local filesystem, return URL path."""
+    photo_path = PHOTO_DIR / key
+    photo_path.parent.mkdir(parents=True, exist_ok=True)
+    photo_path.write_bytes(file_bytes)
+    logger.info(f"Photo saved locally: {photo_path}")
+    return f"/app/photos/{key}"
+
+
+@router.get("/photos/{path:path}")
+async def serve_photo(path: str):
+    """Serve locally stored photos."""
+    file_path = PHOTO_DIR / path
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Photo not found")
+    # Determine content type
+    ext = file_path.suffix.lower()
+    ct_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+    return FileResponse(file_path, media_type=ct_map.get(ext, "application/octet-stream"))
 
 # Simple auth logic for drivers
 def create_driver_token(driver_id: int) -> str:
@@ -215,6 +245,9 @@ async def add_expense_post(
             ext = receipt.filename.split('.')[-1] if '.' in receipt.filename else 'jpg'
             key = f"expenses/receipt_{uuid.uuid4()}.{ext}"
             receipt_url = await upload_to_r2(file_bytes, key, content_type=receipt.content_type)
+            # Fallback: save locally if R2 not configured
+            if not receipt_url:
+                receipt_url = await _save_photo_local(file_bytes, key)
 
         card_url = None
         if card_photo and card_photo.filename:
@@ -222,6 +255,8 @@ async def add_expense_post(
             ext = card_photo.filename.split('.')[-1] if '.' in card_photo.filename else 'jpg'
             key = f"expenses/card_{uuid.uuid4()}.{ext}"
             card_url = await upload_to_r2(file_bytes, key, content_type=card_photo.content_type)
+            if not card_url:
+                card_url = await _save_photo_local(file_bytes, key)
 
         expense = Expense(
             trip_id=trip.id,
