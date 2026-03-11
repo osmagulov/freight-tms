@@ -11,7 +11,7 @@ files_modified:
   - antigravity_modules/expense_flow.py
   - antigravity_modules/translations.py
   - src/bot/bot_app.py
-autonomous: true
+autonomous: false
 requirements:
   - EXP-06
 

@@ -11,6 +11,8 @@ files_modified:
   - src/web/panel.py
   - src/web/templates/anomalies.html
   - src/main.py
+  - antigravity_modules/expense_flow.py
+  - src/web/templates/base.html
 autonomous: true
 requirements:
   - ALERT-01

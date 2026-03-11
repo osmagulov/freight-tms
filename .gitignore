@@ -8,3 +8,7 @@ set_commands.py
 run_bot.py
 data.sqlite3
 freight_tms.db
+fix_sqlite.py
+init_db.py
+*.log
+sys_cookie.txt
