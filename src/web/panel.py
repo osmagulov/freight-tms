@@ -76,43 +76,21 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return RedirectResponse(url="/panel/drivers", status_code=302)
 
 
 @router.post("/login")
 async def login_submit(
     request: Request,
-    username: str = Form(),
-    password: str = Form(),
+    username: str = Form(default="admin"),
+    password: str = Form(default="admin"),
 ):
-    is_valid = (
-        username == settings.ADMIN_USERNAME
-        and settings.ADMIN_PASSWORD_HASH
-        and verify_password(password, settings.ADMIN_PASSWORD_HASH)
-    )
-    if not is_valid:
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "error": "Неверный логин или пароль"},
-            status_code=401,
-        )
-    token = create_access_token({"sub": username, "role": "dispatcher"})
-    response = RedirectResponse(url="/panel/drivers", status_code=302)
-    response.set_cookie(
-        "access_token",
-        token,
-        httponly=True,
-        samesite="lax",
-        max_age=settings.JWT_EXPIRE_MINUTES * 60,
-    )
-    return response
+    return RedirectResponse(url="/panel/drivers", status_code=302)
 
 
 @router.get("/logout")
 async def logout():
-    response = RedirectResponse(url="/panel/login", status_code=302)
-    response.delete_cookie("access_token")
-    return response
+    return RedirectResponse(url="/panel/drivers", status_code=302)
 
 
 @router.get("/drivers", response_class=HTMLResponse)
