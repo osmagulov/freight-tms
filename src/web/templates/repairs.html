@@ -115,8 +115,8 @@
                 </td>
                 <td>
                     {% if r.status == "OPEN" %}<span class="badge badge-cancelled">Открыт</span>
-                    {% elif r.status == "IN_PROGRESS" %}<span class="badge badge-pending">В работе</span>
-                    {% else %}<span class="badge badge-active">Закрыт</span>{% endif %}
+                    {% elif r.status == "IN_PROGRESS" %}<span class="badge badge-pending">🔧 В работе</span>
+                    {% else %}<span class="badge badge-active">✅ Закрыт</span>{% endif %}
                 </td>
                 <td class="text-muted">{{ r.reported_by or "—" }}</td>
                 <td>
@@ -125,6 +125,7 @@
                         <form method="post" action="/panel/repairs/{{ r.id }}/start" style="display:inline;">
                             <button class="btn btn-xs btn-amber">В работу</button>
                         </form>
+                        <a href="/panel/repairs/{{ r.id }}/act" target="_blank" class="btn btn-xs btn-ghost">📄 Акт</a>
                         <details style="display:inline-block; position:relative;">
                             <summary class="btn btn-xs btn-success" style="cursor:pointer; list-style:none;">Закрыть</summary>
                             <div style="position:absolute; right:0; top:100%; margin-top:4px; background:white; border:1px solid var(--border); border-radius:var(--r); padding:12px; width:280px; box-shadow:var(--shadow); z-index:10;">
@@ -137,21 +138,27 @@
                         </details>
                     </div>
                     {% elif r.status == "IN_PROGRESS" %}
-                    <details style="display:inline-block; position:relative;">
-                        <summary class="btn btn-xs btn-success" style="cursor:pointer; list-style:none;">Закрыть</summary>
-                        <div style="position:absolute; right:0; top:100%; margin-top:4px; background:white; border:1px solid var(--border); border-radius:var(--r); padding:12px; width:280px; box-shadow:var(--shadow); z-index:10;">
-                            <form method="post" action="/panel/repairs/{{ r.id }}/resolve">
-                                <label style="font-size:12px; margin-bottom:6px;">Что было сделано</label>
-                                <textarea name="resolution_notes" rows="2" placeholder="Описание выполненных работ..." style="margin-bottom:8px; resize:vertical;"></textarea>
-                                <button type="submit" class="btn btn-sm btn-success" style="width:100%;">Подтвердить закрытие</button>
-                            </form>
-                        </div>
-                    </details>
+                    <div class="action-group">
+                        <a href="/panel/repairs/{{ r.id }}/act" target="_blank" class="btn btn-xs btn-dark">📄 Скачать акт</a>
+                        <details style="display:inline-block; position:relative;">
+                            <summary class="btn btn-xs btn-success" style="cursor:pointer; list-style:none;">Закрыть</summary>
+                            <div style="position:absolute; right:0; top:100%; margin-top:4px; background:white; border:1px solid var(--border); border-radius:var(--r); padding:12px; width:280px; box-shadow:var(--shadow); z-index:10;">
+                                <form method="post" action="/panel/repairs/{{ r.id }}/resolve">
+                                    <label style="font-size:12px; margin-bottom:6px;">Что было сделано</label>
+                                    <textarea name="resolution_notes" rows="2" placeholder="Описание выполненных работ..." style="margin-bottom:8px; resize:vertical;"></textarea>
+                                    <button type="submit" class="btn btn-sm btn-success" style="width:100%;">Подтвердить закрытие</button>
+                                </form>
+                            </div>
+                        </details>
+                    </div>
                     {% else %}
-                    <span class="text-muted" style="font-size:12px;">
-                        {% if r.resolved_at %}{{ r.resolved_at.strftime("%d.%m.%Y") }}{% endif %}
-                        {% if r.resolved_by %} · {{ r.resolved_by }}{% endif %}
-                    </span>
+                    <div class="action-group">
+                        <a href="/panel/repairs/{{ r.id }}/act" target="_blank" class="btn btn-xs btn-ghost">📄 Акт</a>
+                        <span class="text-muted" style="font-size:12px;">
+                            {% if r.resolved_at %}{{ r.resolved_at.strftime("%d.%m.%Y") }}{% endif %}
+                            {% if r.resolved_by %} · {{ r.resolved_by }}{% endif %}
+                        </span>
+                    </div>
                     {% endif %}
                 </td>
             </tr>

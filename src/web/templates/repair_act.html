@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Акт неисправности #{{ repair.id }}</title>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { margin: 0; font-size: 13px; }
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; color: #111; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 3px solid #111; padding-bottom: 16px; margin-bottom: 24px; }
+        .header h1 { font-size: 22px; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .header .sub { font-size: 14px; color: #555; }
+        .header .company { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+        .act-number { font-size: 18px; font-weight: 700; margin-top: 8px; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 10px; }
+        .info-table { width: 100%; border-collapse: collapse; }
+        .info-table td { padding: 8px 12px; border: 1px solid #ddd; vertical-align: top; }
+        .info-table td:first-child { width: 200px; font-weight: 600; background: #f8f9fa; color: #333; }
+        .priority-critical { color: #dc2626; font-weight: 700; }
+        .priority-high { color: #d97706; font-weight: 700; }
+        .priority-normal { color: #2563eb; }
+        .priority-low { color: #6b7280; }
+        .description-box { background: #f9fafb; border: 1px solid #ddd; border-radius: 6px; padding: 16px; font-size: 15px; min-height: 80px; white-space: pre-wrap; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 50px; }
+        .sig-block { width: 45%; border-top: 1px solid #111; padding-top: 8px; text-align: center; }
+        .sig-label { font-size: 12px; color: #666; }
+        .actions { display: flex; gap: 12px; margin-bottom: 20px; }
+        .btn-print { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-print:hover { background: #1d4ed8; }
+        .btn-back { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .btn-back:hover { background: #e5e7eb; }
+        .stamp-area { border: 2px dashed #ccc; width: 120px; height: 120px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 11px; text-transform: uppercase; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="actions no-print">
+    <a href="/panel/repairs" class="btn-back">← Назад к ремонтам</a>
+    <button class="btn-print" onclick="window.print()">🖨️ Распечатать / Сохранить PDF</button>
+</div>
+
+<div class="header">
+    <div class="company">Freight TMS</div>
+    <h1>Акт неисправности транспортного средства</h1>
+    <div class="act-number">№ {{ repair.id }} от {{ repair.created_at.strftime('%d.%m.%Y') if repair.created_at else '—' }}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">Транспортное средство</div>
+    <table class="info-table">
+        <tr>
+            <td>Государственный номер</td>
+            <td><strong>{{ repair.vehicle.license_plate if repair.vehicle else '—' }}</strong></td>
+        </tr>
+        {% if repair.vehicle and repair.vehicle.make %}
+        <tr>
+            <td>Марка / Модель</td>
+            <td>{{ repair.vehicle.make }} {{ repair.vehicle.model or '' }}</td>
+        </tr>
+        {% endif %}
+        {% if repair.vehicle and repair.vehicle.year %}
+        <tr>
+            <td>Год выпуска</td>
+            <td>{{ repair.vehicle.year }}</td>
+        </tr>
+        {% endif %}
+        {% if repair.vehicle and repair.vehicle.vin %}
+        <tr>
+            <td>VIN</td>
+            <td>{{ repair.vehicle.vin }}</td>
+        </tr>
+        {% endif %}
+    </table>
+</div>
+
+<div class="section">
+    <div class="section-title">Сведения о неисправности</div>
+    <table class="info-table">
+        <tr>
+            <td>Дата обнаружения</td>
+            <td>{{ repair.created_at.strftime('%d.%m.%Y %H:%M') if repair.created_at else '—' }}</td>
+        </tr>
+        <tr>
+            <td>Заявитель</td>
+            <td>{{ repair.reported_by or '—' }}</td>
+        </tr>
+        <tr>
+            <td>Приоритет</td>
+            <td>
+                {% if repair.priority == 'CRITICAL' %}<span class="priority-critical">🔴 КРИТИЧЕСКИЙ</span>
+                {% elif repair.priority == 'HIGH' %}<span class="priority-high">🟡 ВЫСОКИЙ</span>
+                {% elif repair.priority == 'LOW' %}<span class="priority-low">⚪ НИЗКИЙ</span>
+                {% else %}<span class="priority-normal">🔵 НОРМАЛЬНЫЙ</span>{% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td>Статус</td>
+            <td>
+                {% if repair.status == 'OPEN' %}⏳ Ожидает ремонта
+                {% elif repair.status == 'IN_PROGRESS' %}🔧 Передано в работу
+                {% else %}✅ Отремонтировано{% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="section">
+    <div class="section-title">Описание неисправности</div>
+    <div class="description-box">{{ repair.description }}</div>
+</div>
+
+{% if repair.resolution_notes %}
+<div class="section">
+    <div class="section-title">Выполненные работы</div>
+    <div class="description-box">{{ repair.resolution_notes }}</div>
+    <table class="info-table" style="margin-top:10px;">
+        <tr>
+            <td>Дата ремонта</td>
+            <td>{{ repair.resolved_at.strftime('%d.%m.%Y %H:%M') if repair.resolved_at else '—' }}</td>
+        </tr>
+        <tr>
+            <td>Исполнитель</td>
+            <td>{{ repair.resolved_by or '—' }}</td>
+        </tr>
+    </table>
+</div>
+{% endif %}
+
+<div class="signatures">
+    <div class="sig-block">
+        <div class="sig-label">Диспетчер / ответственный</div>
+    </div>
+    <div class="sig-block">
+        <div class="sig-label">Водитель</div>
+    </div>
+</div>
+
+<div class="stamp-area">
+    М.П.
+</div>
+
+</body>
+</html>

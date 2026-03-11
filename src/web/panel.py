@@ -822,6 +822,29 @@ async def repair_start(
     return RedirectResponse(url="/panel/repairs", status_code=302)
 
 
+@router.get("/repairs/{repair_id}/act", response_class=HTMLResponse)
+async def repair_act(
+    request: Request,
+    repair_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    """Generate a printable breakdown act for a repair."""
+    async with async_session() as session:
+        result = await session.execute(
+            select(VehicleRepair)
+            .where(VehicleRepair.id == repair_id)
+            .options(selectinload(VehicleRepair.vehicle))
+        )
+        repair = result.scalars().first()
+        if not repair:
+            raise HTTPException(status_code=404, detail="Repair not found")
+
+    return templates.TemplateResponse(
+        "repair_act.html",
+        {"request": request, "repair": repair, "user": current_user},
+    )
+
+
 @router.post("/repairs/{repair_id}/resolve")
 async def repair_resolve(
     repair_id: int,
