@@ -18,10 +18,11 @@
     <h1 class="text-2xl font-black text-center mb-6 uppercase tracking-wide text-gray-800">ДОБАВИТЬ РАСХОД</h1>
 
     <form method="POST" action="/app/add-expense" enctype="multipart/form-data"
-        class="space-y-6 ajax-compress-form cursor-pointer">
+        class="space-y-6 ajax-compress-form cursor-pointer" id="expense-form">
+
         <div>
             <label class="block text-gray-700 text-lg font-bold mb-2">Что оплатили?</label>
-            <select name="expense_type"
+            <select name="expense_type" id="expense_type" onchange="onTypeChange()"
                 class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none">
                 <option value="FUEL">⛽ Заправил топливо</option>
                 <option value="PER_DIEM">🍔 Еда (суточные)</option>
@@ -31,30 +32,69 @@
             </select>
         </div>
 
+        <!-- 📸 RECEIPT PHOTO — always first, with AI parsing for FUEL -->
+        <div>
+            <label class="block text-gray-700 text-lg font-bold mb-2">📸 Фото ЧЕКА</label>
+            <div class="relative">
+                <input type="file" name="receipt" id="receipt-input" accept="image/*" capture="environment"
+                    onchange="onReceiptSelected()"
+                    class="w-full text-lg p-3 bg-blue-50 border-2 border-blue-200 border-dashed rounded-xl file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-lg file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 text-blue-900 cursor-pointer h-24 flex items-center justify-center">
+            </div>
+            <!-- AI parsing status -->
+            <div id="ai-status" class="hidden mt-2 p-3 rounded-xl text-center font-bold"></div>
+        </div>
+
+        <!-- FUEL-specific fields -->
+        <div id="fuel-fields" class="space-y-5 bg-orange-50 border-2 border-orange-200 rounded-2xl p-4">
+            <div class="text-orange-700 font-black text-base uppercase tracking-wide mb-1">⛽ Данные заправки</div>
+            <div>
+                <label class="block text-gray-700 text-base font-bold mb-1">Литров залито</label>
+                <input type="number" step="0.1" name="liters" id="liters" placeholder="50.0" inputmode="decimal"
+                    class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-400 bg-white outline-none">
+            </div>
+            <div>
+                <label class="block text-gray-700 text-base font-bold mb-1">Одометр СЕЙЧАС (км)</label>
+                <input type="number" step="1" name="odometer" id="odometer" placeholder="450000" inputmode="numeric"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-400 bg-white outline-none">
+            </div>
+            <div>
+                <label class="block text-gray-700 text-base font-bold mb-1">Название АЗС</label>
+                <input type="text" name="station" id="station" placeholder="Shell Алматы"
+                    class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-400 bg-white outline-none">
+            </div>
+        </div>
+
+        <!-- Amount + currency -->
         <div>
             <label class="block text-gray-700 text-lg font-bold mb-2">🔢 Потраченная СУММА</label>
             <div class="flex">
-                <input type="number" step="0.01" name="amount" placeholder="0" inputmode="decimal" required
+                <input type="number" step="0.01" name="amount" id="amount" placeholder="0" inputmode="decimal" required
                     class="flex-grow text-xl p-4 border border-gray-300 rounded-l-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none">
-                <select name="currency"
+                <select name="currency" id="currency"
                     class="w-32 text-xl p-4 border border-l-0 border-gray-300 rounded-r-xl bg-gray-200 focus:ring-4 focus:ring-blue-500 outline-none font-bold">
-                    <option value="RUB">RUB ₽</option>
                     <option value="KZT">KZT ₸</option>
-                    <option value="CNY">CNY ¥</option>
+                    <option value="RUB">RUB ₽</option>
                     <option value="USD">USD $</option>
+                    <option value="EUR">EUR €</option>
                 </select>
             </div>
         </div>
 
-        <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">📸 Фото ЧЕКА</label>
-            <div class="relative">
-                <input type="file" name="receipt" accept="image/*" capture="environment"
-                    class="w-full text-lg p-3 bg-blue-50 border-2 border-blue-200 border-dashed rounded-xl file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-lg file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 text-blue-900 cursor-pointer h-24 flex items-center justify-center">
-            </div>
+        <!-- Fuel card number (FUEL only, auto-saved) -->
+        <div id="fuel-card-field" class="hidden">
+            <label class="block text-gray-700 text-lg font-bold mb-2">💳 Номер топливной карты <span
+                    class="text-gray-400 font-normal">(сохранится)</span></label>
+            <input type="text" name="fuel_card_number" id="fuel_card_number" value="{{ fuel_card_number }}"
+                placeholder="Введите номер карты"
+                class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none tracking-wider">
+            {% if fuel_card_number %}
+            <div class="text-green-600 text-sm font-bold mt-1">✓ Номер сохранён, подставлен автоматически</div>
+            {% endif %}
         </div>
 
-        <div>
+        <!-- Card/terminal photo (non-FUEL types) -->
+        <div id="card-photo-field">
             <label class="block text-gray-700 text-lg font-bold mb-2">💳 Фото КАРТЫ или ТЕРМИНАЛА <span
                     class="text-gray-400 font-normal">(если есть)</span></label>
             <div class="relative">
@@ -78,4 +118,83 @@
         </button>
     </form>
 </div>
+
+<script>
+    function onTypeChange() {
+        const type = document.getElementById('expense_type').value;
+        const fuelFields = document.getElementById('fuel-fields');
+        const fuelCardField = document.getElementById('fuel-card-field');
+        const cardPhotoField = document.getElementById('card-photo-field');
+        const liters = document.getElementById('liters');
+        const odometer = document.getElementById('odometer');
+        if (type === 'FUEL') {
+            fuelFields.classList.remove('hidden');
+            fuelCardField.classList.remove('hidden');
+            cardPhotoField.classList.add('hidden');
+            liters.required = true;
+            odometer.required = true;
+        } else {
+            fuelFields.classList.add('hidden');
+            fuelCardField.classList.add('hidden');
+            cardPhotoField.classList.remove('hidden');
+            liters.required = false;
+            odometer.required = false;
+        }
+    }
+
+    function onReceiptSelected() {
+        const type = document.getElementById('expense_type').value;
+        if (type !== 'FUEL') return; // AI parsing only for fuel receipts
+
+        const fileInput = document.getElementById('receipt-input');
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const statusDiv = document.getElementById('ai-status');
+        statusDiv.classList.remove('hidden');
+        statusDiv.className = 'mt-2 p-3 rounded-xl text-center font-bold bg-yellow-100 text-yellow-800 border-2 border-yellow-300';
+        statusDiv.innerHTML = '🤖 ИИ анализирует чек... подождите';
+
+        const formData = new FormData();
+        formData.append('receipt', file);
+
+        fetch('/app/parse-receipt', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    // Fill in extracted values
+                    if (data.liters) document.getElementById('liters').value = data.liters;
+                    if (data.amount) document.getElementById('amount').value = data.amount;
+                    if (data.station) document.getElementById('station').value = data.station;
+                    if (data.currency) {
+                        const sel = document.getElementById('currency');
+                        for (let opt of sel.options) {
+                            if (opt.value === data.currency) { sel.value = data.currency; break; }
+                        }
+                    }
+                    statusDiv.className = 'mt-2 p-3 rounded-xl text-center font-bold bg-green-100 text-green-800 border-2 border-green-300';
+                    statusDiv.innerHTML = '✅ ИИ заполнил данные — проверьте и скорректируйте если нужно';
+
+                    // Highlight filled fields briefly
+                    ['liters', 'amount', 'station'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el.value) {
+                            el.classList.add('ring-4', 'ring-green-300');
+                            setTimeout(() => el.classList.remove('ring-4', 'ring-green-300'), 3000);
+                        }
+                    });
+                } else {
+                    statusDiv.className = 'mt-2 p-3 rounded-xl text-center font-bold bg-red-100 text-red-800 border-2 border-red-300';
+                    statusDiv.innerHTML = '⚠️ ' + (data.error || 'Не удалось распознать') + ' — заполните вручную';
+                }
+            })
+            .catch(err => {
+                statusDiv.className = 'mt-2 p-3 rounded-xl text-center font-bold bg-red-100 text-red-800 border-2 border-red-300';
+                statusDiv.innerHTML = '⚠️ Ошибка сети — заполните вручную';
+            });
+    }
+
+    // Init on load
+    onTypeChange();
+</script>
 {% endblock %}

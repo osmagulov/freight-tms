@@ -165,12 +165,17 @@ async def open_trip_post(
 @router.get("/add-expense", response_class=HTMLResponse)
 async def add_expense_get(request: Request):
     driver_id = await requires_driver(request)
-    # Check if active trip
     async with async_session() as session:
         trip = await get_active_trip_for_driver(session, driver_id)
         if not trip:
             return RedirectResponse("/app/", status_code=302)
-    return templates.TemplateResponse("mobile/add_expense.html", {"request": request})
+        # Load driver's saved fuel card number
+        driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = driver_res.scalars().first()
+    return templates.TemplateResponse("mobile/add_expense.html", {
+        "request": request,
+        "fuel_card_number": driver.fuel_card_number or "" if driver else "",
+    })
 
 @router.post("/add-expense")
 async def add_expense_post(
@@ -182,6 +187,7 @@ async def add_expense_post(
     liters: float = Form(None),
     odometer: int = Form(None),
     station: str = Form(""),
+    fuel_card_number: str = Form(""),
     receipt: UploadFile = File(None),
     card_photo: UploadFile = File(None)
 ):
@@ -279,9 +285,104 @@ async def add_expense_post(
                     )
                     session.add(anomaly)
 
+        # Save fuel card number to driver profile for auto-fill
+        if expense_type == "FUEL" and fuel_card_number.strip():
+            driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+            driver = driver_res.scalars().first()
+            if driver and driver.fuel_card_number != fuel_card_number.strip():
+                driver.fuel_card_number = fuel_card_number.strip()
+
         await session.commit()
 
     return RedirectResponse(url="/app/", status_code=302)
+
+# --- AI RECEIPT PARSING ---
+@router.post("/parse-receipt")
+async def parse_receipt(request: Request, receipt: UploadFile = File(...)):
+    """Parse a fuel receipt photo using GPT-4 Vision and return extracted data."""
+    driver_id = await requires_driver(request)
+
+    if not settings.OPENAI_API_KEY:
+        return {"ok": False, "error": "AI не настроен"}
+
+    file_bytes = await receipt.read()
+    if len(file_bytes) > 10 * 1024 * 1024:  # 10MB max
+        return {"ok": False, "error": "Файл слишком большой"}
+
+    import base64
+    import httpx
+
+    b64_image = base64.b64encode(file_bytes).decode("utf-8")
+    content_type = receipt.content_type or "image/jpeg"
+
+    prompt = """Проанализируй фото чека с заправки. Извлеки следующие данные:
+- liters: количество литров (число)
+- amount: сумма оплаты (число)
+- currency: валюта (KZT, RUB, USD, EUR, TRY). Определи по символам (₸=KZT, ₽=RUB, $=USD, €=EUR, ₺=TRY) или по стране
+- station: название АЗС (текст)
+
+Ответь СТРОГО в формате JSON, без лишнего текста:
+{"liters": 50.0, "amount": 15000, "currency": "KZT", "station": "Shell"}
+
+Если не можешь определить какое-то поле — укажи null.
+Если это НЕ чек с заправки — ответь: {"error": "Это не чек с заправки"}"""
+
+    try:
+        import asyncio
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:{content_type};base64,{b64_image}",
+                                        "detail": "low",
+                                    },
+                                },
+                            ],
+                        }
+                    ],
+                    "max_tokens": 200,
+                },
+            )
+
+        if resp.status_code != 200:
+            return {"ok": False, "error": f"API ошибка: {resp.status_code}"}
+
+        import json
+        result_text = resp.json()["choices"][0]["message"]["content"].strip()
+        # Extract JSON from response (might have markdown backticks)
+        if "```" in result_text:
+            result_text = result_text.split("```")[1]
+            if result_text.startswith("json"):
+                result_text = result_text[4:]
+        parsed = json.loads(result_text)
+
+        if "error" in parsed:
+            return {"ok": False, "error": parsed["error"]}
+
+        return {
+            "ok": True,
+            "liters": parsed.get("liters"),
+            "amount": parsed.get("amount"),
+            "currency": parsed.get("currency", "KZT"),
+            "station": parsed.get("station"),
+        }
+
+    except Exception as e:
+        return {"ok": False, "error": f"Ошибка парсинга: {str(e)}"}
+
 
 # --- CLOSE TRIP ---
 @router.get("/close-trip", response_class=HTMLResponse)

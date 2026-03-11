@@ -43,6 +43,7 @@ class Driver(Base):
     passport_r2_url = Column(String, nullable=True)   # Passport scan on R2
     language = Column(String, default="ru", nullable=False)
     password_hash = Column(String, nullable=True)     # For PWA login
+    fuel_card_number = Column(String, nullable=True)  # Saved fuel card number for auto-fill
     status = Column(String, default=DriverStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
