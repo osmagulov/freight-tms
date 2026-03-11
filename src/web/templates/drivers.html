@@ -46,6 +46,7 @@
                 <td>
                     <div class="action-group">
                         <a class="btn btn-sm btn-ghost" href="/panel/drivers/{{ driver.id }}/edit">Изменить</a>
+                        <a class="btn btn-sm btn-ghost" href="/panel/drivers/{{ driver.id }}/documents">📄 Документы</a>
                         {% if driver.status != "ACTIVE" %}
                         <form method="post" action="/panel/drivers/{{ driver.id }}/activate" style="display:inline;">
                             <button type="submit" class="btn btn-sm btn-success">✓ Активировать</button>

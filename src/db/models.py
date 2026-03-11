@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Float, Enum, DateTime, Boolean, UniqueConstraint, Text
+from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Float, Enum, DateTime, Boolean, UniqueConstraint, Text, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -49,6 +49,7 @@ class Driver(Base):
 
     trips = relationship("Trip", back_populates="driver")
     vehicle = relationship("Vehicle", back_populates="drivers")
+    documents = relationship("DriverDocument", back_populates="driver", order_by="DriverDocument.uploaded_at.desc()")
 
 class Vehicle(Base):
     __tablename__ = "vehicles"
@@ -64,6 +65,7 @@ class Vehicle(Base):
     trips = relationship("Trip", back_populates="vehicle")
     drivers = relationship("Driver", back_populates="vehicle")
     repairs = relationship("VehicleRepair", back_populates="vehicle", order_by="VehicleRepair.created_at.desc()")
+    documents = relationship("VehicleDocument", back_populates="vehicle", order_by="VehicleDocument.uploaded_at.desc()")
 
 class VehicleRepair(Base):
     __tablename__ = "vehicle_repairs"
@@ -194,6 +196,34 @@ class LocationUpdate(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     driver = relationship("Driver") # Basic relation for now
+
+
+class DriverDocument(Base):
+    __tablename__ = "driver_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
+    doc_type = Column(String, nullable=False)   # driver_license | passport | medical | contract | other
+    title = Column(String, nullable=True)       # Custom label (for "other" type)
+    r2_url = Column(String, nullable=False)
+    expires_at = Column(Date, nullable=True)
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    driver = relationship("Driver", back_populates="documents")
+
+
+class VehicleDocument(Base):
+    __tablename__ = "vehicle_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
+    doc_type = Column(String, nullable=False)   # registration | insurance | inspection | customs | other
+    title = Column(String, nullable=True)
+    r2_url = Column(String, nullable=False)
+    expires_at = Column(Date, nullable=True)
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    vehicle = relationship("Vehicle", back_populates="documents")
 
 
 class TripDocument(Base):

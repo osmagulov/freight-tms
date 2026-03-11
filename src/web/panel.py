@@ -13,7 +13,8 @@ from sqlalchemy import func, select, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
-from src.db.models import Driver, Expense, FuelAnomaly, LocationUpdate, RepairStatus, Trip, TripDocument, TripStatus, Vehicle, VehicleRepair, VehicleStatus
+from src.db.models import Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate, RepairStatus, Trip, TripDocument, TripStatus, Vehicle, VehicleDocument, VehicleRepair, VehicleStatus
+from datetime import date as date_type
 from src.web.auth import (
     create_access_token,
     get_current_user_from_cookie,
@@ -927,3 +928,256 @@ async def repair_resolve(
             session.add(repair)
             await session.commit()
     return RedirectResponse(url="/panel/repairs", status_code=302)
+
+
+# ── Document expiry helper ────────────────────────────────────────────────────
+
+def doc_expiry_status(expires_at) -> str:
+    if not expires_at:
+        return "ok"
+    days = (expires_at - date_type.today()).days
+    if days < 0:
+        return "expired"
+    if days <= 7:
+        return "critical"
+    if days <= 30:
+        return "warning"
+    return "ok"
+
+
+DRIVER_DOC_LABELS = {
+    "driver_license": "Водительское удостоверение",
+    "passport": "Паспорт",
+    "medical": "Медицинская справка",
+    "contract": "Трудовой договор",
+    "other": "Другой документ",
+}
+
+VEHICLE_DOC_LABELS = {
+    "registration": "Техпаспорт",
+    "insurance": "Страховой полис",
+    "inspection": "Техосмотр",
+    "customs": "Таможенные документы",
+    "other": "Другой документ",
+}
+
+
+# ── Driver Documents ──────────────────────────────────────────────────────────
+
+@router.get("/drivers/{driver_id}/documents", response_class=HTMLResponse)
+async def driver_documents_get(
+    request: Request,
+    driver_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        if not driver:
+            raise HTTPException(status_code=404, detail="Driver not found")
+        docs_result = await session.execute(
+            select(DriverDocument).where(DriverDocument.driver_id == driver_id)
+            .order_by(DriverDocument.uploaded_at.desc())
+        )
+        docs = docs_result.scalars().all()
+    return templates.TemplateResponse("driver_documents.html", {
+        "request": request,
+        "driver": driver,
+        "docs": docs,
+        "doc_expiry_status": doc_expiry_status,
+        "DRIVER_DOC_LABELS": DRIVER_DOC_LABELS,
+    })
+
+
+@router.post("/drivers/{driver_id}/documents")
+async def driver_documents_post(
+    request: Request,
+    driver_id: int,
+    doc_type: str = Form(...),
+    title: str = Form(""),
+    expires_at: str = Form(""),
+    doc_file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    import uuid
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        if not driver or not doc_file.filename:
+            return RedirectResponse(url=f"/panel/drivers/{driver_id}/documents", status_code=302)
+
+        file_bytes = await doc_file.read()
+        ext = doc_file.filename.rsplit(".", 1)[-1].lower() if "." in doc_file.filename else "pdf"
+        content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
+        key = f"driver_docs/{driver_id}/{uuid.uuid4()}.{ext}"
+        r2_url = await upload_to_r2(file_bytes, key, content_type)
+        if not r2_url:
+            return RedirectResponse(url=f"/panel/drivers/{driver_id}/documents", status_code=302)
+
+        expires = None
+        if expires_at.strip():
+            try:
+                from datetime import date as dt_date
+                expires = dt_date.fromisoformat(expires_at.strip())
+            except ValueError:
+                pass
+
+        doc = DriverDocument(
+            driver_id=driver_id,
+            doc_type=doc_type,
+            title=title.strip() or None,
+            r2_url=r2_url,
+            expires_at=expires,
+        )
+        session.add(doc)
+        await session.commit()
+    return RedirectResponse(url=f"/panel/drivers/{driver_id}/documents", status_code=302)
+
+
+@router.post("/drivers/{driver_id}/documents/{doc_id}/delete")
+async def driver_document_delete(
+    request: Request,
+    driver_id: int,
+    doc_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(DriverDocument).where(DriverDocument.id == doc_id, DriverDocument.driver_id == driver_id)
+        )
+        doc = result.scalars().first()
+        if doc:
+            await session.delete(doc)
+            await session.commit()
+    return RedirectResponse(url=f"/panel/drivers/{driver_id}/documents", status_code=302)
+
+
+# ── Vehicle Documents ─────────────────────────────────────────────────────────
+
+@router.get("/vehicles/{vehicle_id}/documents", response_class=HTMLResponse)
+async def vehicle_documents_get(
+    request: Request,
+    vehicle_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
+        vehicle = result.scalars().first()
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+        docs_result = await session.execute(
+            select(VehicleDocument).where(VehicleDocument.vehicle_id == vehicle_id)
+            .order_by(VehicleDocument.uploaded_at.desc())
+        )
+        docs = docs_result.scalars().all()
+    return templates.TemplateResponse("vehicle_documents.html", {
+        "request": request,
+        "vehicle": vehicle,
+        "docs": docs,
+        "doc_expiry_status": doc_expiry_status,
+        "VEHICLE_DOC_LABELS": VEHICLE_DOC_LABELS,
+    })
+
+
+@router.post("/vehicles/{vehicle_id}/documents")
+async def vehicle_documents_post(
+    request: Request,
+    vehicle_id: int,
+    doc_type: str = Form(...),
+    title: str = Form(""),
+    expires_at: str = Form(""),
+    doc_file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    import uuid
+    async with async_session() as session:
+        result = await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
+        vehicle = result.scalars().first()
+        if not vehicle or not doc_file.filename:
+            return RedirectResponse(url=f"/panel/vehicles/{vehicle_id}/documents", status_code=302)
+
+        file_bytes = await doc_file.read()
+        ext = doc_file.filename.rsplit(".", 1)[-1].lower() if "." in doc_file.filename else "pdf"
+        content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
+        key = f"vehicle_docs/{vehicle_id}/{uuid.uuid4()}.{ext}"
+        r2_url = await upload_to_r2(file_bytes, key, content_type)
+        if not r2_url:
+            return RedirectResponse(url=f"/panel/vehicles/{vehicle_id}/documents", status_code=302)
+
+        expires = None
+        if expires_at.strip():
+            try:
+                from datetime import date as dt_date
+                expires = dt_date.fromisoformat(expires_at.strip())
+            except ValueError:
+                pass
+
+        doc = VehicleDocument(
+            vehicle_id=vehicle_id,
+            doc_type=doc_type,
+            title=title.strip() or None,
+            r2_url=r2_url,
+            expires_at=expires,
+        )
+        session.add(doc)
+        await session.commit()
+    return RedirectResponse(url=f"/panel/vehicles/{vehicle_id}/documents", status_code=302)
+
+
+@router.post("/vehicles/{vehicle_id}/documents/{doc_id}/delete")
+async def vehicle_document_delete(
+    request: Request,
+    vehicle_id: int,
+    doc_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(VehicleDocument).where(VehicleDocument.id == doc_id, VehicleDocument.vehicle_id == vehicle_id)
+        )
+        doc = result.scalars().first()
+        if doc:
+            await session.delete(doc)
+            await session.commit()
+    return RedirectResponse(url=f"/panel/vehicles/{vehicle_id}/documents", status_code=302)
+
+
+# ── Expiring Documents Dashboard ──────────────────────────────────────────────
+
+@router.get("/documents/expiring", response_class=HTMLResponse)
+async def documents_expiring(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from datetime import timedelta
+    today = date_type.today()
+    deadline = today + timedelta(days=30)
+
+    async with async_session() as session:
+        driver_docs_res = await session.execute(
+            select(DriverDocument, Driver)
+            .join(Driver, DriverDocument.driver_id == Driver.id)
+            .where(DriverDocument.expires_at != None)
+            .where(DriverDocument.expires_at <= deadline)
+            .order_by(DriverDocument.expires_at)
+        )
+        driver_docs = driver_docs_res.all()
+
+        vehicle_docs_res = await session.execute(
+            select(VehicleDocument, Vehicle)
+            .join(Vehicle, VehicleDocument.vehicle_id == Vehicle.id)
+            .where(VehicleDocument.expires_at != None)
+            .where(VehicleDocument.expires_at <= deadline)
+            .order_by(VehicleDocument.expires_at)
+        )
+        vehicle_docs = vehicle_docs_res.all()
+
+    return templates.TemplateResponse("documents_expiring.html", {
+        "request": request,
+        "driver_docs": driver_docs,
+        "vehicle_docs": vehicle_docs,
+        "doc_expiry_status": doc_expiry_status,
+        "DRIVER_DOC_LABELS": DRIVER_DOC_LABELS,
+        "VEHICLE_DOC_LABELS": VEHICLE_DOC_LABELS,
+        "today": today,
+    })

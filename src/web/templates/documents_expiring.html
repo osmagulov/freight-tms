@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Истекающие документы — Freight TMS{% endblock %}
+{% block content %}
+
+<div class="page-hdr">
+    <h1>📄 Истекающие документы</h1>
+    <span class="text-muted" style="font-size:13px;">Следующие 30 дней</span>
+</div>
+
+{% set total = driver_docs|length + vehicle_docs|length %}
+
+{% if total == 0 %}
+<div class="table-wrap">
+    <div class="empty">
+        <div class="empty-icon">✅</div>
+        <p>Все документы в порядке — ничего не истекает в ближайшие 30 дней.</p>
+    </div>
+</div>
+{% else %}
+
+<div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
+    {% set expired_count = [] %}
+    {% set critical_count = [] %}
+    {% set warning_count = [] %}
+    {% for doc, owner in driver_docs + vehicle_docs %}
+        {% set s = doc_expiry_status(doc.expires_at) %}
+        {% if s == 'expired' %}{% set _ = expired_count.append(1) %}{% endif %}
+        {% if s == 'critical' %}{% set _ = critical_count.append(1) %}{% endif %}
+        {% if s == 'warning' %}{% set _ = warning_count.append(1) %}{% endif %}
+    {% endfor %}
+    <div class="kpi red">
+        <div class="kpi-label">Истекли</div>
+        <div class="kpi-value">{{ expired_count|length }}</div>
+    </div>
+    <div class="kpi amber">
+        <div class="kpi-label">До 7 дней</div>
+        <div class="kpi-value">{{ critical_count|length }}</div>
+    </div>
+    <div class="kpi purple">
+        <div class="kpi-label">До 30 дней</div>
+        <div class="kpi-value">{{ warning_count|length }}</div>
+    </div>
+</div>
+
+{% if driver_docs %}
+<div class="card">
+    <div class="card-hdr"><span class="card-title">👤 Водители</span></div>
+    <table>
+        <thead>
+            <tr>
+                <th>Водитель</th>
+                <th>Документ</th>
+                <th>Срок истекает</th>
+                <th>Статус</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc, driver in driver_docs %}
+            {% set status = doc_expiry_status(doc.expires_at) %}
+            {% set days = (doc.expires_at - today).days %}
+            <tr>
+                <td class="fw-bold">{{ driver.name or 'Водитель #' + driver.id|string }}</td>
+                <td>{{ DRIVER_DOC_LABELS.get(doc.doc_type, doc.doc_type) }}{% if doc.title %} — {{ doc.title }}{% endif %}</td>
+                <td>{{ doc.expires_at.strftime('%d.%m.%Y') }}</td>
+                <td>
+                    {% if status == 'expired' %}
+                        <span class="badge badge-cancelled">🔴 Истёк {{ days|abs }} дн. назад</span>
+                    {% elif status == 'critical' %}
+                        <span class="badge badge-cancelled">🔴 Через {{ days }} дн.</span>
+                    {% else %}
+                        <span class="badge badge-pending">🟡 Через {{ days }} дн.</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-group">
+                        <a href="{{ doc.r2_url }}" target="_blank" class="btn btn-xs btn-ghost">📄 Открыть</a>
+                        <a href="/panel/drivers/{{ driver.id }}/documents" class="btn btn-xs btn-ghost">Все документы</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if vehicle_docs %}
+<div class="card">
+    <div class="card-hdr"><span class="card-title">🚚 Транспорт</span></div>
+    <table>
+        <thead>
+            <tr>
+                <th>Борт</th>
+                <th>Документ</th>
+                <th>Срок истекает</th>
+                <th>Статус</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc, vehicle in vehicle_docs %}
+            {% set status = doc_expiry_status(doc.expires_at) %}
+            {% set days = (doc.expires_at - today).days %}
+            <tr>
+                <td class="fw-bold">{{ vehicle.license_plate }}</td>
+                <td>{{ VEHICLE_DOC_LABELS.get(doc.doc_type, doc.doc_type) }}{% if doc.title %} — {{ doc.title }}{% endif %}</td>
+                <td>{{ doc.expires_at.strftime('%d.%m.%Y') }}</td>
+                <td>
+                    {% if status == 'expired' %}
+                        <span class="badge badge-cancelled">🔴 Истёк {{ days|abs }} дн. назад</span>
+                    {% elif status == 'critical' %}
+                        <span class="badge badge-cancelled">🔴 Через {{ days }} дн.</span>
+                    {% else %}
+                        <span class="badge badge-pending">🟡 Через {{ days }} дн.</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-group">
+                        <a href="{{ doc.r2_url }}" target="_blank" class="btn btn-xs btn-ghost">📄 Открыть</a>
+                        <a href="/panel/vehicles/{{ vehicle.id }}/documents" class="btn btn-xs btn-ghost">Все документы</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
