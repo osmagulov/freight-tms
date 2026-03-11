@@ -70,26 +70,72 @@
         <span class="tracking-wide text-red-50">ЗАВЕРШИТЬ РЕЙС</span>
     </a>
 
+    <!-- 🔴 REJECTED expenses alert -->
+    {% set rejected = expenses | selectattr('status', 'equalto', 'REJECTED') | list %}
+    {% if rejected %}
+    <div class="mt-6 bg-red-50 border-4 border-red-400 rounded-2xl p-4 shadow-md">
+        <div class="text-red-700 font-black text-lg mb-3">❌ ОТКЛОНЁННЫЕ РАСХОДЫ ({{ rejected | length }})</div>
+        {% for exp in rejected %}
+        <div class="bg-white border-2 border-red-300 rounded-xl p-3 mb-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="font-bold text-red-700">
+                        {% if exp.expense_type == 'FUEL' %}⛽ Топливо
+                        {% elif exp.expense_type == 'FINE' %}👮 Штраф
+                        {% elif exp.expense_type == 'REPAIR' %}🔧 Ремонт
+                        {% else %}📦 Другое{% endif %}
+                    </span>
+                    <span class="text-red-500 text-sm ml-1">{{ exp.created_at.strftime('%d.%m %H:%M') }}</span>
+                </div>
+                <div class="font-black text-red-600 text-lg">{{ "{:,.0f}".format(exp.amount) }} {{ exp.currency }}</div>
+            </div>
+            {% if exp.rejection_comment %}
+            <div class="mt-2 bg-red-100 text-red-800 p-2 rounded-lg text-sm font-bold">
+                💬 Причина отклонения: {{ exp.rejection_comment }}
+            </div>
+            {% else %}
+            <div class="mt-2 bg-red-100 text-red-800 p-2 rounded-lg text-sm font-bold">
+                ⚠️ Расход отклонён диспетчером
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Expenses History -->
     {% if expenses %}
-    <div class="mt-8 bg-white rounded-2xl shadow p-4 border border-gray-200">
+    <div class="mt-6 bg-white rounded-2xl shadow p-4 border border-gray-200">
         <h3 class="text-xl font-black text-gray-800 border-b pb-2 mb-4">📝 Ваши расходы в этом рейсе:</h3>
-        <ul class="space-y-4">
+        <ul class="space-y-3">
             {% for exp in expenses %}
-            <li class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-center justify-between">
+            <li class="p-3 rounded-xl border flex items-center justify-between
+                {% if exp.status == 'REJECTED' %}bg-red-50 border-red-200
+                {% elif exp.status == 'APPROVED' %}bg-green-50 border-green-200
+                {% else %}bg-gray-50 border-gray-100{% endif %}">
                 <div>
                     <span class="font-bold text-lg text-gray-700">
                         {% if exp.expense_type == 'FUEL' %}⛽ Топливо
-                        {% elif exp.expense_type == 'PER_DIEM' %}🍔 Суточные
                         {% elif exp.expense_type == 'FINE' %}👮 Штраф
                         {% elif exp.expense_type == 'REPAIR' %}🔧 Ремонт
-                        {% else %}📦 Другое
-                        {% endif %}
+                        {% else %}📦 Другое{% endif %}
                     </span>
-                    <div class="text-sm text-gray-500 mt-1">{{ exp.created_at.strftime('%d.%m %H:%M') }} | {{
-                        exp.comment or 'Без комментария' }}</div>
+                    {% if exp.status == 'APPROVED' %}
+                    <span class="text-green-600 text-xs font-bold ml-1">✓ одобрен</span>
+                    {% elif exp.status == 'REJECTED' %}
+                    <span class="text-red-600 text-xs font-bold ml-1">✕ отклонён</span>
+                    {% else %}
+                    <span class="text-yellow-600 text-xs font-bold ml-1">⏳ на проверке</span>
+                    {% endif %}
+                    <div class="text-sm text-gray-500 mt-1">{{ exp.created_at.strftime('%d.%m %H:%M') }}{% if exp.comment %} | {{ exp.comment }}{% endif %}</div>
+                    {% if exp.status == 'REJECTED' and exp.rejection_comment %}
+                    <div class="text-red-600 text-xs font-bold mt-1">💬 {{ exp.rejection_comment }}</div>
+                    {% endif %}
                 </div>
-                <div class="font-black text-blue-600 text-xl whitespace-nowrap text-right">
+                <div class="font-black text-xl whitespace-nowrap text-right
+                    {% if exp.status == 'REJECTED' %}text-red-500 line-through
+                    {% elif exp.status == 'APPROVED' %}text-green-600
+                    {% else %}text-blue-600{% endif %}">
                     {{ "{:,.0f}".format(exp.amount).replace(',', ' ') }}
                     <div class="text-xs text-gray-400">{{ exp.currency }}</div>
                 </div>
