@@ -21,11 +21,25 @@
         <span class="tracking-wide">ДОБАВИТЬ РАСХОД</span>
     </a>
 
-    <!-- loc button -->
+    <!-- Auto-tracking indicator -->
+    <div id="auto-track-status" class="bg-green-50 border-2 border-green-300 rounded-2xl p-3 mt-6 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl" id="track-dot">🟢</span>
+            <div>
+                <div class="font-bold text-green-800 text-sm">АВТООТСЛЕЖИВАНИЕ ВКЛЮЧЕНО</div>
+                <div class="text-green-600 text-xs" id="track-info">Геопозиция каждый час</div>
+            </div>
+        </div>
+        <div class="text-right">
+            <div class="text-xs text-green-500" id="last-sent">—</div>
+        </div>
+    </div>
+
+    <!-- loc button (manual) -->
     <button onclick="sendLocation()" id="loc-btn"
-        class="block w-full bg-indigo-500 text-white text-center text-xl sm:text-2xl font-black h-24 rounded-2xl shadow-[0_8px_0_#3730a3] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-4 mt-6 px-4 bg-gradient-to-b from-indigo-400 to-indigo-600">
-        <span class="text-5xl drop-shadow-md" id="loc-icon">📍</span>
-        <span id="loc-text" class="tracking-wide">ОТПРАВИТЬ ГЕОЛОКАЦИЮ</span>
+        class="block w-full bg-indigo-500 text-white text-center text-base font-black h-16 rounded-2xl shadow-[0_6px_0_#3730a3] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-3 mt-3 px-4 bg-gradient-to-b from-indigo-400 to-indigo-600">
+        <span class="text-3xl drop-shadow-md" id="loc-icon">📍</span>
+        <span id="loc-text" class="tracking-wide">ОТПРАВИТЬ СЕЙЧАС</span>
     </button>
 
     <!-- open repairs warning -->
@@ -106,6 +120,23 @@
 </div>
 
 <script>
+    // --- Send location (manual or auto) ---
+    function sendLocationSilent() {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition((position) => {
+            fetch('/app/location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lat: position.coords.latitude, lng: position.coords.longitude })
+            }).then(() => {
+                const now = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+                const lastSent = document.getElementById('last-sent');
+                if (lastSent) lastSent.innerText = 'Последняя: ' + now;
+                localStorage.setItem('lastAutoGeo', Date.now().toString());
+            }).catch(() => {});
+        }, () => {}, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+    }
+
     function sendLocation() {
         const btn = document.getElementById('loc-btn');
         const text = document.getElementById('loc-text');
@@ -123,45 +154,69 @@
         navigator.geolocation.getCurrentPosition((position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-
             text.innerText = "ОТПРАВКА...";
 
             fetch('/app/location', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lat: lat, lng: lng })
+                body: JSON.stringify({ lat, lng })
             }).then(res => {
                 text.innerText = "ОТПРАВЛЕНО!";
                 icon.innerText = "✅";
-                btn.classList.replace('from-indigo-400', 'from-green-400');
-                btn.classList.replace('to-indigo-600', 'to-green-600');
-                btn.classList.replace('shadow-[0_8px_0_#3730a3]', 'shadow-[0_8px_0_#15803d]');
+                const now = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+                const lastSent = document.getElementById('last-sent');
+                if (lastSent) lastSent.innerText = 'Последняя: ' + now;
+                localStorage.setItem('lastAutoGeo', Date.now().toString());
 
                 setTimeout(() => {
-                    text.innerText = "ОТПРАВИТЬ ГЕОЛОКАЦИЮ";
+                    text.innerText = "ОТПРАВИТЬ СЕЙЧАС";
                     icon.innerText = "📍";
-                    btn.classList.replace('from-green-400', 'from-indigo-400');
-                    btn.classList.replace('to-green-600', 'to-indigo-600');
-                    btn.classList.replace('shadow-[0_8px_0_#15803d]', 'shadow-[0_8px_0_#3730a3]');
                     btn.classList.remove('opacity-75', 'pointer-events-none');
                 }, 3000);
             }).catch(err => {
                 alert("Ошибка сети при отправке!");
-                text.innerText = "ОТПРАВИТЬ ГЕОЛОКАЦИЮ";
+                text.innerText = "ОТПРАВИТЬ СЕЙЧАС";
                 icon.innerText = "📍";
                 btn.classList.remove('opacity-75', 'pointer-events-none');
             });
 
         }, (error) => {
-            alert("ОШИБКА: Телефон не дал доступ к GPS. Разрешите доступ к местоположению в настройках браузера!");
-            text.innerText = "ОТПРАВИТЬ ГЕОЛОКАЦИЮ";
+            alert("ОШИБКА: Разрешите доступ к местоположению в настройках браузера!");
+            text.innerText = "ОТПРАВИТЬ СЕЙЧАС";
             icon.innerText = "📍";
             btn.classList.remove('opacity-75', 'pointer-events-none');
-        }, {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-        });
+        }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     }
+
+    // --- Auto-tracking: every 1 hour ---
+    const AUTO_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+    function initAutoTracking() {
+        // Request permission on page load
+        if (navigator.geolocation) {
+            // Check when last sent
+            const lastSent = parseInt(localStorage.getItem('lastAutoGeo') || '0');
+            const elapsed = Date.now() - lastSent;
+
+            if (lastSent > 0) {
+                const time = new Date(lastSent).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+                const el = document.getElementById('last-sent');
+                if (el) el.innerText = 'Последняя: ' + time;
+            }
+
+            // If more than 1 hour since last → send immediately
+            if (elapsed >= AUTO_INTERVAL_MS || lastSent === 0) {
+                sendLocationSilent();
+            }
+
+            // Schedule every hour
+            setInterval(sendLocationSilent, AUTO_INTERVAL_MS);
+        }
+    }
+
+    // Start auto-tracking if there's an active trip
+    {% if active_trip %}
+    initAutoTracking();
+    {% endif %}
 </script>
 {% endblock %}
