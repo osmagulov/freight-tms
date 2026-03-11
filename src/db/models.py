@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Float, Enum, DateTime, Boolean, UniqueConstraint
+from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Float, Enum, DateTime, Boolean, UniqueConstraint, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -27,14 +27,22 @@ class ExpenseType(str, enum.Enum):
     REPAIR = "REPAIR"
     OTHER = "OTHER"
 
+class RepairStatus(str, enum.Enum):
+    OPEN = "OPEN"           # Требует ремонта
+    IN_PROGRESS = "IN_PROGRESS"  # В ремонте
+    RESOLVED = "RESOLVED"   # Отремонтировано
+
 class Driver(Base):
     __tablename__ = "drivers"
 
     id = Column(Integer, primary_key=True, index=True)
-    tg_id = Column(BigInteger, unique=True, index=True, nullable=False)
+    tg_id = Column(BigInteger, unique=True, index=True, nullable=True)  # NULL for dispatcher-created drivers
     name = Column(String, nullable=True)
     phone = Column(String, nullable=True)
+    iin = Column(String(12), nullable=True)           # Individual Identification Number (Kazakhstan)
+    passport_r2_url = Column(String, nullable=True)   # Passport scan on R2
     language = Column(String, default="ru", nullable=False)
+    password_hash = Column(String, nullable=True)     # For PWA login
     status = Column(String, default=DriverStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
@@ -50,10 +58,33 @@ class Vehicle(Base):
     status = Column(String, default=VehicleStatus.AVAILABLE)
     make = Column(String, nullable=True)
     model = Column(String, nullable=True)
+    year = Column(Integer, nullable=True)
     fuel_norm_per_100km = Column(Float, nullable=True)
 
     trips = relationship("Trip", back_populates="vehicle")
     drivers = relationship("Driver", back_populates="vehicle")
+    repairs = relationship("VehicleRepair", back_populates="vehicle", order_by="VehicleRepair.created_at.desc()")
+
+class VehicleRepair(Base):
+    __tablename__ = "vehicle_repairs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=True)  # If reported during a trip
+
+    description = Column(Text, nullable=False)        # Что сломалось / что нужно починить
+    status = Column(String, default=RepairStatus.OPEN, nullable=False)
+    priority = Column(String, default="NORMAL")       # LOW / NORMAL / HIGH / CRITICAL
+
+    reported_by = Column(String, nullable=True)       # dispatcher username or "driver"
+    resolved_by = Column(String, nullable=True)
+    resolution_notes = Column(Text, nullable=True)    # Что было сделано
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+    vehicle = relationship("Vehicle", back_populates="repairs")
+    trip = relationship("Trip")
 
 class Trip(Base):
     __tablename__ = "trips"

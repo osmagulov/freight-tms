@@ -4,6 +4,7 @@
 
 <div class="page-hdr">
     <h1>Водители и борта</h1>
+    <a href="/panel/drivers/add" class="btn btn-sm">+ Добавить водителя</a>
 </div>
 
 <div class="table-wrap">
@@ -12,6 +13,7 @@
             <tr>
                 <th>ФИО</th>
                 <th>Телефон</th>
+                <th>ИИН / Паспорт</th>
                 <th>Борт</th>
                 <th>Марка / Модель</th>
                 <th>Норма (л/100км)</th>
@@ -24,6 +26,10 @@
             <tr>
                 <td class="fw-bold">{{ driver.name or '—' }}</td>
                 <td class="text-muted">{{ driver.phone or '—' }}</td>
+                <td class="text-muted">
+                    {{ driver.iin or '—' }}
+                    {% if driver.passport_r2_url %}<a href="{{ driver.passport_r2_url }}" target="_blank" class="btn btn-xs btn-ghost" style="margin-left:4px;">📄</a>{% endif %}
+                </td>
                 <td>{{ vehicle.license_plate if vehicle else '—' }}</td>
                 <td class="text-muted">
                     {% if vehicle and vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}
@@ -39,19 +45,20 @@
                 </td>
                 <td>
                     <div class="action-group">
+                        <a class="btn btn-sm btn-ghost" href="/panel/drivers/{{ driver.id }}/edit">Изменить</a>
                         {% if driver.status != "ACTIVE" %}
                         <form method="post" action="/panel/drivers/{{ driver.id }}/activate" style="display:inline;">
                             <button type="submit" class="btn btn-sm btn-success">✓ Активировать</button>
                         </form>
                         {% endif %}
                         {% if vehicle %}
-                        <a class="btn btn-sm btn-ghost" href="/panel/vehicles/{{ vehicle.id }}/edit">Изменить борт</a>
+                        <a class="btn btn-sm btn-ghost" href="/panel/vehicles/{{ vehicle.id }}/edit">Борт</a>
                         {% endif %}
                     </div>
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="7" style="text-align:center; color:var(--muted); padding:32px;">Водителей нет</td></tr>
+            <tr><td colspan="8" style="text-align:center; color:var(--muted); padding:32px;">Водителей нет</td></tr>
             {% endfor %}
         </tbody>
     </table>

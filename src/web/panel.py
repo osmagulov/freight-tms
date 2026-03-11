@@ -6,14 +6,14 @@ from pathlib import Path
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Form, Request, Response
+from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
-from src.db.models import Driver, Expense, FuelAnomaly, LocationUpdate, Trip, TripDocument, TripStatus, Vehicle, VehicleStatus
+from src.db.models import Driver, Expense, FuelAnomaly, LocationUpdate, RepairStatus, Trip, TripDocument, TripStatus, Vehicle, VehicleRepair, VehicleStatus
 from src.web.auth import (
     create_access_token,
     get_current_user_from_cookie,
@@ -43,19 +43,28 @@ async def notify_driver_expense_decision(expense: Expense, approved: bool, rejec
         logger.error(f"Failed to notify driver: {e}")
 
 
-async def notify_driver_trip_assignment(trip: Trip) -> None:
+async def notify_driver_trip_assignment(trip: Trip, open_repairs: list = None) -> None:
     """Send Telegram message to driver about new trip assignment."""
     from src.main import ptb_app  # deferred import — ptb_app is set at lifespan startup
     if ptb_app is None:
         return
     try:
         driver_tg_id = trip.driver.tg_id
+        if not driver_tg_id:
+            return  # dispatcher-created driver, no Telegram account
         text = (
             f"Вам назначен новый рейс #{trip.id}!\n"
             f"Маршрут: {trip.route_details or '—'}\n"
             f"Груз: {trip.load_info or '—'}\n"
             f"Клиент: {trip.client_name or '—'}"
         )
+        if open_repairs:
+            priority_labels = {"CRITICAL": "Критический", "HIGH": "Высокий", "NORMAL": "Нормальный", "LOW": "Низкий"}
+            repairs_text = "\n".join(
+                f"• {r.description} ({priority_labels.get(r.priority, r.priority)})"
+                for r in open_repairs
+            )
+            text += f"\n\n⚠️ Внимание! На борту есть неисправности:\n{repairs_text}"
         await ptb_app.bot.send_message(chat_id=driver_tg_id, text=text)
     except Exception as e:
         logger.error(f"Failed to notify driver about trip assignment: {e}")
@@ -228,16 +237,18 @@ async def vehicle_edit_submit(
     vehicle_id: int,
     make: str = Form(default=""),
     model: str = Form(default=""),
-    fuel_norm_per_100km: float = Form(default=0.0),
+    year: str = Form(default=""),
+    fuel_norm_per_100km: str = Form(default=""),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
     async with async_session() as session:
         result = await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
         vehicle = result.scalars().first()
         if vehicle:
-            vehicle.make = make or None
-            vehicle.model = model or None
-            vehicle.fuel_norm_per_100km = fuel_norm_per_100km or None
+            vehicle.make = make.strip() or None
+            vehicle.model = model.strip() or None
+            vehicle.year = int(year) if year.strip() else None
+            vehicle.fuel_norm_per_100km = float(fuel_norm_per_100km) if fuel_norm_per_100km.strip() else None
             session.add(vehicle)
             await session.commit()
     return RedirectResponse(url="/panel/drivers", status_code=302)
@@ -471,8 +482,17 @@ async def create_trip_submit(
         )
         trip = result.scalars().first()
 
-    await notify_driver_trip_assignment(trip)
-    return RedirectResponse(url="/panel/trips", status_code=302)
+        # Load open repairs for this vehicle to include in notification
+        repairs_result = await session.execute(
+            select(VehicleRepair)
+            .where(VehicleRepair.vehicle_id == vehicle_id)
+            .where(VehicleRepair.status.in_([RepairStatus.OPEN, RepairStatus.IN_PROGRESS]))
+            .order_by(VehicleRepair.created_at.desc())
+        )
+        open_repairs = repairs_result.scalars().all()
+
+    await notify_driver_trip_assignment(trip, open_repairs=open_repairs)
+    return RedirectResponse(url=f"/panel/trips/{trip.id}", status_code=302)
 
 
 @router.get("/trips/{trip_id}", response_class=HTMLResponse)
@@ -504,6 +524,15 @@ async def trip_detail(
         )
         locations = locations_result.scalars().all()
 
+        # Load open/in-progress repairs for this vehicle
+        repairs_result = await session.execute(
+            select(VehicleRepair)
+            .where(VehicleRepair.vehicle_id == trip.vehicle_id)
+            .where(VehicleRepair.status.in_([RepairStatus.OPEN, RepairStatus.IN_PROGRESS]))
+            .order_by(VehicleRepair.created_at.desc())
+        )
+        open_repairs = repairs_result.scalars().all()
+
     # Calculate total expenses in KZT
     total_kzt = sum(
         (e.amount_kzt if e.amount_kzt is not None else e.amount)
@@ -517,6 +546,7 @@ async def trip_detail(
             "trip": trip,
             "locations": locations,
             "total_kzt": total_kzt,
+            "open_repairs": open_repairs,
             "user": current_user,
         },
     )
@@ -533,19 +563,24 @@ async def fleet_dashboard(
             .options(
                 selectinload(Vehicle.trips).selectinload(Trip.driver),
                 selectinload(Vehicle.drivers),
+                selectinload(Vehicle.repairs),
             )
             .order_by(Vehicle.license_plate)
         )
         vehicles = vehicles_result.scalars().all()
 
-    # For each vehicle, find active trip (if any) — Python-side filter
+    # For each vehicle, find active trip and open repair count — Python-side filter
     vehicle_data = []
     for vehicle in vehicles:
         active_trip = next(
             (t for t in vehicle.trips if t.status == TripStatus.ACTIVE),
             None,
         )
-        vehicle_data.append({"vehicle": vehicle, "active_trip": active_trip})
+        open_repairs = sum(
+            1 for r in vehicle.repairs
+            if r.status in (RepairStatus.OPEN, RepairStatus.IN_PROGRESS)
+        )
+        vehicle_data.append({"vehicle": vehicle, "active_trip": active_trip, "open_repairs": open_repairs})
 
     return templates.TemplateResponse(
         "fleet.html",
@@ -629,3 +664,266 @@ async def fleet_map_markers(
     async with async_session() as session:
         markers = await _get_fleet_markers(session)
     return JSONResponse(content=markers)
+
+
+# ── Vehicle Add ────────────────────────────────────────────────────────────
+
+@router.get("/vehicles/add", response_class=HTMLResponse)
+async def vehicle_add_form(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    return templates.TemplateResponse(
+        "vehicle_add.html",
+        {"request": request, "user": current_user},
+    )
+
+
+@router.post("/vehicles/add")
+async def vehicle_add_submit(
+    request: Request,
+    license_plate: str = Form(),
+    make: str = Form(default=""),
+    model: str = Form(default=""),
+    year: str = Form(default=""),
+    fuel_norm_per_100km: str = Form(default=""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    plate = license_plate.upper().strip()
+    async with async_session() as session:
+        existing = await session.execute(select(Vehicle).where(Vehicle.license_plate == plate))
+        if existing.scalars().first():
+            return templates.TemplateResponse(
+                "vehicle_add.html",
+                {"request": request, "user": current_user, "error": f"Борт {plate} уже существует"},
+                status_code=400,
+            )
+        vehicle = Vehicle(
+            license_plate=plate,
+            make=make.strip() or None,
+            model=model.strip() or None,
+            year=int(year) if year.strip() else None,
+            fuel_norm_per_100km=float(fuel_norm_per_100km) if fuel_norm_per_100km.strip() else None,
+        )
+        session.add(vehicle)
+        await session.commit()
+    return RedirectResponse(url="/panel/fleet", status_code=302)
+
+
+# ── Driver Add ─────────────────────────────────────────────────────────────
+
+@router.get("/drivers/add", response_class=HTMLResponse)
+async def driver_add_form(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        vehicles_result = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
+        vehicles = vehicles_result.scalars().all()
+    return templates.TemplateResponse(
+        "driver_add.html",
+        {"request": request, "vehicles": vehicles, "user": current_user},
+    )
+
+
+@router.post("/drivers/add")
+async def driver_add_submit(
+    request: Request,
+    name: str = Form(),
+    phone: str = Form(default=""),
+    iin: str = Form(default=""),
+    vehicle_id: str = Form(default=""),
+    password: str = Form(default=""),
+    passport_file: UploadFile = File(default=None),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from src.services.r2 import upload_to_r2
+    passport_url = None
+    if passport_file and passport_file.filename:
+        file_bytes = await passport_file.read()
+        if file_bytes:
+            ext = passport_file.filename.rsplit(".", 1)[-1].lower()
+            content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
+            key = f"passports/driver_{int(datetime.utcnow().timestamp())}_{passport_file.filename}"
+            passport_url = await upload_to_r2(file_bytes, key, content_type)
+
+    vid = int(vehicle_id) if vehicle_id.strip() else None
+    async with async_session() as session:
+        driver = Driver(
+            tg_id=None,
+            name=name.strip(),
+            phone=phone.strip() or None,
+            iin=iin.strip() or None,
+            passport_r2_url=passport_url,
+            vehicle_id=vid,
+            password_hash=hash_password(password) if password else None,
+            status="ACTIVE",
+        )
+        session.add(driver)
+        await session.commit()
+    return RedirectResponse(url="/panel/drivers", status_code=302)
+
+
+# ── Driver Edit ────────────────────────────────────────────────────────────
+
+@router.get("/drivers/{driver_id}/edit", response_class=HTMLResponse)
+async def driver_edit_form(
+    request: Request,
+    driver_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        if not driver:
+            return RedirectResponse(url="/panel/drivers", status_code=302)
+        vehicles_result = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
+        vehicles = vehicles_result.scalars().all()
+    return templates.TemplateResponse(
+        "driver_edit.html",
+        {"request": request, "driver": driver, "vehicles": vehicles, "user": current_user},
+    )
+
+
+@router.post("/drivers/{driver_id}/edit")
+async def driver_edit_submit(
+    request: Request,
+    driver_id: int,
+    name: str = Form(default=""),
+    phone: str = Form(default=""),
+    iin: str = Form(default=""),
+    vehicle_id: str = Form(default=""),
+    password: str = Form(default=""),
+    passport_file: UploadFile = File(default=None),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from src.services.r2 import upload_to_r2
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        if not driver:
+            return RedirectResponse(url="/panel/drivers", status_code=302)
+
+        if name.strip():
+            driver.name = name.strip()
+        if phone.strip():
+            driver.phone = phone.strip()
+        if iin.strip():
+            driver.iin = iin.strip()
+        if password.strip():
+            driver.password_hash = hash_password(password)
+        driver.vehicle_id = int(vehicle_id) if vehicle_id.strip() else None
+
+        if passport_file and passport_file.filename:
+            file_bytes = await passport_file.read()
+            if file_bytes:
+                ext = passport_file.filename.rsplit(".", 1)[-1].lower()
+                content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
+                key = f"passports/driver_{driver_id}_{int(datetime.utcnow().timestamp())}.{ext}"
+                driver.passport_r2_url = await upload_to_r2(file_bytes, key, content_type)
+
+        session.add(driver)
+        await session.commit()
+    return RedirectResponse(url="/panel/drivers", status_code=302)
+
+
+# ── Repairs ────────────────────────────────────────────────────────────────
+
+@router.get("/repairs", response_class=HTMLResponse)
+async def list_repairs(
+    request: Request,
+    vehicle_id: int | None = None,
+    status: str | None = None,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        stmt = (
+            select(VehicleRepair)
+            .options(
+                selectinload(VehicleRepair.vehicle),
+                selectinload(VehicleRepair.trip),
+            )
+            .order_by(VehicleRepair.created_at.desc())
+        )
+        if vehicle_id:
+            stmt = stmt.where(VehicleRepair.vehicle_id == vehicle_id)
+        if status:
+            stmt = stmt.where(VehicleRepair.status == status)
+        result = await session.execute(stmt)
+        repairs = result.scalars().all()
+
+        vehicles_result = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
+        vehicles = vehicles_result.scalars().all()
+
+    open_count = sum(1 for r in repairs if r.status == RepairStatus.OPEN)
+    in_progress_count = sum(1 for r in repairs if r.status == RepairStatus.IN_PROGRESS)
+
+    return templates.TemplateResponse(
+        "repairs.html",
+        {
+            "request": request,
+            "repairs": repairs,
+            "vehicles": vehicles,
+            "open_count": open_count,
+            "in_progress_count": in_progress_count,
+            "filter_vehicle_id": vehicle_id,
+            "filter_status": status,
+            "user": current_user,
+            "RepairStatus": RepairStatus,
+        },
+    )
+
+
+@router.post("/repairs")
+async def create_repair(
+    request: Request,
+    vehicle_id: int = Form(),
+    description: str = Form(),
+    priority: str = Form(default="NORMAL"),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        repair = VehicleRepair(
+            vehicle_id=vehicle_id,
+            description=description.strip(),
+            priority=priority,
+            status=RepairStatus.OPEN,
+            reported_by=current_user.get("sub", "dispatcher"),
+        )
+        session.add(repair)
+        await session.commit()
+    return RedirectResponse(url="/panel/repairs", status_code=302)
+
+
+@router.post("/repairs/{repair_id}/start")
+async def repair_start(
+    repair_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(VehicleRepair).where(VehicleRepair.id == repair_id))
+        repair = result.scalars().first()
+        if repair and repair.status == RepairStatus.OPEN:
+            repair.status = RepairStatus.IN_PROGRESS
+            session.add(repair)
+            await session.commit()
+    return RedirectResponse(url="/panel/repairs", status_code=302)
+
+
+@router.post("/repairs/{repair_id}/resolve")
+async def repair_resolve(
+    repair_id: int,
+    resolution_notes: str = Form(default=""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(VehicleRepair).where(VehicleRepair.id == repair_id))
+        repair = result.scalars().first()
+        if repair and repair.status != RepairStatus.RESOLVED:
+            repair.status = RepairStatus.RESOLVED
+            repair.resolved_by = current_user.get("sub", "dispatcher")
+            repair.resolution_notes = resolution_notes.strip() or None
+            repair.resolved_at = datetime.utcnow()
+            session.add(repair)
+            await session.commit()
+    return RedirectResponse(url="/panel/repairs", status_code=302)

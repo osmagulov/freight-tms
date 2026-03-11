@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ driver.name or "Водитель" }} — изменить — Freight TMS{% endblock %}
+{% block content %}
+
+<a href="/panel/drivers" class="back-link">← Водители</a>
+
+<div class="page-hdr" style="margin-bottom:20px;">
+    <h1>{{ driver.name or "Водитель #" ~ driver.id }}</h1>
+</div>
+
+<div class="card" style="max-width:520px;">
+    <div class="card-hdr"><span class="card-title">Данные водителя</span></div>
+    <div class="card-body">
+        <form method="post" action="/panel/drivers/{{ driver.id }}/edit" enctype="multipart/form-data">
+            <div class="form-row">
+                <label>ФИО</label>
+                <input type="text" name="name" value="{{ driver.name or '' }}" placeholder="Иванов Иван Иванович">
+            </div>
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label>Телефон (логин) *</label>
+                    <input type="text" name="phone" value="{{ driver.phone or '' }}" placeholder="+7 777 000 00 00"
+                        required>
+                </div>
+                <div class="form-row">
+                    <label>Новый пароль</label>
+                    <input type="text" name="password" placeholder="Только для изменения">
+                </div>
+            </div>
+            <div class="form-row">
+                <label>ИИН</label>
+                <input type="text" name="iin" value="{{ driver.iin or '' }}" placeholder="123456789012" maxlength="12">
+            </div>
+            <div class="form-row">
+                <label>Борт</label>
+                <select name="vehicle_id">
+                    <option value="">— Не назначен —</option>
+                    {% for v in vehicles %}
+                    <option value="{{ v.id }}" {% if v.id==driver.vehicle_id %}selected{% endif %}>
+                        {{ v.license_plate }}{% if v.make %} — {{ v.make }}{% if v.model %} {{ v.model }}{% endif %}{%
+                        endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Скан паспорта (заменить)</label>
+                {% if driver.passport_r2_url %}
+                <div style="margin-bottom:8px;">
+                    <a href="{{ driver.passport_r2_url }}" target="_blank" class="btn btn-xs btn-ghost">📄 Текущий
+                        документ</a>
+                </div>
+                {% endif %}
+                <input type="file" name="passport_file" accept="image/*,.pdf" style="padding:6px 0;">
+                {% if driver.passport_r2_url %}
+                <div class="text-muted" style="font-size:12px; margin-top:4px;">Оставьте пустым, чтобы сохранить текущий
+                    документ</div>
+                {% endif %}
+            </div>
+            <div class="action-group" style="margin-top:8px;">
+                <button type="submit" class="btn">Сохранить</button>
+                <a href="/panel/drivers" class="btn btn-ghost">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Водитель | Freight TMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    {% block head %}{% endblock %}
+</head>
+
+<body class="bg-gray-100 min-h-screen font-sans text-gray-900 pb-20 select-none">
+    <header class="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-50 flex items-center justify-between">
+        <div class="text-xl font-bold flex items-center">
+            <span class="mr-2 text-2xl">🚚</span> Freight TMS
+        </div>
+        {% if driver %}
+        <a href="/app/logout"
+            class="bg-blue-800 px-3 py-2 rounded-lg font-bold text-sm text-white shadow active:translate-y-1">ВЫХОД</a>
+        {% endif %}
+    </header>
+
+    <main class="p-4 max-w-lg mx-auto relative">
+        <div id="offline-banner"
+            class="hidden mb-4 bg-red-600 text-white font-bold p-3 rounded-lg text-center shadow-md animate-pulse">
+            ⚠️ ОШИБКА: НЕТ ИНТЕРНЕТА. Проверьте сеть!
+        </div>
+
+        <div id="global-loader"
+            class="hidden fixed inset-0 bg-black/50 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
+            <span class="text-6xl animate-bounce mb-4">⏳</span>
+            <div class="bg-white px-6 py-3 rounded-xl font-black text-blue-600 text-xl shadow-xl">ОТПРАВКА... ВАЖНО: НЕ
+                ЗАКРЫВАЙТЕ ОКНО</div>
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // Offline / Online detection
+        const offlineBanner = document.getElementById('offline-banner');
+        const submitButtons = document.querySelectorAll('button[type="submit"]');
+
+        function updateOnlineStatus() {
+            if (!navigator.onLine) {
+                offlineBanner.classList.remove('hidden');
+                submitButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                });
+            } else {
+                offlineBanner.classList.add('hidden');
+                submitButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                });
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        // Initial check
+        updateOnlineStatus();
+
+        // Image Compressor Logic
+        async function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
+            if (!file || !file.type.startsWith('image/')) return file;
+
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob((blob) => {
+                            // Create a new file from blob
+                            const compressedFile = new File([blob], file.name, {
+                                type: file.type, // 'image/jpeg' usually
+                                lastModified: Date.now(),
+                            });
+                            resolve(compressedFile);
+                        }, file.type, quality);
+                    };
+                };
+            });
+        }
+
+        // Global Form Submission Interceptor
+        document.addEventListener('DOMContentLoaded', () => {
+            const forms = document.querySelectorAll('form.ajax-compress-form');
+
+            forms.forEach(form => {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    if (!navigator.onLine) {
+                        alert("Нет интернета! Пожалуйста, найдите сеть перед отправкой.");
+                        return;
+                    }
+
+                    const loader = document.getElementById('global-loader');
+                    loader.classList.remove('hidden');
+
+                    try {
+                        const formData = new FormData(form);
+
+                        // Find all file inputs and compress images before sending
+                        const fileInputs = form.querySelectorAll('input[type="file"]');
+                        for (let input of fileInputs) {
+                            if (input.files.length > 0) {
+                                const originalFile = input.files[0];
+                                const compressedFile = await compressImageFile(originalFile);
+                                // Override the FormData file with the compressed one
+                                formData.set(input.name, compressedFile);
+                            }
+                        }
+
+                        // Submit via AJAX
+                        const response = await fetch(form.action, {
+                            method: form.method || 'POST',
+                            body: formData,
+                            redirect: 'follow'
+                        });
+
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                        } else if (response.ok) {
+                            // In case it doesn't redirect but succeeds (e.g. login)
+                            window.location.reload();
+                        } else {
+                            alert("Ошибка на сервере при сохранении. Попробуйте еще раз.");
+                            loader.classList.add('hidden');
+                        }
+                    } catch (error) {
+                        alert("Сетевая ошибка: " + error.message);
+                        loader.classList.add('hidden');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

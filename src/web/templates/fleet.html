@@ -8,6 +8,7 @@
 
 <div class="page-hdr">
     <h1>Парк транспорта</h1>
+    <a href="/panel/vehicles/add" class="btn btn-sm">+ Добавить борт</a>
 </div>
 
 <div class="kpi-grid">
@@ -35,22 +36,25 @@
         <thead>
             <tr>
                 <th>Гос. номер</th>
-                <th>Марка / Модель</th>
+                <th>Марка / Модель / Год</th>
                 <th>Статус</th>
+                <th>Ремонты</th>
                 <th>Водитель</th>
-                <th>Маршрут</th>
                 <th>Рейс</th>
+                <th>Действия</th>
             </tr>
         </thead>
         <tbody>
             {% for row in vehicle_data %}
             {% set vehicle = row.vehicle %}
             {% set active_trip = row.active_trip %}
+            {% set open_repairs = row.open_repairs %}
             <tr>
                 <td class="fw-bold">{{ vehicle.license_plate }}</td>
                 <td class="text-muted">
-                    {% if vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}
-                    {% else %}—{% endif %}
+                    {% if vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}{% endif %}
+                    {% if vehicle.year %}<span style="color:var(--muted); font-size:12px;"> {{ vehicle.year }}</span>{% endif %}
+                    {% if not vehicle.make and not vehicle.year %}—{% endif %}
                 </td>
                 <td>
                     {% if vehicle.status == 'AVAILABLE' %}<span class="badge badge-available">Свободен</span>
@@ -58,12 +62,24 @@
                     {% elif vehicle.status == 'MAINTENANCE' %}<span class="badge badge-maintenance">На ТО</span>
                     {% else %}<span class="badge">{{ vehicle.status }}</span>{% endif %}
                 </td>
+                <td>
+                    {% if open_repairs > 0 %}
+                    <a href="/panel/repairs?vehicle_id={{ vehicle.id }}&status=OPEN" class="badge badge-cancelled" style="text-decoration:none;">⚠️ {{ open_repairs }}</a>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
                 <td>{{ active_trip.driver.name if active_trip and active_trip.driver else '—' }}</td>
-                <td class="text-muted">{{ active_trip.route_details if active_trip else '—' }}</td>
                 <td>
                     {% if active_trip %}
                     <a href="/panel/trips/{{ active_trip.id }}" class="btn btn-xs btn-ghost">Рейс #{{ active_trip.id }}</a>
-                    {% else %}—{% endif %}
+                    {% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+                <td>
+                    <div class="action-group">
+                        <a href="/panel/vehicles/{{ vehicle.id }}/edit" class="btn btn-xs btn-ghost">Изменить</a>
+                        <a href="/panel/repairs?vehicle_id={{ vehicle.id }}" class="btn btn-xs btn-ghost">🔧 Ремонты</a>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
@@ -74,7 +90,7 @@
 <div class="table-wrap">
     <div class="empty">
         <div class="empty-icon">🚚</div>
-        <p>Транспортных средств пока нет.</p>
+        <p>Транспортных средств пока нет. <a href="/panel/vehicles/add" class="btn btn-sm" style="margin-top:8px;">+ Добавить борт</a></p>
     </div>
 </div>
 {% endif %}

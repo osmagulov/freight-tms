@@ -97,3 +97,4 @@ alembic revision -m "description"
 - **Photo optional**: receipt photo is optional in bot (2G reliability on driver routes)
 - **APScheduler** (not Celery): anomaly checks run hourly in-process to save Railway service costs
 - **Railway Volume**: FSM pickle file at `/data/bot_persistence.pkl` — Volume blocks zero-downtime deploys (known trade-off)
+- **PWA Mobile App**: Telegram-bot is vulnerable to blocking in China/Russia. Created a parallel PWA (Progressive Web App) mapped to `/app/*` routes with simple phone-number based token auth and large UI touch targets. Both the bot and the PWA use the same db logic.

@@ -21,6 +21,11 @@
                 <input type="text" name="model" value="{{ vehicle.model or '' }}" placeholder="65117">
             </div>
             <div class="form-row">
+                <label>Год выпуска</label>
+                <input type="number" name="year" min="1990" max="2030"
+                       value="{{ vehicle.year or '' }}" placeholder="2018">
+            </div>
+            <div class="form-row">
                 <label>Норма расхода (л/100км)</label>
                 <input type="number" name="fuel_norm_per_100km" step="0.1" min="0"
                        value="{{ vehicle.fuel_norm_per_100km or '' }}" placeholder="28.5">
