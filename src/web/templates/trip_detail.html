@@ -100,6 +100,7 @@
                 <th>Сумма</th>
                 <th>Валюта</th>
                 <th>Сумма (KZT)</th>
+                <th>Фото</th>
                 <th>Статус</th>
                 <th>Дата</th>
                 <th>Комментарий</th>
@@ -112,6 +113,12 @@
                 <td>{{ "%.2f"|format(expense.amount) }}</td>
                 <td class="text-muted">{{ expense.currency }}</td>
                 <td>{{ "%.0f"|format(expense.amount_kzt) if expense.amount_kzt is not none else '—' }} {% if expense.amount_kzt %}₸{% endif %}</td>
+                <td>
+                    {% set receipt_url = expense.photo_r2_url or expense.photo_file_id %}
+                    {% if receipt_url %}<a href="{{ receipt_url }}" target="_blank" class="btn btn-xs btn-ghost">📎 Чек</a>{% endif %}
+                    {% if expense.card_photo_file_id %}<a href="{{ expense.card_photo_file_id }}" target="_blank" class="btn btn-xs btn-ghost">💳</a>{% endif %}
+                    {% if not receipt_url and not expense.card_photo_file_id %}<span class="text-muted">—</span>{% endif %}
+                </td>
                 <td>
                     {% if expense.status == 'APPROVED' %}<span class="badge badge-approved">Одобрен</span>
                     {% elif expense.status == 'REJECTED' %}<span class="badge badge-rejected">Отклонён</span>

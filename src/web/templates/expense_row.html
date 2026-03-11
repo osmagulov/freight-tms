@@ -8,9 +8,14 @@
     {% endif %}
   </td>
   <td>
-    {% if expense.photo_r2_url %}
-    <a href="{{ expense.photo_r2_url }}" target="_blank" class="btn btn-xs btn-ghost">📎 Фото</a>
-    {% else %}<span class="text-muted">—</span>{% endif %}
+    {% set receipt_url = expense.photo_r2_url or expense.photo_file_id %}
+    {% if receipt_url %}
+    <a href="{{ receipt_url }}" target="_blank" class="btn btn-xs btn-ghost">📎 Чек</a>
+    {% endif %}
+    {% if expense.card_photo_file_id %}
+    <a href="{{ expense.card_photo_file_id }}" target="_blank" class="btn btn-xs btn-ghost">💳</a>
+    {% endif %}
+    {% if not receipt_url and not expense.card_photo_file_id %}<span class="text-muted">—</span>{% endif %}
   </td>
   <td class="text-muted">{{ expense.created_at.strftime('%d.%m %H:%M') if expense.created_at else "—" }}</td>
   <td>
