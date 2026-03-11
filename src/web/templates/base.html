@@ -296,7 +296,6 @@
     </style>
 </head>
 <body>
-{% if request.cookies.get('access_token') %}
 <aside class="sidebar">
     <div class="sb-brand">
         <div class="sb-brand-icon">🚛</div>
@@ -341,9 +340,8 @@
         <a href="/panel/logout"><span>⎋</span> Выйти</a>
     </div>
 </aside>
-{% endif %}
-<div class="{% if request.cookies.get('access_token') %}main-wrap{% endif %}">
-    <div class="{% if request.cookies.get('access_token') %}container{% endif %}">
+<div class="main-wrap">
+    <div class="container">
         {% block content %}{% endblock %}
     </div>
 </div>
