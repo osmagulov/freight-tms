@@ -25,7 +25,6 @@
             <select name="expense_type" id="expense_type" onchange="onTypeChange()"
                 class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none">
                 <option value="FUEL">⛽ Заправил топливо</option>
-                <option value="PER_DIEM">🍔 Еда (суточные)</option>
                 <option value="FINE">👮 Штраф</option>
                 <option value="REPAIR">🔧 Ремонт авто</option>
                 <option value="OTHER">📦 Другое</option>
@@ -93,15 +92,7 @@
             {% endif %}
         </div>
 
-        <!-- Card/terminal photo (non-FUEL types) -->
-        <div id="card-photo-field">
-            <label class="block text-gray-700 text-lg font-bold mb-2">💳 Фото КАРТЫ или ТЕРМИНАЛА <span
-                    class="text-gray-400 font-normal">(если есть)</span></label>
-            <div class="relative">
-                <input type="file" name="card_photo" accept="image/*" capture="environment"
-                    class="w-full text-lg p-3 bg-indigo-50 border-2 border-indigo-200 border-dashed rounded-xl file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-lg file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 text-indigo-900 cursor-pointer h-24 flex items-center justify-center">
-            </div>
-        </div>
+
 
         <div>
             <label class="block text-gray-700 text-lg font-bold mb-2">✍️ Комментарий <span
@@ -124,19 +115,16 @@
         const type = document.getElementById('expense_type').value;
         const fuelFields = document.getElementById('fuel-fields');
         const fuelCardField = document.getElementById('fuel-card-field');
-        const cardPhotoField = document.getElementById('card-photo-field');
         const liters = document.getElementById('liters');
         const odometer = document.getElementById('odometer');
         if (type === 'FUEL') {
             fuelFields.classList.remove('hidden');
             fuelCardField.classList.remove('hidden');
-            cardPhotoField.classList.add('hidden');
             liters.required = true;
             odometer.required = true;
         } else {
             fuelFields.classList.add('hidden');
             fuelCardField.classList.add('hidden');
-            cardPhotoField.classList.remove('hidden');
             liters.required = false;
             odometer.required = false;
         }
