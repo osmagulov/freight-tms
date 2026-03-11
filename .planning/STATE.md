@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 ## Current Position
 
-Phase: 5 of 5 (Director Dashboard & Reporting) — COMPLETE
-Plan: 2 of 2 in Phase 5 — COMPLETE
-Status: ALL PHASES COMPLETE. Director dashboard with cost summary, per-truck breakdown, CSV export, anomaly history, and per-driver history.
-Last activity: 2026-03-10 — Phase 5 complete. src/web/director.py with 7 routes, 5 director templates, Директор nav link in base.html, director_router registered in main.py.
+Phase: ALL PHASES COMPLETE ✅
+Plan: ALL PLANS DONE
+Status: v1.0 MVP shipped. PWA fully functional with FUEL fields + FX conversion + anomaly detection. Panel shows PWA password indicator. All requirements from PROJECT.md marked complete.
+Last activity: 2026-03-12 — PWA add_expense upgraded (FUEL fields + FX + anomaly), panel drivers PWA indicator added, PROJECT.md updated.
 
 Progress: [██████████] 100%
 
@@ -98,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10
-Stopped at: ALL 5 PHASES COMPLETE. Phase 5 added director dashboard: cost summary (DIR-01), per-truck breakdown (DIR-02), CSV export (DIR-03), anomaly history (DIR-04), per-driver history (DIR-05). v1 is feature-complete.
+Last session: 2026-03-12
+Stopped at: PWA add_expense fully connected: FUEL fields (liters/odometer/station), FX conversion (KZT/RUB/USD/EUR/TRY), real-time anomaly detection on FUEL save. Panel/drivers shows PWA password status badge. PROJECT.md fully updated.
 Resume file: None
