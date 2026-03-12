@@ -370,7 +370,7 @@ async def director_driver_history(
         # Fuel stats for this driver
         fuel_result = await session.execute(
             select(
-                func.sum(Expense.fuel_liters).label("total_liters"),
+                func.sum(Expense.liters).label("total_liters"),
                 func.sum(func.coalesce(Expense.amount_kzt, Expense.amount)).label("fuel_kzt"),
                 func.count(Expense.id).label("fuel_count"),
             )

@@ -4,7 +4,7 @@
 <div class="mb-6">
     <a href="/app/"
         class="inline-flex items-center text-blue-600 font-black text-xl bg-blue-50 px-4 py-2 rounded-xl active:bg-blue-100">
-        <span class="text-3xl mr-2">←</span> НАЗАД
+        <span class="text-3xl mr-2">←</span> <span data-i18n="back">НАЗАД</span>
     </a>
 </div>
 
@@ -15,18 +15,18 @@
         </div>
     </div>
 
-    <h1 class="text-2xl font-black text-center mb-6 uppercase tracking-wide text-gray-800">НАЧАТЬ РЕЙС</h1>
+    <h1 class="text-2xl font-black text-center mb-6 uppercase tracking-wide text-gray-800" data-i18n="start_trip">НАЧАТЬ РЕЙС</h1>
 
     <form method="POST" action="/app/open-trip" enctype="multipart/form-data"
         class="space-y-6 ajax-compress-form cursor-pointer">
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">📍 Откуда - Куда едете?</label>
-            <input type="text" name="route" placeholder="Алматы - Москва" required
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="route_label">📍 Откуда - Куда едете?</label>
+            <input type="text" name="route" data-i18n="route_placeholder" placeholder="Алматы - Москва" required
                 class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-green-500 bg-gray-50 focus:bg-white outline-none">
         </div>
 
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">🚚 ВЫБЕРИТЕ или ВВЕДИТЕ номер машины</label>
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="plate_label">🚚 ВЫБЕРИТЕ или ВВЕДИТЕ номер машины</label>
             <input type="text" name="vehicle_plate" placeholder="123 ABC 01" list="vehicle_list" required
                 oninput="this.value = this.value.toUpperCase()"
                 class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-green-500 bg-gray-50 focus:bg-white outline-none uppercase"
@@ -39,14 +39,14 @@
         </div>
 
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">🔢 Пробег машины СЕЙЧАС (цифры)</label>
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="odometer_label">🔢 Пробег машины СЕЙЧАС (цифры)</label>
             <input type="number" name="odometer" placeholder="450000" inputmode="numeric" required
                 oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                 class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-green-500 bg-gray-50 focus:bg-white outline-none">
         </div>
 
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">📸 Фото накладной (CMR)</label>
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="photo_cmr">📸 Фото накладной (CMR)</label>
             <div class="relative">
                 <input type="file" name="document" accept="image/*" capture="environment"
                     class="w-full text-lg p-3 bg-green-50 border-2 border-green-200 border-dashed rounded-xl file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-lg file:font-bold file:bg-green-600 file:text-white hover:file:bg-green-700 text-green-900 cursor-pointer h-24 flex items-center justify-center">
@@ -55,7 +55,7 @@
 
         <button type="submit"
             class="w-full bg-green-600 text-white text-2xl font-black py-6 rounded-2xl shadow-[0_6px_0_#15803d] active:shadow-none active:translate-y-2 transition-all mt-8 bg-gradient-to-b from-green-500 to-green-600 flex justify-center items-center space-x-3">
-            <span>ОТКРЫТЬ РЕЙС</span>
+            <span data-i18n="start_trip">ОТКРЫТЬ РЕЙС</span>
             <span class="text-3xl">🚀</span>
         </button>
     </form>

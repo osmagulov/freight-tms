@@ -2,14 +2,14 @@
 
 {% block content %}
 <div class="text-center mb-8 mt-4">
-    <h2 class="text-2xl font-black text-gray-800">👋 Здравствуйте, {{ driver.name }}!</h2>
+    <h2 class="text-2xl font-black text-gray-800"><span data-i18n="hello">👋 Здравствуйте</span>, {{ driver.name }}!</h2>
 </div>
 
 <div class="space-y-6">
     {% if active_trip %}
     <div class="bg-green-100 border-4 border-green-500 text-green-900 p-6 rounded-2xl text-center shadow-md mb-8">
         <div class="text-4xl mb-2">🚚</div>
-        <p class="font-black text-2xl uppercase tracking-wider mb-2">ВЫ В РЕЙСЕ</p>
+        <p class="font-black text-2xl uppercase tracking-wider mb-2" data-i18n="in_trip">ВЫ В РЕЙСЕ</p>
         <p class="text-xl font-bold bg-white inline-block px-4 py-2 rounded-lg shadow-sm border border-green-200">{{
             active_trip.route_details }}</p>
     </div>
@@ -18,7 +18,7 @@
     <a href="/app/add-expense"
         class="block w-full bg-blue-500 text-white text-center text-xl sm:text-2xl font-black h-24 rounded-2xl shadow-[0_8px_0_#1d4ed8] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-4 px-4 bg-gradient-to-b from-blue-400 to-blue-600">
         <span class="text-5xl drop-shadow-md">💸</span>
-        <span class="tracking-wide">ДОБАВИТЬ РАСХОД</span>
+        <span class="tracking-wide" data-i18n="add_expense">ДОБАВИТЬ РАСХОД</span>
     </a>
 
     <!-- Auto-tracking indicator -->
@@ -26,8 +26,8 @@
         <div class="flex items-center space-x-2">
             <span class="text-2xl" id="track-dot">🟢</span>
             <div>
-                <div class="font-bold text-green-800 text-sm">АВТООТСЛЕЖИВАНИЕ ВКЛЮЧЕНО</div>
-                <div class="text-green-600 text-xs" id="track-info">Геопозиция каждый час</div>
+                <div class="font-bold text-green-800 text-sm" data-i18n="auto_tracking_on">АВТООТСЛЕЖИВАНИЕ ВКЛЮЧЕНО</div>
+                <div class="text-green-600 text-xs" id="track-info" data-i18n="geo_every_hour">Геопозиция каждый час</div>
             </div>
         </div>
         <div class="text-right">
@@ -39,7 +39,7 @@
     <button onclick="sendLocation()" id="loc-btn"
         class="block w-full bg-indigo-500 text-white text-center text-base font-black h-16 rounded-2xl shadow-[0_6px_0_#3730a3] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-3 mt-3 px-4 bg-gradient-to-b from-indigo-400 to-indigo-600">
         <span class="text-3xl drop-shadow-md" id="loc-icon">📍</span>
-        <span id="loc-text" class="tracking-wide">ОТПРАВИТЬ СЕЙЧАС</span>
+        <span id="loc-text" class="tracking-wide" data-i18n="send_now">ОТПРАВИТЬ СЕЙЧАС</span>
     </button>
 
     <!-- open repairs warning -->
@@ -60,30 +60,30 @@
     <a href="/app/report-repair"
         class="block w-full bg-orange-500 text-white text-center text-xl sm:text-2xl font-black h-24 rounded-2xl shadow-[0_8px_0_#c2410c] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-4 mt-4 px-4 bg-gradient-to-b from-orange-400 to-orange-600">
         <span class="text-5xl drop-shadow-md">🔧</span>
-        <span class="tracking-wide">СООБЩИТЬ О ПОЛОМКЕ</span>
+        <span class="tracking-wide" data-i18n="report_repair">СООБЩИТЬ О ПОЛОМКЕ</span>
     </a>
 
     <!-- close trip button -->
     <a href="/app/close-trip"
         class="block w-full bg-red-500 text-white text-center text-xl sm:text-2xl font-black h-24 rounded-2xl shadow-[0_8px_0_#b91c1c] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-4 mt-4 bg-gradient-to-b from-red-400 to-red-600">
         <span class="text-5xl drop-shadow-md">🏁</span>
-        <span class="tracking-wide text-red-50">ЗАВЕРШИТЬ РЕЙС</span>
+        <span class="tracking-wide text-red-50" data-i18n="close_trip">ЗАВЕРШИТЬ РЕЙС</span>
     </a>
 
     <!-- 🔴 REJECTED expenses alert -->
     {% set rejected = expenses | selectattr('status', 'equalto', 'REJECTED') | list %}
     {% if rejected %}
     <div class="mt-6 bg-red-50 border-4 border-red-400 rounded-2xl p-4 shadow-md">
-        <div class="text-red-700 font-black text-lg mb-3">❌ ОТКЛОНЁННЫЕ РАСХОДЫ ({{ rejected | length }})</div>
+        <div class="text-red-700 font-black text-lg mb-3"><span data-i18n="rejected_expenses">❌ ОТКЛОНЁННЫЕ РАСХОДЫ</span> ({{ rejected | length }})</div>
         {% for exp in rejected %}
         <div class="bg-white border-2 border-red-300 rounded-xl p-3 mb-2">
             <div class="flex justify-between items-start">
                 <div>
                     <span class="font-bold text-red-700">
-                        {% if exp.expense_type == 'FUEL' %}⛽ Топливо
-                        {% elif exp.expense_type == 'FINE' %}👮 Штраф
-                        {% elif exp.expense_type == 'REPAIR' %}🔧 Ремонт
-                        {% else %}📦 Другое{% endif %}
+                        {% if exp.expense_type == 'FUEL' %}<span data-i18n="fuel">⛽ Топливо</span>
+                        {% elif exp.expense_type == 'FINE' %}<span data-i18n="fine">👮 Штраф</span>
+                        {% elif exp.expense_type == 'REPAIR' %}<span data-i18n="repair">🔧 Ремонт</span>
+                        {% else %}<span data-i18n="other">📦 Другое</span>{% endif %}
                     </span>
                     <span class="text-red-500 text-sm ml-1">{{ exp.created_at.strftime('%d.%m %H:%M') }}</span>
                 </div>
@@ -91,7 +91,7 @@
             </div>
             {% if exp.rejection_comment %}
             <div class="mt-2 bg-red-100 text-red-800 p-2 rounded-lg text-sm font-bold">
-                💬 Причина отклонения: {{ exp.rejection_comment }}
+                <span data-i18n="rejection_reason">💬 Причина отклонения:</span> {{ exp.rejection_comment }}
             </div>
             {% else %}
             <div class="mt-2 bg-red-100 text-red-800 p-2 rounded-lg text-sm font-bold">
@@ -106,7 +106,7 @@
     <!-- Expenses History -->
     {% if expenses %}
     <div class="mt-6 bg-white rounded-2xl shadow p-4 border border-gray-200">
-        <h3 class="text-xl font-black text-gray-800 border-b pb-2 mb-4">📝 Ваши расходы в этом рейсе:</h3>
+        <h3 class="text-xl font-black text-gray-800 border-b pb-2 mb-4" data-i18n="expense_history">📝 Ваши расходы в этом рейсе:</h3>
         <ul class="space-y-3">
             {% for exp in expenses %}
             <li class="p-3 rounded-xl border flex items-center justify-between
@@ -115,17 +115,17 @@
                 {% else %}bg-gray-50 border-gray-100{% endif %}">
                 <div>
                     <span class="font-bold text-lg text-gray-700">
-                        {% if exp.expense_type == 'FUEL' %}⛽ Топливо
-                        {% elif exp.expense_type == 'FINE' %}👮 Штраф
-                        {% elif exp.expense_type == 'REPAIR' %}🔧 Ремонт
-                        {% else %}📦 Другое{% endif %}
+                        {% if exp.expense_type == 'FUEL' %}<span data-i18n="fuel">⛽ Топливо</span>
+                        {% elif exp.expense_type == 'FINE' %}<span data-i18n="fine">👮 Штраф</span>
+                        {% elif exp.expense_type == 'REPAIR' %}<span data-i18n="repair">🔧 Ремонт</span>
+                        {% else %}<span data-i18n="other">📦 Другое</span>{% endif %}
                     </span>
                     {% if exp.status == 'APPROVED' %}
-                    <span class="text-green-600 text-xs font-bold ml-1">✓ одобрен</span>
+                    <span class="text-green-600 text-xs font-bold ml-1" data-i18n="approved">✓ одобрен</span>
                     {% elif exp.status == 'REJECTED' %}
-                    <span class="text-red-600 text-xs font-bold ml-1">✕ отклонён</span>
+                    <span class="text-red-600 text-xs font-bold ml-1" data-i18n="rejected">✕ отклонён</span>
                     {% else %}
-                    <span class="text-yellow-600 text-xs font-bold ml-1">⏳ на проверке</span>
+                    <span class="text-yellow-600 text-xs font-bold ml-1" data-i18n="pending">⏳ на проверке</span>
                     {% endif %}
                     <div class="text-sm text-gray-500 mt-1">{{ exp.created_at.strftime('%d.%m %H:%M') }}{% if exp.comment %} | {{ exp.comment }}{% endif %}</div>
                     {% if exp.status == 'REJECTED' and exp.rejection_comment %}
@@ -146,21 +146,21 @@
     {% else %}
     <div class="mt-8 bg-white rounded-2xl shadow p-6 border border-gray-200 text-center">
         <span class="text-4xl grayscale opacity-50 block mb-2">💸</span>
-        <span class="text-gray-400 font-bold">В этом рейсе еще нет расходов.</span>
+        <span class="text-gray-400 font-bold" data-i18n="no_expenses">В этом рейсе еще нет расходов.</span>
     </div>
     {% endif %}
 
     {% else %}
     <div class="bg-gray-200 border-4 border-gray-300 text-gray-600 p-6 rounded-2xl text-center shadow-inner mb-8 mt-12">
         <div class="text-4xl mb-2 grayscale opacity-50">🚚</div>
-        <p class="font-black text-2xl uppercase tracking-wider">НЕТ АКТИВНОГО РЕЙСА</p>
+        <p class="font-black text-2xl uppercase tracking-wider" data-i18n="no_active_trip">НЕТ АКТИВНОГО РЕЙСА</p>
     </div>
 
     <!-- open trip button -->
     <a href="/app/open-trip"
         class="block w-full bg-green-500 text-white text-center text-2xl font-black h-32 rounded-2xl shadow-[0_10px_0_#15803d] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-4 mt-8 bg-gradient-to-b from-green-400 to-green-600 px-2">
         <span class="text-6xl drop-shadow-lg">🚚</span>
-        <span class="tracking-wider">НАЧАТЬ РЕЙС</span>
+        <span class="tracking-wider" data-i18n="start_trip">НАЧАТЬ РЕЙС</span>
     </a>
     {% endif %}
 </div>
@@ -175,9 +175,10 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ lat: position.coords.latitude, lng: position.coords.longitude })
             }).then(() => {
+                const t = window.currentT || {};
                 const now = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
                 const lastSent = document.getElementById('last-sent');
-                if (lastSent) lastSent.innerText = 'Последняя: ' + now;
+                if (lastSent) lastSent.innerText = (t['last_sent'] || 'Последняя') + ': ' + now;
                 localStorage.setItem('lastAutoGeo', Date.now().toString());
             }).catch(() => {});
         }, () => {}, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
@@ -209,9 +210,10 @@
             }).then(res => {
                 text.innerText = "ОТПРАВЛЕНО!";
                 icon.innerText = "✅";
+                const t = window.currentT || {};
                 const now = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
                 const lastSent = document.getElementById('last-sent');
-                if (lastSent) lastSent.innerText = 'Последняя: ' + now;
+                if (lastSent) lastSent.innerText = (t['last_sent'] || 'Последняя') + ': ' + now;
                 localStorage.setItem('lastAutoGeo', Date.now().toString());
 
                 setTimeout(() => {
@@ -245,9 +247,10 @@
             const elapsed = Date.now() - lastSent;
 
             if (lastSent > 0) {
+                const t = window.currentT || {};
                 const time = new Date(lastSent).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
                 const el = document.getElementById('last-sent');
-                if (el) el.innerText = 'Последняя: ' + time;
+                if (el) el.innerText = (t['last_sent'] || 'Последняя') + ': ' + time;
             }
 
             // If more than 1 hour since last → send immediately

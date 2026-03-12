@@ -16,10 +16,18 @@
         <div class="text-xl font-bold flex items-center">
             <span class="mr-2 text-2xl">🚚</span> Freight TMS
         </div>
-        {% if driver %}
-        <a href="/app/logout"
-            class="bg-blue-800 px-3 py-2 rounded-lg font-bold text-sm text-white shadow active:translate-y-1">ВЫХОД</a>
-        {% endif %}
+        
+        <div class="flex items-center space-x-2">
+            <div class="flex bg-blue-700/50 rounded-lg p-1 border border-blue-400/30">
+                <button onclick="setLanguage('kk')" id="lang-kk" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇰🇿</button>
+                <button onclick="setLanguage('ru')" id="lang-ru" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇷🇺</button>
+                <button onclick="setLanguage('zh')" id="lang-zh" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇨🇳</button>
+            </div>
+            {% if driver %}
+            <a href="/app/logout"
+                class="bg-blue-800 px-3 py-2 rounded-lg font-bold text-sm text-white shadow active:translate-y-1">ВЫХОД</a>
+            {% endif %}
+        </div>
     </header>
 
     <main class="p-4 max-w-lg mx-auto relative">
@@ -39,19 +47,224 @@
     </main>
 
     <script>
+        // --- i18n Logic ---
+        const translations = {
+            kk: {
+                "exit": "ШЫҒУ",
+                "hello": "Сәлеметсіз бе",
+                "in_trip": "СІЗ РЕЙСТЕ СІЗ",
+                "add_expense": "ШЫҒЫН ҚОСУ",
+                "auto_tracking_on": "АВТОБАҚЫЛАУ ҚОСЫЛҒАН",
+                "geo_every_hour": "Геопозиция сағат сайын",
+                "send_now": "ҚАЗІР ЖІБЕРУ",
+                "last_sent": "Соңғы",
+                "report_repair": "БҰЗЫЛУ ТУРАЛЫ ХАБАРЛАУ",
+                "close_trip": "РЕЙСТІ АЯҚТАУ",
+                "start_trip": "РЕЙСТІ БАСТАУ",
+                "no_active_trip": "АКТИВТІ РЕЙС ЖОҚ",
+                "rejected_expenses": "ҚАБЫЛДАНБАҒАН ШЫҒЫНДАР",
+                "expense_history": "Осы рейстегі шығындарыңыз:",
+                "no_expenses": "Бұл рейсте әлі шығындар жоқ.",
+                "fuel": "Жанармай",
+                "fine": "Айыппұл",
+                "repair": "Жөндеу",
+                "other": "Басқа",
+                "approved": "мақұлданды",
+                "rejected": "қабылданбады",
+                "pending": "тексерілуде",
+                "sending": "ЖІБЕРУ... МАҢЫЗДЫ: ТЕРЕЗЕНІ ЖАППАҢЫЗ",
+                "offline_error": "🛑 ҚАТЕ: ИНТЕРНЕТ ЖОҚ. Желіні тексеріңіз!",
+                "back": "АРТҚА",
+                "route_label": "📍 Қайдан - Қайда барасыз?",
+                "plate_label": "🚚 Көліктің мемлекеттік нөмірі",
+                "odometer_label": "🔢 Қазіргі жүрілген жол (сандар)",
+                "photo_cmr": "📸 Накладной фотосы (CMR)",
+                "route_placeholder": "Алматы - Мәскеу",
+                "comment_placeholder": "Осында жазыңыз...",
+                "repair_placeholder": "Мысалы: оң жақ тоқтау сигналы жұмыс істемейді...",
+                "type_fuel": "Жанармай",
+                "type_fine": "Айыппұл",
+                "type_repair": "Тех. қызмет / Жөндеу",
+                "type_other": "Басқа шығындар",
+                "amount": "Салмағы / Сомасы",
+                "currency": "Валюта",
+                "liters": "Литр (тек жанармай үшін)",
+                "receipt_photo": "📸 Түбіртек фотосы (чек)",
+                "save": "САҚТАУ",
+                "repair_desc": "🔧 Не бұзылды? (сипаттама)",
+                "repair_photo": "📸 Бұзылған жердің фотосы",
+                "rejection_reason": "💬 Қабылдамау себебі:",
+                "login": "КІРУ",
+                "login_hint": "Диспетчерге берген нөміріңізді енгізіңіз",
+                "password": "Құпия сөз"
+            },
+            ru: {
+                "exit": "ВЫХОД",
+                "hello": "Здравствуйте",
+                "in_trip": "ВЫ В РЕЙСЕ",
+                "add_expense": "ДОБАВИТЬ РАСХОД",
+                "auto_tracking_on": "АВТООТСЛЕЖИВАНИЕ ВКЛЮЧЕНО",
+                "geo_every_hour": "Геопозиция каждый час",
+                "send_now": "ОТПРАВИТЬ СЕЙЧАС",
+                "last_sent": "Последняя",
+                "report_repair": "СООБЩИТЬ О ПОЛОМКЕ",
+                "close_trip": "ЗАВЕРШИТЬ РЕЙС",
+                "start_trip": "НАЧАТЬ РЕЙС",
+                "no_active_trip": "НЕТ АКТИВНОГО РЕЙСА",
+                "rejected_expenses": "ОТКЛОНЁННЫЕ РАСХОДЫ",
+                "expense_history": "Ваши расходы в этом рейсе:",
+                "no_expenses": "В этом рейсе еще нет расходов.",
+                "fuel": "Топливо",
+                "fine": "Штраф",
+                "repair": "Ремонт",
+                "other": "Другое",
+                "approved": "одобрен",
+                "rejected": "отклонён",
+                "pending": "на проверке",
+                "sending": "ОТПРАВКА... ВАЖНО: НЕ ЗАКРЫВАЙТЕ ОКНО",
+                "offline_error": "⚠️ ОШИБКА: НЕТ ИНТЕРНЕТА. Проверьте сеть!",
+                "back": "НАЗАД",
+                "route_label": "📍 Откуда - Куда едете?",
+                "plate_label": "🚚 Гос. номер машины",
+                "odometer_label": "🔢 Пробег машины СЕЙЧАС (цифры)",
+                "photo_cmr": "📸 Фото накладной (CMR)",
+                "route_placeholder": "Алматы - Москва",
+                "comment_placeholder": "Напишите здесь...",
+                "repair_placeholder": "Например: не работает правый стоп-сигнал...",
+                "type_fuel": "Топливо",
+                "type_fine": "Штраф",
+                "type_repair": "Тех. обслуживание / Ремонт",
+                "type_other": "Прочие расходы",
+                "amount": "Сумма",
+                "currency": "Валюта",
+                "liters": "Литры (только для топлива)",
+                "receipt_photo": "📸 Фото чека / квитанции",
+                "save": "СОХРАНИТЬ",
+                "repair_desc": "🔧 Что сломалось? (описание)",
+                "repair_photo": "📸 Фото поломки (необязательно)",
+                "rejection_reason": "💬 Причина отклонения:",
+                "login": "ВХОД",
+                "login_hint": "Введите номер, который давали диспетчеру",
+                "password": "Пароль"
+            },
+            zh: {
+                "exit": "登出",
+                "hello": "您好",
+                "in_trip": "行程进行中",
+                "add_expense": "添加费用",
+                "auto_tracking_on": "自动追踪已开启",
+                "geo_every_hour": "每小时地理定位",
+                "send_now": "现在发送",
+                "last_sent": "上次发送",
+                "report_repair": "报告故障",
+                "close_trip": "结束行程",
+                "start_trip": "开启行程",
+                "no_active_trip": "无活跃行程",
+                "rejected_expenses": "被拒绝的费用",
+                "expense_history": "本次行程的费用记录:",
+                "no_expenses": "本次行程暂无费用记录。",
+                "fuel": "燃料",
+                "fine": "罚款",
+                "repair": "维修",
+                "other": "其他",
+                "approved": "已批准",
+                "rejected": "已拒绝",
+                "pending": "待审核",
+                "sending": "发送中... 请勿关闭窗口",
+                "offline_error": "⚠️ 错误: 无网络连接。请检查网络!",
+                "back": "返回",
+                "route_label": "📍 从哪里到哪里？",
+                "plate_label": "🚚 车牌号码",
+                "odometer_label": "🔢 当前里程 (数字)",
+                "photo_cmr": "📸 运单照片 (CMR)",
+                "route_placeholder": "阿拉木图 - 莫斯科",
+                "comment_placeholder": "在这里写...",
+                "repair_placeholder": "例如：右刹车灯不亮...",
+                "type_fuel": "燃料",
+                "type_fine": "罚款",
+                "type_repair": "保养 / 维修",
+                "type_other": "杂费支出",
+                "amount": "金额",
+                "currency": "货币",
+                "liters": "升数 (仅限燃料)",
+                "receipt_photo": "📸 收据/发票照片",
+                "save": "保存",
+                "repair_desc": "🔧 故障描述",
+                "repair_photo": "📸 故障照片 (可选)",
+                "rejection_reason": "💬 拒绝原因:",
+                "login": "登录",
+                "login_hint": "输入您提供给调度员的号码",
+                "password": "密码"
+            }
+        };
+
+        function setLanguage(lang) {
+            localStorage.setItem('driver_lang', lang);
+            applyLanguage(lang);
+        }
+
+        function applyLanguage(lang) {
+            const t = translations[lang] || translations['kk'];
+            window.currentT = t; // Global for other scripts
+            
+            // Highlight active lang button
+            ['kk', 'ru', 'zh'].forEach(l => {
+                const btn = document.getElementById(`lang-${l}`);
+                if (btn) {
+                    if (l === lang) {
+                        btn.classList.remove('grayscale', 'opacity-70');
+                        btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm', 'scale-110');
+                    } else {
+                        btn.classList.add('grayscale', 'opacity-70');
+                        btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm', 'scale-110');
+                    }
+                }
+            });
+
+            // Update all elements with data-i18n
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) {
+                    if (el.tagName === 'INPUT' && (el.type === 'button' || el.type === 'submit')) {
+                        el.value = t[key];
+                    } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                        el.placeholder = t[key];
+                    } else {
+                        el.innerText = t[key];
+                    }
+                }
+            });
+
+            // Specific UI logic if needed
+            const exitBtn = document.querySelector('a[href="/app/logout"]');
+            if (exitBtn) exitBtn.innerText = t['exit'];
+            
+            const offlineBanner = document.getElementById('offline-banner');
+            if (offlineBanner) offlineBanner.innerText = t['offline_error'];
+            
+            const loaderText = document.querySelector('#global-loader div');
+            if (loaderText) loaderText.innerText = t['sending'];
+        }
+
+        // Initialize language
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('driver_lang') || 'kk';
+            setLanguage(savedLang);
+        });
+
         // Offline / Online detection
         const offlineBanner = document.getElementById('offline-banner');
         const submitButtons = document.querySelectorAll('button[type="submit"]');
 
         function updateOnlineStatus() {
             if (!navigator.onLine) {
-                offlineBanner.classList.remove('hidden');
+                if (offlineBanner) offlineBanner.classList.remove('hidden');
                 submitButtons.forEach(btn => {
                     btn.disabled = true;
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
                 });
             } else {
-                offlineBanner.classList.add('hidden');
+                if (offlineBanner) offlineBanner.classList.add('hidden');
                 submitButtons.forEach(btn => {
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -117,12 +330,14 @@
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     if (!navigator.onLine) {
-                        alert("Нет интернета! Пожалуйста, найдите сеть перед отправкой.");
+                        const savedLang = localStorage.getItem('driver_lang') || 'kk';
+                        const t = translations[savedLang];
+                        alert(t["offline_error"] || "Нет интернета!");
                         return;
                     }
 
                     const loader = document.getElementById('global-loader');
-                    loader.classList.remove('hidden');
+                    if (loader) loader.classList.remove('hidden');
 
                     try {
                         const formData = new FormData(form);
@@ -152,11 +367,11 @@
                             window.location.reload();
                         } else {
                             alert("Ошибка на сервере при сохранении. Попробуйте еще раз.");
-                            loader.classList.add('hidden');
+                            if (loader) loader.classList.add('hidden');
                         }
                     } catch (error) {
                         alert("Сетевая ошибка: " + error.message);
-                        loader.classList.add('hidden');
+                        if (loader) loader.classList.add('hidden');
                     }
                 });
             });

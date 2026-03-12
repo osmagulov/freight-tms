@@ -5,8 +5,8 @@
     <div class="flex justify-center mb-6">
         <span class="text-6xl">🧑‍✈️</span>
     </div>
-    <h1 class="text-3xl font-black text-center text-gray-800 mb-2">ВХОД</h1>
-    <p class="text-center text-gray-500 mb-8 font-medium mx-4">Введите номер, который давали диспетчеру</p>
+    <h1 class="text-3xl font-black text-center text-gray-800 mb-2" data-i18n="login">ВХОД</h1>
+    <p class="text-center text-gray-500 mb-8 font-medium mx-4" data-i18n="login_hint">Введите номер, который давали диспетчеру</p>
 
     <form method="POST" action="/app/login" class="space-y-6">
         {% if error %}
@@ -17,7 +17,7 @@
         <div>
             <input type="tel" name="phone" placeholder="+7 (777) 123-4567" required
                 class="w-full text-xl p-4 border-2 border-gray-300 bg-gray-50 font-bold rounded-xl focus:ring-4 focus:border-blue-500 focus:ring-blue-200 focus:bg-white text-center transition outline-none tracking-wider mb-2">
-            <input type="password" name="password" placeholder="Пароль" required
+            <input type="password" name="password" data-i18n="password" placeholder="Пароль" required
                 class="w-full text-xl p-4 border-2 border-gray-300 bg-gray-50 font-bold rounded-xl focus:ring-4 focus:border-blue-500 focus:ring-blue-200 focus:bg-white text-center transition outline-none tracking-wider">
         </div>
         <button type="submit"

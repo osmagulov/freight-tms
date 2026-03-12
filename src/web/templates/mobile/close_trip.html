@@ -4,7 +4,7 @@
 <div class="mb-6">
     <a href="/app/"
         class="inline-flex items-center text-blue-600 font-black text-xl bg-blue-50 px-4 py-2 rounded-xl active:bg-blue-100">
-        <span class="text-3xl mr-2">←</span> НАЗАД
+        <span class="text-3xl mr-2">←</span> <span data-i18n="back">НАЗАД</span>
     </a>
 </div>
 
@@ -15,12 +15,12 @@
         </div>
     </div>
 
-    <h1 class="text-2xl font-black text-center mb-6 uppercase tracking-wide text-gray-800">ЗАВЕРШИТЬ РЕЙС</h1>
+    <h1 class="text-2xl font-black text-center mb-6 uppercase tracking-wide text-gray-800" data-i18n="close_trip">ЗАВЕРШИТЬ РЕЙС</h1>
 
     <form method="POST" action="/app/close-trip" enctype="multipart/form-data"
         class="space-y-6 ajax-compress-form cursor-pointer">
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-1">🔢 Пробег машины СЕЙЧАС (цифры)</label>
+            <label class="block text-gray-700 text-lg font-bold mb-1" data-i18n="odometer_label">🔢 Пробег машины СЕЙЧАС (цифры)</label>
             <p class="text-sm text-red-600 mb-2 font-black uppercase tracking-wide">Должен быть больше начального!</p>
             <input type="number" name="end_odometer" placeholder="455000" inputmode="numeric" required
                 oninput="this.value = this.value.replace(/[^0-9]/g, '')"
@@ -28,7 +28,7 @@
         </div>
 
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">📸 Фото ЗАКРЫВАЮЩЕЙ накладной (CMR)</label>
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="photo_cmr">📸 Фото ЗАКРЫВАЮЩЕЙ накладной (CMR)</label>
             <div class="relative">
                 <input type="file" name="document" accept="image/*" capture="environment"
                     class="w-full text-lg p-3 bg-red-50 border-2 border-red-200 border-dashed rounded-xl file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-lg file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-700 text-red-900 cursor-pointer h-24 flex items-center justify-center">
@@ -37,7 +37,7 @@
 
         <button type="submit"
             class="w-full bg-red-600 text-white text-2xl font-black py-6 rounded-2xl shadow-[0_6px_0_#991b1b] active:shadow-none active:translate-y-2 transition-all mt-8 bg-gradient-to-b from-red-500 to-red-600 flex justify-center items-center space-x-3">
-            <span>ЗАВЕРШИТЬ</span>
+            <span data-i18n="close_trip">ЗАВЕРШИТЬ</span>
             <span class="text-3xl">🛑</span>
         </button>
     </form>
