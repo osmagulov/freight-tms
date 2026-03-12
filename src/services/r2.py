@@ -2,6 +2,7 @@ import io
 import logging
 from functools import partial
 from typing import Optional
+from pathlib import Path
 
 import boto3
 from botocore.config import Config
