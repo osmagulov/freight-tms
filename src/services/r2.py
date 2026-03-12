@@ -68,3 +68,27 @@ async def upload_photo_to_r2(file_bytes: bytes, key: str) -> Optional[str]:
     blocking the asyncio event loop during upload.
     """
     return await upload_to_r2(file_bytes, key, content_type="image/jpeg")
+
+
+# --- Local fallback storage ---
+PHOTO_DIR = Path("/data/photos")
+PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _save_local(file_bytes: bytes, key: str) -> str:
+    """Save file to local filesystem, return URL path."""
+    file_path = PHOTO_DIR / key
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_bytes(file_bytes)
+    logger.info(f"File saved locally: {file_path}")
+    return f"/app/photos/{key}"
+
+
+async def save_uploaded_file(file_bytes: bytes, key: str, content_type: str = "image/jpeg") -> Optional[str]:
+    """Upload file to R2 or save locally as fallback. Always returns a URL."""
+    url = await upload_to_r2(file_bytes, key, content_type)
+    if url:
+        return url
+    # Fallback to local storage
+    return _save_local(file_bytes, key)
+

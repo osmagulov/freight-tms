@@ -10,7 +10,7 @@ from src.core.config import settings
 from src.db.database import async_session
 from src.db.models import Driver, Trip, Expense, Vehicle, TripStatus, LocationUpdate, VehicleRepair, RepairStatus
 from antigravity_modules.expense_crud import get_active_trip_for_driver, create_expense
-from src.services.r2 import upload_to_r2
+from src.services.r2 import save_uploaded_file
 from src.web.auth import verify_password
 import os
 import uuid
@@ -26,28 +26,22 @@ router = APIRouter(prefix="/app", tags=["Mobile Driver App"])
 templates = Jinja2Templates(directory="src/web/templates")
 
 # Local photo storage (fallback when R2 not configured)
-PHOTO_DIR = Path("/data/photos")
-PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+# Handled centrally in src/services/r2.py via save_uploaded_file
 
-
-async def _save_photo_local(file_bytes: bytes, key: str) -> str:
-    """Save photo to local filesystem, return URL path."""
-    photo_path = PHOTO_DIR / key
-    photo_path.parent.mkdir(parents=True, exist_ok=True)
-    photo_path.write_bytes(file_bytes)
-    logger.info(f"Photo saved locally: {photo_path}")
-    return f"/app/photos/{key}"
+from src.services.r2 import PHOTO_DIR
 
 
 @router.get("/photos/{path:path}")
 async def serve_photo(path: str):
-    """Serve locally stored photos."""
+    """Serve locally stored photos and documents."""
     file_path = PHOTO_DIR / path
     if not file_path.exists() or not file_path.is_file():
-        raise HTTPException(status_code=404, detail="Photo not found")
-    # Determine content type
+        raise HTTPException(status_code=404, detail="File not found")
     ext = file_path.suffix.lower()
-    ct_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+    ct_map = {
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+        ".webp": "image/webp", ".pdf": "application/pdf", ".gif": "image/gif",
+    }
     return FileResponse(file_path, media_type=ct_map.get(ext, "application/octet-stream"))
 
 # Simple auth logic for drivers
@@ -178,7 +172,7 @@ async def open_trip_post(
             file_bytes = await document.read()
             ext = document.filename.split('.')[-1] if '.' in document.filename else 'jpg'
             key = f"trips/{uuid.uuid4()}.{ext}"
-            doc_url = await upload_to_r2(file_bytes, key, content_type=document.content_type)
+            doc_url = await save_uploaded_file(file_bytes, key, content_type=document.content_type)
             if doc_url:
                 trip_doc = TripDocument(
                     trip_id=trip.id,
@@ -244,19 +238,14 @@ async def add_expense_post(
             file_bytes = await receipt.read()
             ext = receipt.filename.split('.')[-1] if '.' in receipt.filename else 'jpg'
             key = f"expenses/receipt_{uuid.uuid4()}.{ext}"
-            receipt_url = await upload_to_r2(file_bytes, key, content_type=receipt.content_type)
-            # Fallback: save locally if R2 not configured
-            if not receipt_url:
-                receipt_url = await _save_photo_local(file_bytes, key)
+            receipt_url = await save_uploaded_file(file_bytes, key, content_type=receipt.content_type)
 
         card_url = None
         if card_photo and card_photo.filename:
             file_bytes = await card_photo.read()
             ext = card_photo.filename.split('.')[-1] if '.' in card_photo.filename else 'jpg'
             key = f"expenses/card_{uuid.uuid4()}.{ext}"
-            card_url = await upload_to_r2(file_bytes, key, content_type=card_photo.content_type)
-            if not card_url:
-                card_url = await _save_photo_local(file_bytes, key)
+            card_url = await save_uploaded_file(file_bytes, key, content_type=card_photo.content_type)
 
         expense = Expense(
             trip_id=trip.id,
@@ -440,7 +429,7 @@ async def close_trip_post(
                 file_bytes = await document.read()
                 ext = document.filename.split('.')[-1] if '.' in document.filename else 'jpg'
                 key = f"trips/closing_{uuid.uuid4()}.{ext}"
-                doc_url = await upload_to_r2(file_bytes, key, content_type=document.content_type)
+                doc_url = await save_uploaded_file(file_bytes, key, content_type=document.content_type)
                 
             trip.status = TripStatus.COMPLETED
             trip.completed_at = datetime.utcnow()

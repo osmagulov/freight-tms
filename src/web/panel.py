@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
 from src.db.models import Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate, RepairStatus, Trip, TripDocument, TripStatus, Vehicle, VehicleDocument, VehicleRepair, VehicleStatus
+from src.services.r2 import save_uploaded_file
 from datetime import date as date_type
 from src.web.auth import (
     create_access_token,
@@ -649,7 +650,6 @@ async def driver_add_submit(
     passport_file: UploadFile = File(default=None),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
-    from src.services.r2 import upload_to_r2
     passport_url = None
     if passport_file and passport_file.filename:
         file_bytes = await passport_file.read()
@@ -657,7 +657,7 @@ async def driver_add_submit(
             ext = passport_file.filename.rsplit(".", 1)[-1].lower()
             content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
             key = f"passports/driver_{int(datetime.utcnow().timestamp())}_{passport_file.filename}"
-            passport_url = await upload_to_r2(file_bytes, key, content_type)
+            passport_url = await save_uploaded_file(file_bytes, key, content_type)
 
     vid = int(vehicle_id) if vehicle_id.strip() else None
     async with async_session() as session:
@@ -709,7 +709,6 @@ async def driver_edit_submit(
     passport_file: UploadFile = File(default=None),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
-    from src.services.r2 import upload_to_r2
     async with async_session() as session:
         result = await session.execute(select(Driver).where(Driver.id == driver_id))
         driver = result.scalars().first()
@@ -732,7 +731,7 @@ async def driver_edit_submit(
                 ext = passport_file.filename.rsplit(".", 1)[-1].lower()
                 content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
                 key = f"passports/driver_{driver_id}_{int(datetime.utcnow().timestamp())}.{ext}"
-                driver.passport_r2_url = await upload_to_r2(file_bytes, key, content_type)
+                driver.passport_r2_url = await save_uploaded_file(file_bytes, key, content_type)
 
         session.add(driver)
         await session.commit()
@@ -944,9 +943,7 @@ async def driver_documents_post(
         ext = doc_file.filename.rsplit(".", 1)[-1].lower() if "." in doc_file.filename else "pdf"
         content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
         key = f"driver_docs/{driver_id}/{uuid.uuid4()}.{ext}"
-        r2_url = await upload_to_r2(file_bytes, key, content_type)
-        if not r2_url:
-            return RedirectResponse(url=f"/panel/drivers/{driver_id}/documents", status_code=302)
+        r2_url = await save_uploaded_file(file_bytes, key, content_type)
 
         expires = None
         if expires_at.strip():
@@ -1034,9 +1031,7 @@ async def vehicle_documents_post(
         ext = doc_file.filename.rsplit(".", 1)[-1].lower() if "." in doc_file.filename else "pdf"
         content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
         key = f"vehicle_docs/{vehicle_id}/{uuid.uuid4()}.{ext}"
-        r2_url = await upload_to_r2(file_bytes, key, content_type)
-        if not r2_url:
-            return RedirectResponse(url=f"/panel/vehicles/{vehicle_id}/documents", status_code=302)
+        r2_url = await save_uploaded_file(file_bytes, key, content_type)
 
         expires = None
         if expires_at.strip():
