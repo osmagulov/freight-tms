@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="page-hdr">
-    <h1>Отчёт директора</h1>
+    <h1>📊 Отчёт директора</h1>
 </div>
 
 <!-- Period filter -->
@@ -25,7 +25,7 @@
     </div>
 </div>
 
-<!-- KPIs -->
+<!-- Main KPIs -->
 <div class="kpi-grid">
     <div class="kpi">
         <div class="kpi-label">Рейсов за период</div>
@@ -35,42 +35,92 @@
         <div class="kpi-label">Итого расходов</div>
         <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(grand_total) }} ₸</div>
     </div>
-    {% if summary %}
     <div class="kpi amber">
-        <div class="kpi-label">Категорий расходов</div>
-        <div class="kpi-value">{{ summary | length }}</div>
+        <div class="kpi-label">Активных рейсов</div>
+        <div class="kpi-value">{{ active_trips }}</div>
     </div>
-    {% endif %}
+    <div class="kpi {% if pending_count > 0 %}red{% endif %}">
+        <div class="kpi-label">На проверке</div>
+        <div class="kpi-value">{{ pending_count }}</div>
+    </div>
 </div>
 
-<!-- Summary table -->
+<!-- Fuel analytics card -->
+{% if fuel_count > 0 %}
+<div class="card" style="margin-top:22px; margin-bottom:22px;">
+    <div class="card-hdr"><span class="card-title">⛽ Топливная аналитика</span></div>
+    <div class="card-body">
+        <div class="kpi-grid">
+            <div class="kpi">
+                <div class="kpi-label">Заправок</div>
+                <div class="kpi-value">{{ fuel_count }}</div>
+            </div>
+            <div class="kpi green">
+                <div class="kpi-label">Всего литров</div>
+                <div class="kpi-value">{{ "{:,.0f}".format(fuel_total_liters) }}</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Затраты на топливо</div>
+                <div class="kpi-value" style="font-size:16px;">{{ "{:,.0f}".format(fuel_total_kzt) }} ₸</div>
+            </div>
+            <div class="kpi amber">
+                <div class="kpi-label">Ср. цена за литр</div>
+                <div class="kpi-value">{{ avg_price_per_liter }} ₸</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Category summary table -->
 {% if summary %}
-<div class="table-wrap" style="margin-bottom:24px;">
-    <table>
-        <thead>
-            <tr>
-                <th>Категория</th>
-                <th>Записей</th>
-                <th>Сумма (KZT)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in summary %}
-            <tr>
-                <td class="fw-bold">{{ row.expense_type }}</td>
-                <td class="text-muted">{{ row.cnt }}</td>
-                <td>{{ "{:,.0f}".format(row.total_kzt or 0) }} ₸</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        <tfoot>
-            <tr>
-                <td>ИТОГО</td>
-                <td>{{ summary | sum(attribute='cnt') }}</td>
-                <td>{{ "{:,.0f}".format(grand_total) }} ₸</td>
-            </tr>
-        </tfoot>
-    </table>
+<div class="card" style="margin-bottom:22px;">
+    <div class="card-hdr"><span class="card-title">📋 По категориям расходов</span></div>
+    <div class="card-body" style="padding:0;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Категория</th>
+                    <th>Записей</th>
+                    <th>Сумма (KZT)</th>
+                    <th>Доля</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in summary %}
+                <tr>
+                    <td class="fw-bold">
+                        {% if row.expense_type == 'FUEL' %}⛽ Топливо
+                        {% elif row.expense_type == 'FINE' %}👮 Штрафы
+                        {% elif row.expense_type == 'REPAIR' %}🔧 Ремонт
+                        {% elif row.expense_type == 'PER_DIEM' %}🍔 Суточные
+                        {% else %}📦 {{ row.expense_type }}{% endif %}
+                    </td>
+                    <td class="text-muted">{{ row.cnt }}</td>
+                    <td>{{ "{:,.0f}".format(row.total_kzt or 0) }} ₸</td>
+                    <td>
+                        {% if grand_total > 0 %}
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="background:var(--border); border-radius:4px; height:8px; width:100px; overflow:hidden;">
+                                <div style="background:var(--accent); height:100%; width:{{ ((row.total_kzt or 0) / grand_total * 100) | round(0) }}%;"></div>
+                            </div>
+                            <span class="text-muted">{{ ((row.total_kzt or 0) / grand_total * 100) | round(1) }}%</span>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="fw-bold">ИТОГО</td>
+                    <td>{{ summary | sum(attribute='cnt') }}</td>
+                    <td class="fw-bold">{{ "{:,.0f}".format(grand_total) }} ₸</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 </div>
 {% else %}
 <div class="table-wrap" style="margin-bottom:24px;">
@@ -78,10 +128,62 @@
 </div>
 {% endif %}
 
+<!-- Per-driver analytics -->
+{% if driver_stats %}
+<div class="card" style="margin-bottom:22px;">
+    <div class="card-hdr"><span class="card-title">👤 Расходы по водителям</span></div>
+    <div class="card-body" style="padding:0;">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Водитель</th>
+                    <th>Рейсов</th>
+                    <th>Расходов</th>
+                    <th>Итого (₸)</th>
+                    <th>Ср. на рейс (₸)</th>
+                    <th>Доля</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ds in driver_stats %}
+                <tr>
+                    <td class="text-muted">{{ loop.index }}</td>
+                    <td class="fw-bold">{{ ds.name or "ID " ~ ds.id }}</td>
+                    <td>{{ ds.trip_count }}</td>
+                    <td class="text-muted">{{ ds.expense_count }}</td>
+                    <td class="fw-bold">{{ "{:,.0f}".format(ds.total_kzt or 0) }} ₸</td>
+                    <td>
+                        {% if ds.trip_count > 0 %}
+                        {{ "{:,.0f}".format((ds.total_kzt or 0) / ds.trip_count) }} ₸
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if grand_total > 0 %}
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <div style="background:var(--border); border-radius:4px; height:8px; width:80px; overflow:hidden;">
+                                <div style="background:#8b5cf6; height:100%; width:{{ ((ds.total_kzt or 0) / grand_total * 100) | round(0) }}%;"></div>
+                            </div>
+                            <span class="text-muted" style="font-size:12px;">{{ ((ds.total_kzt or 0) / grand_total * 100) | round(1) }}%</span>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="/panel/director/drivers/{{ ds.id }}" class="btn btn-xs btn-ghost">Подробнее →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
 <!-- Export by driver/vehicle -->
 {% if drivers or vehicles %}
 <div class="card">
-    <div class="card-hdr"><span class="card-title">Экспорт по объекту</span></div>
+    <div class="card-hdr"><span class="card-title">↓ Экспорт по объекту</span></div>
     <div class="card-body">
         {% if drivers %}
         <div style="margin-bottom:14px;">

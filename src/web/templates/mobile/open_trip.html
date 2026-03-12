@@ -26,11 +26,16 @@
         </div>
 
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">🚚 ГОС. НОМЕР машины и прицепа</label>
-            <input type="text" name="vehicle_plate" placeholder="123 ABC 01" required
+            <label class="block text-gray-700 text-lg font-bold mb-2">🚚 ВЫБЕРИТЕ или ВВЕДИТЕ номер машины</label>
+            <input type="text" name="vehicle_plate" placeholder="123 ABC 01" list="vehicle_list" required
                 oninput="this.value = this.value.toUpperCase()"
                 class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-green-500 bg-gray-50 focus:bg-white outline-none uppercase"
                 style="text-transform: uppercase;">
+            <datalist id="vehicle_list">
+                {% for v in vehicles %}
+                    <option value="{{ v.license_plate }}">{% if v.make %}{{ v.make }} {{ v.model }}{% endif %}</option>
+                {% endfor %}
+            </datalist>
         </div>
 
         <div>

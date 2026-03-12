@@ -50,6 +50,7 @@ async def director_summary(
     td_str = to_dt.strftime("%Y-%m-%d")
 
     async with async_session() as session:
+        # Category summary
         summary_result = await session.execute(
             select(
                 Expense.expense_type,
@@ -62,12 +63,57 @@ async def director_summary(
         )
         summary = summary_result.all()
 
+        # Trip count
         trip_count_result = await session.execute(
             select(func.count(Trip.id)).where(
                 Trip.created_at >= from_dt, Trip.created_at <= to_dt
             )
         )
         trip_count = trip_count_result.scalar() or 0
+
+        # Active / completed trips
+        active_trips_result = await session.execute(
+            select(func.count(Trip.id)).where(Trip.status == "ACTIVE")
+        )
+        active_trips = active_trips_result.scalar() or 0
+
+        # Per-driver analytics
+        driver_stats_result = await session.execute(
+            select(
+                Driver.id,
+                Driver.name,
+                func.count(func.distinct(Expense.trip_id)).label("trip_count"),
+                func.count(Expense.id).label("expense_count"),
+                func.sum(func.coalesce(Expense.amount_kzt, Expense.amount)).label("total_kzt"),
+            )
+            .join(Trip, Trip.driver_id == Driver.id)
+            .join(Expense, Expense.trip_id == Trip.id)
+            .where(Expense.created_at >= from_dt, Expense.created_at <= to_dt)
+            .group_by(Driver.id, Driver.name)
+            .order_by(func.sum(func.coalesce(Expense.amount_kzt, Expense.amount)).desc())
+        )
+        driver_stats = driver_stats_result.all()
+
+        # Fuel-specific stats
+        fuel_stats_result = await session.execute(
+            select(
+                func.count(Expense.id).label("cnt"),
+                func.sum(func.coalesce(Expense.amount_kzt, Expense.amount)).label("total_kzt"),
+                func.sum(Expense.liters).label("total_liters"),
+            )
+            .where(
+                Expense.created_at >= from_dt,
+                Expense.created_at <= to_dt,
+                Expense.expense_type == "FUEL",
+            )
+        )
+        fuel_row = fuel_stats_result.first()
+
+        # Pending expenses count
+        pending_result = await session.execute(
+            select(func.count(Expense.id)).where(Expense.status == "PENDING")
+        )
+        pending_count = pending_result.scalar() or 0
 
         drivers_result = await session.execute(
             select(Driver).where(Driver.status == "ACTIVE").order_by(Driver.name)
@@ -80,6 +126,10 @@ async def director_summary(
         vehicles = vehicles_result.scalars().all()
 
     grand_total = sum(row.total_kzt or 0 for row in summary)
+    fuel_total_liters = fuel_row.total_liters if fuel_row and fuel_row.total_liters else 0
+    fuel_total_kzt = fuel_row.total_kzt if fuel_row and fuel_row.total_kzt else 0
+    fuel_count = fuel_row.cnt if fuel_row else 0
+    avg_price_per_liter = round(fuel_total_kzt / fuel_total_liters, 1) if fuel_total_liters else 0
 
     return templates.TemplateResponse(
         "director_summary.html",
@@ -88,11 +138,18 @@ async def director_summary(
             "user": current_user,
             "summary": summary,
             "trip_count": trip_count,
+            "active_trips": active_trips,
             "grand_total": grand_total,
             "from_date": fd_str,
             "to_date": td_str,
             "drivers": drivers,
             "vehicles": vehicles,
+            "driver_stats": driver_stats,
+            "fuel_total_liters": fuel_total_liters,
+            "fuel_total_kzt": fuel_total_kzt,
+            "fuel_count": fuel_count,
+            "avg_price_per_liter": avg_price_per_liter,
+            "pending_count": pending_count,
         },
     )
 
@@ -246,8 +303,14 @@ async def director_driver_pick(
 async def director_driver_history(
     request: Request,
     driver_id: int,
+    from_date: str | None = None,
+    to_date: str | None = None,
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
+    from_dt, to_dt = _parse_date_range(from_date, to_date)
+    fd_str = from_dt.strftime("%Y-%m-%d")
+    td_str = to_dt.strftime("%Y-%m-%d")
+
     async with async_session() as session:
         driver_result = await session.execute(
             select(Driver).where(Driver.id == driver_id)
@@ -264,7 +327,11 @@ async def director_driver_history(
         expenses_result = await session.execute(
             select(Expense)
             .join(Trip, Expense.trip_id == Trip.id)
-            .where(Trip.driver_id == driver_id)
+            .where(
+                Trip.driver_id == driver_id,
+                Expense.created_at >= from_dt,
+                Expense.created_at <= to_dt,
+            )
             .options(
                 selectinload(Expense.trip).selectinload(Trip.vehicle),
             )
@@ -272,9 +339,58 @@ async def director_driver_history(
         )
         expenses = expenses_result.scalars().all()
 
+        # Category breakdown for this driver
+        cat_result = await session.execute(
+            select(
+                Expense.expense_type,
+                func.count(Expense.id).label("cnt"),
+                func.sum(func.coalesce(Expense.amount_kzt, Expense.amount)).label("total_kzt"),
+            )
+            .join(Trip, Expense.trip_id == Trip.id)
+            .where(
+                Trip.driver_id == driver_id,
+                Expense.created_at >= from_dt,
+                Expense.created_at <= to_dt,
+            )
+            .group_by(Expense.expense_type)
+            .order_by(func.sum(func.coalesce(Expense.amount_kzt, Expense.amount)).desc())
+        )
+        categories = cat_result.all()
+
+        # Trip count for this driver in period
+        trip_count_result = await session.execute(
+            select(func.count(Trip.id)).where(
+                Trip.driver_id == driver_id,
+                Trip.created_at >= from_dt,
+                Trip.created_at <= to_dt,
+            )
+        )
+        trip_count = trip_count_result.scalar() or 0
+
+        # Fuel stats for this driver
+        fuel_result = await session.execute(
+            select(
+                func.sum(Expense.fuel_liters).label("total_liters"),
+                func.sum(func.coalesce(Expense.amount_kzt, Expense.amount)).label("fuel_kzt"),
+                func.count(Expense.id).label("fuel_count"),
+            )
+            .join(Trip, Expense.trip_id == Trip.id)
+            .where(
+                Trip.driver_id == driver_id,
+                Expense.expense_type == "FUEL",
+                Expense.created_at >= from_dt,
+                Expense.created_at <= to_dt,
+            )
+        )
+        fuel_row = fuel_result.first()
+
     total_kzt = sum(
         (e.amount_kzt if e.amount_kzt is not None else e.amount) for e in expenses
     )
+    avg_per_trip = round(total_kzt / trip_count) if trip_count > 0 else 0
+    fuel_liters = fuel_row.total_liters if fuel_row and fuel_row.total_liters else 0
+    fuel_kzt = fuel_row.fuel_kzt if fuel_row and fuel_row.fuel_kzt else 0
+    fuel_count = fuel_row.fuel_count if fuel_row else 0
 
     return templates.TemplateResponse(
         "director_driver.html",
@@ -285,5 +401,14 @@ async def director_driver_history(
             "all_drivers": all_drivers,
             "expenses": expenses,
             "total_kzt": total_kzt,
+            "categories": categories,
+            "trip_count": trip_count,
+            "avg_per_trip": avg_per_trip,
+            "fuel_liters": fuel_liters,
+            "fuel_kzt": fuel_kzt,
+            "fuel_count": fuel_count,
+            "from_date": fd_str,
+            "to_date": td_str,
         },
     )
+

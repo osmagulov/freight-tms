@@ -134,7 +134,10 @@ async def dashboard(request: Request):
 @router.get("/open-trip", response_class=HTMLResponse)
 async def open_trip_get(request: Request):
     driver_id = await requires_driver(request)
-    return templates.TemplateResponse("mobile/open_trip.html", {"request": request})
+    async with async_session() as session:
+        v_res = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
+        vehicles = v_res.scalars().all()
+    return templates.TemplateResponse("mobile/open_trip.html", {"request": request, "vehicles": vehicles})
 
 @router.post("/open-trip")
 async def open_trip_post(
