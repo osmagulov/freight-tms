@@ -1,5 +1,7 @@
 {% extends "mobile/base_mobile.html" %}
 
+{% block header_langs %}{% endblock %}
+
 {% block content %}
 <div class="bg-white rounded-2xl shadow-xl p-8 mt-12 border-t-8 border-blue-500">
     <div class="flex justify-center mb-6">
@@ -21,9 +23,17 @@
                 class="w-full text-xl p-4 border-2 border-gray-300 bg-gray-50 font-bold rounded-xl focus:ring-4 focus:border-blue-500 focus:ring-blue-200 focus:bg-white text-center transition outline-none tracking-wider">
         </div>
         <button type="submit"
-            class="w-full bg-blue-600 text-white text-2xl font-black py-5 rounded-xl shadow-[0_6px_0_#1e3a8a] active:shadow-none active:translate-y-2 transition-all">
+            class="w-full bg-blue-600 text-white text-2xl font-black py-5 rounded-xl shadow-[0_6px_0_#1e3a8a] active:shadow-none active:translate-y-2 transition-all"
+            data-i18n="login">
             ВОЙТИ
         </button>
+
+        <!-- Centered Language Selector -->
+        <div class="flex justify-center items-center space-x-6 pt-6 border-t border-gray-100 mt-6">
+            <button type="button" onclick="setLanguage('kk')" id="lang-kk" class="text-4xl p-3 rounded-2xl transition-all grayscale opacity-70 hover:opacity-100 active:scale-90">🇰🇿</button>
+            <button type="button" onclick="setLanguage('ru')" id="lang-ru" class="text-4xl p-3 rounded-2xl transition-all grayscale opacity-70 hover:opacity-100 active:scale-90">🇷🇺</button>
+            <button type="button" onclick="setLanguage('zh')" id="lang-zh" class="text-4xl p-3 rounded-2xl transition-all grayscale opacity-70 hover:opacity-100 active:scale-90">🇨🇳</button>
+        </div>
     </form>
 </div>
 

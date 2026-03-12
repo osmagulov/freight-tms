@@ -17,17 +17,19 @@
             <span class="mr-2 text-2xl">🚚</span> Freight TMS
         </div>
         
+        {% block header_langs %}
         <div class="flex items-center space-x-2">
             <div class="flex bg-blue-700/50 rounded-lg p-1 border border-blue-400/30">
-                <button onclick="setLanguage('kk')" id="lang-kk" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇰🇿</button>
-                <button onclick="setLanguage('ru')" id="lang-ru" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇷🇺</button>
-                <button onclick="setLanguage('zh')" id="lang-zh" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇨🇳</button>
+                <button onclick="setLanguage('kk')" id="lang-kk-header" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇰🇿</button>
+                <button onclick="setLanguage('ru')" id="lang-ru-header" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇷🇺</button>
+                <button onclick="setLanguage('zh')" id="lang-zh-header" class="px-2 py-1 rounded text-sm transition-all grayscale opacity-70">🇨🇳</button>
             </div>
             {% if driver %}
             <a href="/app/logout"
                 class="bg-blue-800 px-3 py-2 rounded-lg font-bold text-sm text-white shadow active:translate-y-1">ВЫХОД</a>
             {% endif %}
         </div>
+        {% endblock %}
     </header>
 
     <main class="p-4 max-w-lg mx-auto relative">
@@ -209,16 +211,18 @@
             
             // Highlight active lang button
             ['kk', 'ru', 'zh'].forEach(l => {
-                const btn = document.getElementById(`lang-${l}`);
-                if (btn) {
-                    if (l === lang) {
-                        btn.classList.remove('grayscale', 'opacity-70');
-                        btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm', 'scale-110');
-                    } else {
-                        btn.classList.add('grayscale', 'opacity-70');
-                        btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm', 'scale-110');
+                const btns = [document.getElementById(`lang-${l}`), document.getElementById(`lang-${l}-header`)];
+                btns.forEach(btn => {
+                    if (btn) {
+                        if (l === lang) {
+                            btn.classList.remove('grayscale', 'opacity-70');
+                            btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm', 'scale-110');
+                        } else {
+                            btn.classList.add('grayscale', 'opacity-70');
+                            btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm', 'scale-110');
+                        }
                     }
-                }
+                });
             });
 
             // Update all elements with data-i18n
