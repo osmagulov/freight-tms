@@ -661,6 +661,37 @@ async def add_trip_expense_submit(
     return RedirectResponse(url=f"/panel/trips/{trip.id}", status_code=302)
 
 
+@router.post("/trips/{trip_id}/documents")
+async def add_trip_document(
+    request: Request,
+    trip_id: int,
+    file_type: str = Form(...),
+    doc_file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    import uuid
+    async with async_session() as session:
+        result = await session.execute(select(Trip).where(Trip.id == trip_id))
+        trip = result.scalars().first()
+        if not trip or not doc_file.filename:
+            return RedirectResponse(url=f"/panel/trips/{trip_id}", status_code=302)
+
+        file_bytes = await doc_file.read()
+        ext = doc_file.filename.rsplit(".", 1)[-1].lower() if "." in doc_file.filename else "pdf"
+        content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
+        key = f"trip_docs/{trip_id}/{uuid.uuid4()}.{ext}"
+        r2_url = await save_uploaded_file(file_bytes, key, content_type)
+
+        doc = TripDocument(
+            trip_id=trip_id,
+            file_type=file_type,
+            r2_url=r2_url,
+        )
+        session.add(doc)
+        await session.commit()
+    return RedirectResponse(url=f"/panel/trips/{trip_id}", status_code=302)
+
+
 @router.get("/fleet", response_class=HTMLResponse)
 async def fleet_dashboard(
     request: Request,

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 from src.core.config import settings
 from src.db.database import async_session
-from src.db.models import Driver, Trip, Expense, Vehicle, TripStatus, LocationUpdate, VehicleRepair, RepairStatus
+from src.db.models import Driver, Trip, Expense, Vehicle, TripStatus, LocationUpdate, VehicleRepair, RepairStatus, DriverDocument, TripDocument
 from antigravity_modules.expense_crud import get_active_trip_for_driver, create_expense
 from src.services.r2 import save_uploaded_file
 from src.web.auth import verify_password
@@ -443,6 +443,81 @@ async def close_trip_post(
             await session.commit()
             
     return RedirectResponse(url="/app/", status_code=302)
+
+
+# --- DOCUMENTS ---
+@router.get("/documents", response_class=HTMLResponse)
+async def documents_get(request: Request):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        
+        docs_res = await session.execute(
+            select(DriverDocument).where(DriverDocument.driver_id == driver_id).order_by(DriverDocument.uploaded_at.desc())
+        )
+        docs = docs_res.scalars().all()
+        
+        trip = await get_active_trip_for_driver(session, driver_id)
+        trip_docs = []
+        if trip:
+            td_res = await session.execute(
+                select(TripDocument).where(TripDocument.trip_id == trip.id).order_by(TripDocument.uploaded_at.desc())
+            )
+            trip_docs = td_res.scalars().all()
+            
+    return templates.TemplateResponse("mobile/documents.html", {
+        "request": request, 
+        "driver": driver, 
+        "docs": docs, 
+        "active_trip": trip,
+        "trip_docs": trip_docs
+    })
+
+
+@router.post("/documents/upload")
+async def documents_upload_post(
+    request: Request,
+    doc_type: str = Form(...),
+    doc_file: UploadFile = File(...),
+):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        if not doc_file.filename:
+            return RedirectResponse(url="/app/documents", status_code=302)
+            
+        file_bytes = await doc_file.read()
+        ext = doc_file.filename.rsplit(".", 1)[-1].lower() if "." in doc_file.filename else "jpg"
+        content_type = "application/pdf" if ext == "pdf" else "image/jpeg"
+        
+        if doc_type.startswith("trip_"):
+            trip = await get_active_trip_for_driver(session, driver_id)
+            if not trip:
+                return RedirectResponse(url="/app/documents", status_code=302)
+            
+            key = f"trip_docs/{trip.id}/{uuid.uuid4()}.{ext}"
+            r2_url = await save_uploaded_file(file_bytes, key, content_type)
+            
+            trip_doc = TripDocument(
+                trip_id=trip.id,
+                file_type=doc_type.replace("trip_", "", 1),
+                r2_url=r2_url
+            )
+            session.add(trip_doc)
+        else:
+            key = f"driver_docs/{driver_id}/{uuid.uuid4()}.{ext}"
+            r2_url = await save_uploaded_file(file_bytes, key, content_type)
+            
+            driver_doc = DriverDocument(
+                driver_id=driver_id,
+                doc_type=doc_type,
+                r2_url=r2_url
+            )
+            session.add(driver_doc)
+            
+        await session.commit()
+    return RedirectResponse(url="/app/documents", status_code=302)
+
 
 # --- LOCATION FIX ---
 @router.post("/location")
