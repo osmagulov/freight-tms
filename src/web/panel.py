@@ -568,6 +568,99 @@ async def trip_edit_submit(
     return RedirectResponse(url=f"/panel/trips/{trip.id}", status_code=302)
 
 
+@router.get("/trips/{trip_id}/expenses/add", response_class=HTMLResponse)
+async def add_trip_expense_form(
+    request: Request,
+    trip_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from src.db.models import ExpenseType
+    async with async_session() as session:
+        result = await session.execute(select(Trip).where(Trip.id == trip_id))
+        trip = result.scalars().first()
+        if not trip:
+            return RedirectResponse(url="/panel/trips", status_code=302)
+
+    return templates.TemplateResponse(
+        "expense_add.html",
+        {
+            "request": request,
+            "trip": trip,
+            "ExpenseType": ExpenseType,
+            "user": current_user,
+        },
+    )
+
+
+@router.post("/trips/{trip_id}/expenses/add")
+async def add_trip_expense_submit(
+    request: Request,
+    trip_id: int,
+    expense_type: str = Form(),
+    amount: float = Form(),
+    currency: str = Form(),
+    status: str = Form(),
+    comment: str = Form(default=""),
+    liters: float = Form(default=None),
+    odometer_reading: int = Form(default=None),
+    station: str = Form(default=""),
+    receipt_file: UploadFile = File(default=None),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    import uuid
+    # Static FX rates to KZT
+    FX_RATES: dict[str, float] = {
+        "KZT": 1.0,
+        "RUB": 5.2,
+        "USD": 450.0,
+        "EUR": 490.0,
+        "TRY": 13.5,
+        "CNY": 65.0,
+    }
+    fx_rate = FX_RATES.get(currency, 1.0)
+    amount_kzt = round(amount * fx_rate, 2)
+
+    receipt_url = None
+    if receipt_file and receipt_file.filename:
+        file_bytes = await receipt_file.read()
+        if file_bytes:
+            ext = receipt_file.filename.split('.')[-1] if '.' in receipt_file.filename else 'jpg'
+            key = f"expenses/receipt_{uuid.uuid4()}.{ext}"
+            content_type = receipt_file.content_type or "image/jpeg"
+            receipt_url = await save_uploaded_file(file_bytes, key, content_type)
+
+    async with async_session() as session:
+        result = await session.execute(select(Trip).where(Trip.id == trip_id))
+        trip = result.scalars().first()
+        if not trip:
+            return RedirectResponse(url="/panel/trips", status_code=302)
+
+        expense = Expense(
+            trip_id=trip.id,
+            expense_type=expense_type,
+            amount=amount,
+            currency=currency,
+            fx_rate=fx_rate,
+            amount_kzt=amount_kzt,
+            comment=comment.strip() or None,
+            photo_r2_url=receipt_url,
+            status=status,
+        )
+        if expense_type == "FUEL":
+            expense.liters = liters
+            expense.odometer_reading = odometer_reading
+            expense.station = station.strip() or None
+
+        if status == "APPROVED":
+            expense.approved_by = current_user.get("sub", "dispatcher")
+            expense.approved_at = datetime.utcnow()
+
+        session.add(expense)
+        await session.commit()
+
+    return RedirectResponse(url=f"/panel/trips/{trip.id}", status_code=302)
+
+
 @router.get("/fleet", response_class=HTMLResponse)
 async def fleet_dashboard(
     request: Request,

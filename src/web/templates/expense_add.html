@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Добавить расход — Рейс #{{ trip.id }}{% endblock %}
+{% block content %}
+
+<a href="/panel/trips/{{ trip.id }}" class="back-link">← Вернуться к рейсу</a>
+
+<div class="page-hdr" style="margin-bottom:20px;">
+    <h1>Добавить расход для Рейса #{{ trip.id }}</h1>
+</div>
+
+<div class="card" style="max-width:680px;">
+    <div class="card-hdr"><span class="card-title">Детали расхода</span></div>
+    <div class="card-body">
+        <form action="/panel/trips/{{ trip.id }}/expenses/add" method="post" enctype="multipart/form-data">
+            
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label for="expense_type">Тип расхода *</label>
+                    <select name="expense_type" id="expense_type" required onchange="toggleFuelFields()">
+                        {% for et in ExpenseType %}
+                        <option value="{{ et.value }}">
+                            {% if et.value == 'FUEL' %}Топливо
+                            {% elif et.value == 'PER_DIEM' %}Суточные
+                            {% elif et.value == 'FINE' %}Штраф
+                            {% elif et.value == 'REPAIR' %}Ремонт
+                            {% elif et.value == 'OTHER' %}Прочее
+                            {% else %}{{ et.value }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label for="amount">Сумма *</label>
+                    <input type="number" step="0.01" name="amount" id="amount" required>
+                </div>
+                <div class="form-row">
+                    <label for="currency">Валюта *</label>
+                    <select name="currency" id="currency" required>
+                        <option value="KZT">KZT</option>
+                        <option value="RUB">RUB</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="CNY">CNY</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="fuel-fields" style="display: none; background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 12px; color: #475569;">Данные по заправке</div>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label for="liters">Литры</label>
+                        <input type="number" step="0.01" name="liters" id="liters">
+                    </div>
+                    <div class="form-row">
+                        <label for="odometer_reading">Показания одометра</label>
+                        <input type="number" name="odometer_reading" id="odometer_reading">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="station">АЗС (Сеть/Адрес)</label>
+                    <input type="text" name="station" id="station">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label for="status">Статус *</label>
+                <select name="status" id="status" required>
+                    <option value="APPROVED">Одобрен</option>
+                    <option value="PENDING">На проверке</option>
+                    <option value="REJECTED">Отклонён</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label for="comment">Комментарий</label>
+                <input type="text" name="comment" id="comment" placeholder="Описание расхода (опционально)">
+            </div>
+
+            <div class="form-row">
+                <label for="receipt_file">Чек / Документ (фото, опционально)</label>
+                <input type="file" name="receipt_file" id="receipt_file" accept=".jpg,.jpeg,.png,.pdf">
+            </div>
+
+            <div class="action-group" style="margin-top:8px;">
+                <button type="submit" class="btn">Сохранить</button>
+                <a href="/panel/trips/{{ trip.id }}" class="btn btn-ghost">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleFuelFields() {
+    var type = document.getElementById('expense_type').value;
+    var f = document.getElementById('fuel-fields');
+    f.style.display = (type === 'FUEL') ? 'block' : 'none';
+}
+toggleFuelFields(); // run on load
+</script>
+{% endblock %}

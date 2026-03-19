@@ -94,7 +94,10 @@
 
 <!-- Expenses -->
 <div class="card">
-    <div class="card-hdr"><span class="card-title">Расходы</span></div>
+    <div class="card-hdr" style="display: flex; justify-content: space-between; align-items: center;">
+        <span class="card-title" style="margin-bottom:0;">Расходы</span>
+        <a href="/panel/trips/{{ trip.id }}/expenses/add" class="btn btn-xs" style="font-weight:normal; background: white; color: var(--text); border: 1px solid var(--border);">+ Добавить расход</a>
+    </div>
     {% if trip.expenses %}
     <table>
         <thead>
