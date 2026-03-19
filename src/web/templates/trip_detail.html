@@ -5,7 +5,10 @@
 <a href="/panel/trips" class="back-link">← К списку рейсов</a>
 
 <div class="page-hdr">
-    <h1>Рейс #{{ trip.id }}</h1>
+    <div class="page-hdr-left">
+        <h1>Рейс #{{ trip.id }}</h1>
+        <a href="/panel/trips/{{ trip.id }}/edit" class="btn btn-xs btn-ghost" style="margin-left: 8px;">Редактировать</a>
+    </div>
     {% if trip.status == 'PLANNED' %}<span class="badge badge-planned">Запланирован</span>
     {% elif trip.status == 'ACTIVE' %}<span class="badge badge-active">Активен</span>
     {% elif trip.status == 'COMPLETED' %}<span class="badge badge-completed">Завершён</span>

@@ -34,9 +34,25 @@
                 </div>
             </div>
 
-            <div class="form-row">
-                <label for="route_details">Маршрут</label>
-                <input type="text" name="route_details" id="route_details" placeholder="Например: Алматы — Астана" maxlength="500">
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label for="status">Статус рейса *</label>
+                    <select name="status" id="status" required>
+                        {% for st in TripStatus %}
+                        <option value="{{ st.value }}" {% if st.value == 'ACTIVE' %}selected{% endif %}>
+                            {% if st.value == 'PLANNED' %}Запланирован
+                            {% elif st.value == 'ACTIVE' %}Активен
+                            {% elif st.value == 'COMPLETED' %}Завершён
+                            {% elif st.value == 'CANCELLED' %}Отменён
+                            {% else %}{{ st.value }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="route_details">Маршрут</label>
+                    <input type="text" name="route_details" id="route_details" placeholder="Например: Алматы — Астана" maxlength="500">
+                </div>
             </div>
 
             <div class="form-row">

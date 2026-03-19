@@ -347,7 +347,13 @@ async def create_trip_form(
 
     return templates.TemplateResponse(
         "trips_create.html",
-        {"request": request, "drivers": drivers, "vehicles": vehicles, "user": current_user},
+        {
+            "request": request,
+            "drivers": drivers,
+            "vehicles": vehicles,
+            "TripStatus": TripStatus,
+            "user": current_user
+        },
     )
 
 
@@ -356,6 +362,7 @@ async def create_trip_submit(
     request: Request,
     driver_id: int = Form(),
     vehicle_id: int = Form(),
+    status: str = Form(default="PLANNED"),
     route_details: str = Form(default=""),
     load_info: str = Form(default=""),
     client_name: str = Form(default=""),
@@ -382,7 +389,7 @@ async def create_trip_submit(
             client_name=client_name or None,
             planned_departure=parse_dt(planned_departure),
             planned_arrival=parse_dt(planned_arrival),
-            status=TripStatus.PLANNED,
+            status=status,
         )
         session.add(trip)
         await session.commit()
@@ -463,6 +470,102 @@ async def trip_detail(
             "user": current_user,
         },
     )
+
+
+@router.get("/trips/{trip_id}/edit", response_class=HTMLResponse)
+async def trip_edit_form(
+    request: Request,
+    trip_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(
+            select(Trip).where(Trip.id == trip_id)
+        )
+        trip = result.scalars().first()
+        if not trip:
+            return RedirectResponse(url="/panel/trips", status_code=302)
+
+        drivers_result = await session.execute(
+            select(Driver).order_by(Driver.name)
+        )
+        drivers = drivers_result.scalars().all()
+
+        vehicles_result = await session.execute(
+            select(Vehicle).order_by(Vehicle.license_plate)
+        )
+        vehicles = vehicles_result.scalars().all()
+
+    return templates.TemplateResponse(
+        "trip_edit.html",
+        {
+            "request": request,
+            "trip": trip,
+            "drivers": drivers,
+            "vehicles": vehicles,
+            "TripStatus": TripStatus,
+            "user": current_user,
+        },
+    )
+
+
+@router.post("/trips/{trip_id}/edit")
+async def trip_edit_submit(
+    request: Request,
+    trip_id: int,
+    driver_id: int = Form(),
+    vehicle_id: int = Form(),
+    status: str = Form(),
+    delivery_status: str = Form(default=""),
+    route_details: str = Form(default=""),
+    load_info: str = Form(default=""),
+    client_name: str = Form(default=""),
+    planned_departure: str = Form(default=""),
+    planned_arrival: str = Form(default=""),
+    start_odometer: str = Form(default=""),
+    end_odometer: str = Form(default=""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from datetime import datetime as dt
+
+    def parse_dt(value: str):
+        if not value:
+            return None
+        try:
+            return dt.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def parse_int(value: str):
+        if not value:
+            return None
+        try:
+            return int(value)
+        except ValueError:
+            return None
+
+    async with async_session() as session:
+        result = await session.execute(select(Trip).where(Trip.id == trip_id))
+        trip = result.scalars().first()
+        if not trip:
+            return RedirectResponse(url="/panel/trips", status_code=302)
+
+        trip.driver_id = driver_id
+        trip.vehicle_id = vehicle_id
+        trip.status = status
+        trip.delivery_status = delivery_status.strip() or None
+        trip.route_details = route_details.strip() or None
+        trip.load_info = load_info.strip() or None
+        trip.client_name = client_name.strip() or None
+        trip.planned_departure = parse_dt(planned_departure)
+        trip.planned_arrival = parse_dt(planned_arrival)
+        trip.start_odometer = parse_int(start_odometer)
+        trip.end_odometer = parse_int(end_odometer)
+
+        session.add(trip)
+        await session.commit()
+
+    return RedirectResponse(url=f"/panel/trips/{trip.id}", status_code=302)
 
 
 @router.get("/fleet", response_class=HTMLResponse)
