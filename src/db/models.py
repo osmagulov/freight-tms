@@ -48,9 +48,9 @@ class Driver(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
 
-    trips = relationship("Trip", back_populates="driver")
+    trips = relationship("Trip", back_populates="driver", cascade="all, delete-orphan")
     vehicle = relationship("Vehicle", back_populates="drivers")
-    documents = relationship("DriverDocument", back_populates="driver", order_by="DriverDocument.uploaded_at.desc()")
+    documents = relationship("DriverDocument", back_populates="driver", cascade="all, delete-orphan", order_by="DriverDocument.uploaded_at.desc()")
 
 class Vehicle(Base):
     __tablename__ = "vehicles"
@@ -63,10 +63,10 @@ class Vehicle(Base):
     year = Column(Integer, nullable=True)
     fuel_norm_per_100km = Column(Float, nullable=True)
 
-    trips = relationship("Trip", back_populates="vehicle")
+    trips = relationship("Trip", back_populates="vehicle", cascade="all, delete-orphan")
     drivers = relationship("Driver", back_populates="vehicle")
-    repairs = relationship("VehicleRepair", back_populates="vehicle", order_by="VehicleRepair.created_at.desc()")
-    documents = relationship("VehicleDocument", back_populates="vehicle", order_by="VehicleDocument.uploaded_at.desc()")
+    repairs = relationship("VehicleRepair", back_populates="vehicle", cascade="all, delete-orphan", order_by="VehicleRepair.created_at.desc()")
+    documents = relationship("VehicleDocument", back_populates="vehicle", cascade="all, delete-orphan", order_by="VehicleDocument.uploaded_at.desc()")
 
 class VehicleRepair(Base):
     __tablename__ = "vehicle_repairs"
@@ -120,8 +120,8 @@ class Trip(Base):
 
     driver = relationship("Driver", back_populates="trips")
     vehicle = relationship("Vehicle", back_populates="trips")
-    expenses = relationship("Expense", back_populates="trip")
-    documents = relationship("TripDocument", back_populates="trip")
+    expenses = relationship("Expense", back_populates="trip", cascade="all, delete-orphan")
+    documents = relationship("TripDocument", back_populates="trip", cascade="all, delete-orphan")
 
 class Expense(Base):
     __tablename__ = "expenses"

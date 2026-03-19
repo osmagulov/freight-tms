@@ -60,9 +60,16 @@
                             <button type="submit" class="btn btn-sm btn-success">✓ Активировать</button>
                         </form>
                         {% endif %}
-                        {% if vehicle %}
-                        <a class="btn btn-sm btn-ghost" href="/panel/vehicles/{{ vehicle.id }}/edit">Борт</a>
-                        {% endif %}
+                        <div style="border-top: 1px dotted #e5e7eb; margin-top: 6px; padding-top: 4px; display: flex; gap: 8px;">
+                            <form method="post" action="/panel/drivers/{{ driver.id }}/delete" onsubmit="return confirm('Удалить ВОДИТЕЛЯ и все его данные (рейсы, документы)?')" style="display:inline;">
+                                <button type="submit" class="btn btn-xs btn-ghost" style="color:#ef4444; border:none; opacity:0.6;">🗑️ Водителя</button>
+                            </form>
+                            {% if vehicle %}
+                            <form method="post" action="/panel/vehicles/{{ vehicle.id }}/delete" onsubmit="return confirm('Удалить БОРТ и все его данные (ремонты, документы)?')" style="display:inline;">
+                                <button type="submit" class="btn btn-xs btn-ghost" style="color:#ef4444; border:none; opacity:0.6;">🗑️ Борт</button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </div>
                 </td>
             </tr>

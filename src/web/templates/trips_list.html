@@ -48,6 +48,7 @@
                 <th>Клиент</th>
                 <th>Статус</th>
                 <th>Создан</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -67,6 +68,11 @@
                     {% else %}<span class="badge">{{ trip.status }}</span>{% endif %}
                 </td>
                 <td class="text-muted">{{ trip.created_at.strftime('%d.%m.%Y %H:%M') if trip.created_at else '—' }}</td>
+                <td onclick="event.stopPropagation()">
+                    <form method="post" action="/panel/trips/{{ trip.id }}/delete" onsubmit="return confirm('Удалить рейс #{{ trip.id }} и все связанные с ним расходы и документы?')" style="display:inline;">
+                        <button type="submit" class="btn btn-xs btn-ghost" style="color:#ef4444; border:none; opacity:0.6;">🗑️</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

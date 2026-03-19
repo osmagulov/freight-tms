@@ -127,6 +127,34 @@ async def activate_driver(
     return RedirectResponse(url="/panel/drivers", status_code=302)
 
 
+@router.post("/drivers/{driver_id}/delete")
+async def driver_delete(
+    driver_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        if driver:
+            await session.delete(driver)
+            await session.commit()
+    return RedirectResponse(url="/panel/drivers", status_code=302)
+
+
+@router.post("/vehicles/{vehicle_id}/delete")
+async def vehicle_delete(
+    vehicle_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
+        vehicle = result.scalars().first()
+        if vehicle:
+            await session.delete(vehicle)
+            await session.commit()
+    return RedirectResponse(url="/panel/drivers", status_code=302)
+
+
 @router.get("/vehicles/{vehicle_id}/edit", response_class=HTMLResponse)
 async def vehicle_edit_form(
     request: Request,
@@ -574,6 +602,20 @@ async def trip_edit_submit(
         await session.commit()
 
     return RedirectResponse(url=f"/panel/trips/{trip.id}", status_code=302)
+
+
+@router.post("/trips/{trip_id}/delete")
+async def trip_delete(
+    trip_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Trip).where(Trip.id == trip_id))
+        trip = result.scalars().first()
+        if trip:
+            await session.delete(trip)
+            await session.commit()
+    return RedirectResponse(url="/panel/trips", status_code=302)
 
 
 @router.get("/trips/{trip_id}/expenses/add", response_class=HTMLResponse)
@@ -1094,6 +1136,20 @@ async def repair_resolve(
             repair.resolution_notes = resolution_notes.strip() or None
             repair.resolved_at = datetime.utcnow()
             session.add(repair)
+            await session.commit()
+    return RedirectResponse(url="/panel/repairs", status_code=302)
+
+
+@router.post("/repairs/{repair_id}/delete")
+async def repair_delete(
+    repair_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(VehicleRepair).where(VehicleRepair.id == repair_id))
+        repair = result.scalars().first()
+        if repair:
+            await session.delete(repair)
             await session.commit()
     return RedirectResponse(url="/panel/repairs", status_code=302)
 

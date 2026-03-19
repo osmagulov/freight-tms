@@ -160,6 +160,12 @@
                         </span>
                     </div>
                     {% endif %}
+
+                    <div style="margin-top: 8px; border-top: 1px dotted #e5e7eb; padding-top: 6px;">
+                        <form method="post" action="/panel/repairs/{{ r.id }}/delete" onsubmit="return confirm('Удалить эту запись о ремонте?')" style="display:inline;">
+                            <button class="btn btn-xs btn-ghost" title="Удалить" style="color: #ef4444; border: none; opacity: 0.6;">🗑️ Удалить</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
