@@ -77,6 +77,16 @@ async def director_summary(
         )
         active_trips = active_trips_result.scalar() or 0
 
+        # Total Revenue (Price)
+        # Note: In a real scenario we'd use FX rates for non-KZT. 
+        # For now, we sum where KZT and show separate if needed, or assume KZT for simplicity in MVP.
+        revenue_result = await session.execute(
+            select(func.sum(Trip.price)).where(
+                Trip.created_at >= from_dt, Trip.created_at <= to_dt
+            )
+        )
+        total_revenue = revenue_result.scalar() or 0
+
         # Per-driver analytics
         driver_stats_result = await session.execute(
             select(
@@ -150,6 +160,8 @@ async def director_summary(
             "fuel_count": fuel_count,
             "avg_price_per_liter": avg_price_per_liter,
             "pending_count": pending_count,
+            "total_revenue": total_revenue,
+            "total_profit": total_revenue - grand_total,
         },
     )
 

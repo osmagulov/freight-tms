@@ -28,20 +28,20 @@
 <!-- Main KPIs -->
 <div class="kpi-grid">
     <div class="kpi">
-        <div class="kpi-label">Рейсов за период</div>
-        <div class="kpi-value">{{ trip_count }}</div>
+        <div class="kpi-label">Доход (Фрахт)</div>
+        <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(total_revenue) }} ₸</div>
     </div>
-    <div class="kpi green">
-        <div class="kpi-label">Итого расходов</div>
+    <div class="kpi red">
+        <div class="kpi-label">Всего расходов</div>
         <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(grand_total) }} ₸</div>
     </div>
-    <div class="kpi amber">
-        <div class="kpi-label">Активных рейсов</div>
-        <div class="kpi-value">{{ active_trips }}</div>
+    <div class="kpi green">
+        <div class="kpi-label">Чистая прибыль (план)</div>
+        <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(total_profit) }} ₸</div>
     </div>
-    <div class="kpi {% if pending_count > 0 %}red{% endif %}">
-        <div class="kpi-label">На проверке</div>
-        <div class="kpi-value">{{ pending_count }}</div>
+    <div class="kpi amber">
+        <div class="kpi-label">Рейсов / Активных</div>
+        <div class="kpi-value">{{ trip_count }} / {{ active_trips }}</div>
     </div>
 </div>
 

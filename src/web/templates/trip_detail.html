@@ -58,6 +58,10 @@
                 <label>Клиент</label>
                 <span>{{ trip.client_name or '—' }}</span>
             </div>
+            <div class="info-item" style="background: #ecfdf5; border-color: #10b98133;">
+                <label style="color: #059669;">Стоимость (Фрахт)</label>
+                <span style="color: #059669; font-size: 16px;">{{ "{:,.2f}".format(trip.price) if trip.price is not none else '—' }} {{ trip.price_currency }}</span>
+            </div>
             <div class="info-item">
                 <label>Выезд (план)</label>
                 <span>{{ trip.planned_departure.strftime('%d.%m.%Y %H:%M') if trip.planned_departure else '—' }}</span>

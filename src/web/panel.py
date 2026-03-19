@@ -368,6 +368,8 @@ async def create_trip_submit(
     client_name: str = Form(default=""),
     planned_departure: str = Form(default=""),
     planned_arrival: str = Form(default=""),
+    price: float = Form(default=None),
+    price_currency: str = Form(default="KZT"),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
     from datetime import datetime as dt
@@ -390,6 +392,8 @@ async def create_trip_submit(
             planned_departure=parse_dt(planned_departure),
             planned_arrival=parse_dt(planned_arrival),
             status=status,
+            price=price,
+            price_currency=price_currency,
         )
         session.add(trip)
         await session.commit()
@@ -524,6 +528,8 @@ async def trip_edit_submit(
     planned_arrival: str = Form(default=""),
     start_odometer: str = Form(default=""),
     end_odometer: str = Form(default=""),
+    price: float = Form(default=None),
+    price_currency: str = Form(default="KZT"),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
     from datetime import datetime as dt
@@ -561,6 +567,8 @@ async def trip_edit_submit(
         trip.planned_arrival = parse_dt(planned_arrival)
         trip.start_odometer = parse_int(start_odometer)
         trip.end_odometer = parse_int(end_odometer)
+        trip.price = price
+        trip.price_currency = price_currency
 
         session.add(trip)
         await session.commit()

@@ -114,6 +114,10 @@ class Trip(Base):
     planned_arrival = Column(DateTime(timezone=True), nullable=True)
     delivery_status = Column(String, nullable=True)
 
+    # Financials (Analytics)
+    price = Column(Float, nullable=True)             # Revenue / Rate from client
+    price_currency = Column(String(3), default="KZT") # Currency for revenue
+
     driver = relationship("Driver", back_populates="trips")
     vehicle = relationship("Vehicle", back_populates="trips")
     expenses = relationship("Expense", back_populates="trip")
