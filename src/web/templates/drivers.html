@@ -25,7 +25,7 @@
         <tbody>
             {% for driver, vehicle in rows %}
             <tr>
-                <td class="fw-bold">{{ driver.name or '—' }}</td>
+                <td class="fw-bold"><span class="auto-translate">{{ driver.name or '—' }}</span></td>
                 <td class="text-muted">{{ driver.phone or '—' }}</td>
                 <td class="text-muted">
                     {{ driver.iin or '—' }}

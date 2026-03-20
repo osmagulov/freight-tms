@@ -56,11 +56,11 @@
             {% for trip in trips %}
             <tr style="cursor:pointer;" onclick="window.location='/panel/trips/{{ trip.id }}'">
                 <td class="text-muted">#{{ trip.id }}</td>
-                <td class="fw-bold">{{ trip.driver.name or trip.driver.tg_id }}</td>
+                <td class="fw-bold"><span class="auto-translate">{{ trip.driver.name or trip.driver.tg_id }}</span></td>
                 <td>{{ trip.vehicle.license_plate }}</td>
-                <td>{{ trip.route_details or '—' }}</td>
-                <td>{{ trip.load_info or '—' }}</td>
-                <td>{{ trip.client_name or '—' }}</td>
+                <td><span class="auto-translate">{{ trip.route_details or '—' }}</span></td>
+                <td><span class="auto-translate">{{ trip.load_info or '—' }}</span></td>
+                <td><span class="auto-translate">{{ trip.client_name or '—' }}</span></td>
                 <td>
                     {% if trip.status == 'PLANNED' %}<span class="badge badge-planned" data-i18n="status_planned">Запланирован</span>
                     {% elif trip.status == 'ACTIVE' %}<span class="badge badge-active" data-i18n="status_active_trip">Активен</span>

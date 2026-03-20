@@ -103,9 +103,9 @@
                 <td class="text-muted" style="white-space:nowrap;">{{ r.created_at.strftime("%d.%m.%Y") if r.created_at else "—" }}</td>
                 <td class="fw-bold">{{ r.vehicle.license_plate if r.vehicle else "—" }}</td>
                 <td style="max-width:320px;">
-                    {{ r.description }}
+                    <span class="auto-translate">{{ r.description }}</span>
                     {% if r.resolution_notes %}
-                    <div class="text-muted" style="font-size:12px; margin-top:3px;">✓ {{ r.resolution_notes }}</div>
+                    <div class="text-muted" style="font-size:12px; margin-top:3px;">✓ <span class="auto-translate">{{ r.resolution_notes }}</span></div>
                     {% endif %}
                 </td>
                 <td>

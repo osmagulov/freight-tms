@@ -1,5 +1,5 @@
 <tr id="expense-{{ expense.id }}">
-  <td class="fw-bold">{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</td>
+  <td class="fw-bold"><span class="auto-translate">{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</span></td>
   <td>
     {% if expense.expense_type == 'FUEL' %}<span data-i18n="expense_type_fuel">Топливо</span>
     {% elif expense.expense_type == 'PER_DIEM' %}<span data-i18n="expense_type_per_diem">Суточные</span>
@@ -47,7 +47,7 @@
     {% if expense.status == 'APPROVED' %}<span class="badge badge-approved" data-i18n="status_approved">Одобрен</span>
     {% else %}<span class="badge badge-rejected" data-i18n="status_rejected">Отклонён</span>{% endif %}
     {% if expense.rejection_comment %}
-    <div style="font-size:12px; color:var(--muted); margin-top:3px;">{{ expense.rejection_comment }}</div>
+    <div style="font-size:12px; color:var(--muted); margin-top:3px;"><span class="auto-translate">{{ expense.rejection_comment }}</span></div>
     {% endif %}
     {% endif %}
   </td>
