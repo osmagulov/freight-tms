@@ -3,44 +3,44 @@
 {% block content %}
 
 <div class="page-hdr">
-    <h1>📊 Отчёт директора</h1>
+    <h1 data-i18n="director_report_title">📊 Отчёт директора</h1>
 </div>
 
 <!-- Period filter -->
 <div class="filter-bar" style="margin-bottom:22px;">
     <form method="get" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-        <label>С
+        <label><span data-i18n="from">С</span>
             <input type="date" name="from_date" value="{{ from_date }}" style="width:145px;">
         </label>
-        <label>По
+        <label><span data-i18n="to">По</span>
             <input type="date" name="to_date" value="{{ to_date }}" style="width:145px;">
         </label>
-        <button type="submit" class="btn btn-sm">Применить</button>
+        <button type="submit" class="btn btn-sm" data-i18n="apply">Применить</button>
     </form>
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-left:auto;">
         <a href="/panel/director/export?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-sm btn-success">↓ CSV</a>
-        <a href="/panel/director/trucks?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-sm">По бортам</a>
-        <a href="/panel/director/anomalies" class="btn btn-sm btn-danger">Аномалии</a>
-        <a href="/panel/director/drivers" class="btn btn-sm btn-purple">По водителям</a>
+        <a href="/panel/director/trucks?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-sm" data-i18n="by_trucks">По бортам</a>
+        <a href="/panel/director/anomalies" class="btn btn-sm btn-danger" data-i18n="anomalies">Аномалии</a>
+        <a href="/panel/director/drivers" class="btn btn-sm btn-purple" data-i18n="by_drivers">По водителям</a>
     </div>
 </div>
 
 <!-- Main KPIs -->
 <div class="kpi-grid">
     <div class="kpi">
-        <div class="kpi-label">Доход (Фрахт)</div>
+        <div class="kpi-label" data-i18n="revenue">Доход (Фрахт)</div>
         <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(total_revenue) }} ₸</div>
     </div>
     <div class="kpi red">
-        <div class="kpi-label">Всего расходов</div>
+        <div class="kpi-label" data-i18n="total_expenses">Всего расходов</div>
         <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(grand_total) }} ₸</div>
     </div>
     <div class="kpi green">
-        <div class="kpi-label">Чистая прибыль (план)</div>
+        <div class="kpi-label" data-i18n="net_profit">Чистая прибыль (план)</div>
         <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(total_profit) }} ₸</div>
     </div>
     <div class="kpi amber">
-        <div class="kpi-label">Рейсов / Активных</div>
+        <div class="kpi-label" data-i18n="trips_active_label">Рейсов / Активных</div>
         <div class="kpi-value">{{ trip_count }} / {{ active_trips }}</div>
     </div>
 </div>
@@ -52,19 +52,19 @@
     <div class="card-body">
         <div class="kpi-grid">
             <div class="kpi">
-                <div class="kpi-label">Заправок</div>
+                <div class="kpi-label" data-i18n="refuels">Заправок</div>
                 <div class="kpi-value">{{ fuel_count }}</div>
             </div>
             <div class="kpi green">
-                <div class="kpi-label">Всего литров</div>
+                <div class="kpi-label" data-i18n="total_liters">Всего литров</div>
                 <div class="kpi-value">{{ "{:,.0f}".format(fuel_total_liters) }}</div>
             </div>
             <div class="kpi">
-                <div class="kpi-label">Затраты на топливо</div>
+                <div class="kpi-label" data-i18n="fuel_costs">Затраты на топливо</div>
                 <div class="kpi-value" style="font-size:16px;">{{ "{:,.0f}".format(fuel_total_kzt) }} ₸</div>
             </div>
             <div class="kpi amber">
-                <div class="kpi-label">Ср. цена за литр</div>
+                <div class="kpi-label" data-i18n="avg_price_per_liter">Ср. цена за литр</div>
                 <div class="kpi-value">{{ avg_price_per_liter }} ₸</div>
             </div>
         </div>
@@ -75,26 +75,26 @@
 <!-- Category summary table -->
 {% if summary %}
 <div class="card" style="margin-bottom:22px;">
-    <div class="card-hdr"><span class="card-title">📋 По категориям расходов</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="by_expense_categories">📋 По категориям расходов</span></div>
     <div class="card-body" style="padding:0;">
         <table>
             <thead>
                 <tr>
-                    <th>Категория</th>
-                    <th>Записей</th>
-                    <th>Сумма (KZT)</th>
-                    <th>Доля</th>
+                    <th data-i18n="category">Категория</th>
+                    <th data-i18n="records">Записей</th>
+                    <th data-i18n="total">Сумма (KZT)</th>
+                    <th data-i18n="share">Доля</th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in summary %}
                 <tr>
                     <td class="fw-bold">
-                        {% if row.expense_type == 'FUEL' %}⛽ Топливо
-                        {% elif row.expense_type == 'FINE' %}👮 Штрафы
-                        {% elif row.expense_type == 'REPAIR' %}🔧 Ремонт
-                        {% elif row.expense_type == 'PER_DIEM' %}🍔 Суточные
-                        {% else %}📦 {{ row.expense_type }}{% endif %}
+                        {% if row.expense_type == 'FUEL' %}<span data-i18n="FUEL">⛽ Топливо</span>
+                        {% elif row.expense_type == 'FINE' %}<span data-i18n="FINE">👮 Штрафы</span>
+                        {% elif row.expense_type == 'REPAIR' %}<span data-i18n="REPAIR">🔧 Ремонт</span>
+                        {% elif row.expense_type == 'PER_DIEM' %}<span data-i18n="PER_DIEM">🍔 Суточные</span>
+                        {% else %}📦 <span data-i18n="{{ row.expense_type }}">{{ row.expense_type }}</span>{% endif %}
                     </td>
                     <td class="text-muted">{{ row.cnt }}</td>
                     <td>{{ "{:,.0f}".format(row.total_kzt or 0) }} ₸</td>
@@ -113,7 +113,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td class="fw-bold">ИТОГО</td>
+                    <td class="fw-bold" data-i18n="total_voc">ИТОГО</td>
                     <td>{{ summary | sum(attribute='cnt') }}</td>
                     <td class="fw-bold">{{ "{:,.0f}".format(grand_total) }} ₸</td>
                     <td></td>
@@ -131,18 +131,18 @@
 <!-- Per-driver analytics -->
 {% if driver_stats %}
 <div class="card" style="margin-bottom:22px;">
-    <div class="card-hdr"><span class="card-title">👤 Расходы по водителям</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="expenses_by_drivers">👤 Расходы по водителям</span></div>
     <div class="card-body" style="padding:0;">
         <table>
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Водитель</th>
-                    <th>Рейсов</th>
-                    <th>Расходов</th>
-                    <th>Итого (₸)</th>
-                    <th>Ср. на рейс (₸)</th>
-                    <th>Доля</th>
+                    <th data-i18n="driver">Водитель</th>
+                    <th data-i18n="trips">Рейсов</th>
+                    <th data-i18n="expenses">Расходов</th>
+                    <th data-i18n="total">Итого (₸)</th>
+                    <th data-i18n="avg_per_trip">Ср. на рейс (₸)</th>
+                    <th data-i18n="share">Доля</th>
                     <th></th>
                 </tr>
             </thead>
@@ -170,7 +170,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="/panel/director/drivers/{{ ds.id }}" class="btn btn-xs btn-ghost">Подробнее →</a>
+                        <a href="/panel/director/drivers/{{ ds.id }}" class="btn btn-xs btn-ghost" data-i18n="details">Подробнее →</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -183,7 +183,7 @@
 <!-- Export by driver/vehicle -->
 {% if drivers or vehicles %}
 <div class="card">
-    <div class="card-hdr"><span class="card-title">↓ Экспорт по объекту</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="export_by_object">↓ Экспорт по объекту</span></div>
     <div class="card-body">
         {% if drivers %}
         <div style="margin-bottom:14px;">

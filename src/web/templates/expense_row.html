@@ -10,7 +10,7 @@
   <td>
     {% set receipt_url = expense.photo_r2_url or expense.photo_file_id %}
     {% if receipt_url %}
-    <a href="{{ receipt_url }}" target="_blank" class="btn btn-xs btn-ghost">📎 Чек</a>
+    <a href="{{ receipt_url }}" target="_blank" class="btn btn-xs btn-ghost" data-i18n="receipt">📎 Чек</a>
     {% endif %}
     {% if expense.card_photo_file_id %}
     <a href="{{ expense.card_photo_file_id }}" target="_blank" class="btn btn-xs btn-ghost">💳</a>
@@ -25,20 +25,20 @@
             hx-target="#expense-{{ expense.id }}"
             hx-swap="outerHTML"
             style="display:inline">
-        <button type="submit" class="btn btn-sm btn-success">✓ Одобрить</button>
+        <button type="submit" class="btn btn-sm btn-success" data-i18n="approve">✓ Одобрить</button>
       </form>
       <form hx-post="/panel/expenses/{{ expense.id }}/reject"
             hx-target="#expense-{{ expense.id }}"
             hx-swap="outerHTML"
             style="display:inline; display:flex; gap:6px; align-items:center;">
-        <input name="comment" placeholder="Причина (необяз.)"
+        <input name="comment" placeholder="Причина (необяз.)" data-i18n="reject_reason_placeholder"
                style="width:140px; padding:5px 9px; border:1px solid var(--border); border-radius:5px; font-size:13px;">
-        <button type="submit" class="btn btn-sm btn-danger">✕ Отклонить</button>
+        <button type="submit" class="btn btn-sm btn-danger" data-i18n="reject">✕ Отклонить</button>
       </form>
     </div>
     {% else %}
-    {% if expense.status == 'APPROVED' %}<span class="badge badge-approved">Одобрен</span>
-    {% else %}<span class="badge badge-rejected">Отклонён</span>{% endif %}
+    {% if expense.status == 'APPROVED' %}<span class="badge badge-approved" data-i18n="status_approved">Одобрен</span>
+    {% else %}<span class="badge badge-rejected" data-i18n="status_rejected">Отклонён</span>{% endif %}
     {% if expense.rejection_comment %}
     <div style="font-size:12px; color:var(--muted); margin-top:3px;">{{ expense.rejection_comment }}</div>
     {% endif %}

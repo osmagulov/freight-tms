@@ -3,9 +3,9 @@
 {% block content %}
 
 <div class="page-hdr">
-    <h1>Аномалии расхода топлива</h1>
+    <h1 data-i18n="anomalies_title">Аномалии расхода топлива</h1>
     {% if anomalies %}
-    <span class="badge badge-cancelled">{{ anomalies | length }} активных</span>
+    <span class="badge badge-cancelled">{{ anomalies | length }} <span data-i18n="active">активных</span></span>
     {% endif %}
 </div>
 
@@ -13,7 +13,7 @@
 <div class="table-wrap">
     <div class="empty">
         <div class="empty-icon">✅</div>
-        <p>Нет активных аномалий расхода топлива.</p>
+        <p data-i18n="no_anomalies">Нет активных аномалий расхода топлива.</p>
     </div>
 </div>
 {% else %}
@@ -21,13 +21,13 @@
     <table>
         <thead>
             <tr>
-                <th>Дата</th>
-                <th>Борт ID</th>
-                <th>Рейс</th>
-                <th>Факт (л/100км)</th>
-                <th>Норма (л/100км)</th>
-                <th>Превышение</th>
-                <th>Действие</th>
+                <th data-i18n="date">Дата</th>
+                <th data-i18n="vehicle">Борт ID</th>
+                <th data-i18n="trips">Рейс</th>
+                <th data-i18n="fact">Факт (л/100км)</th>
+                <th data-i18n="norm">Норма (л/100км)</th>
+                <th data-i18n="excess">Превышение</th>
+                <th data-i18n="actions">Действие</th>
             </tr>
         </thead>
         <tbody>
@@ -45,10 +45,10 @@
                           hx-target="#anomaly-{{ anomaly.id }}"
                           hx-swap="outerHTML"
                           style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-ghost">Ложная тревога</button>
+                        <button type="submit" class="btn btn-sm btn-ghost" data-i18n="false_alarm">Ложная тревога</button>
                     </form>
                     {% else %}
-                    <span class="text-muted">Ложная тревога</span>
+                    <span class="text-muted" data-i18n="false_alarm">Ложная тревога</span>
                     {% endif %}
                 </td>
             </tr>

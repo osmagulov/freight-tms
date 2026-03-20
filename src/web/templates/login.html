@@ -22,18 +22,18 @@
     <div class="auth-card">
         <div class="auth-top">
             <div class="auth-top-title">🚛 Freight TMS</div>
-            <div class="auth-top-sub">Управление грузоперевозками</div>
+            <div class="auth-top-sub" data-i18n="tagline">Управление грузоперевозками</div>
         </div>
         <div class="auth-body">
             <form method="post" action="/panel/login">
-                <label>Логин</label>
+                <label data-i18n="login_label">Логин</label>
                 <input type="text" name="username" required autofocus placeholder="dispatcher">
-                <label>Пароль</label>
+                <label data-i18n="password_label">Пароль</label>
                 <input type="password" name="password" required placeholder="••••••••">
                 {% if error %}
                 <div class="error">{{ error }}</div>
                 {% endif %}
-                <button type="submit" class="auth-submit">Войти</button>
+                <button type="submit" class="auth-submit" data-i18n="login_btn">Войти</button>
             </form>
         </div>
     </div>

@@ -3,15 +3,15 @@
 {% block content %}
 
 <div class="page-hdr">
-    <h1>Расходы по бортам</h1>
-    <a href="/panel/director?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-ghost">← Сводка</a>
+    <h1 data-i18n="expenses_by_trucks">Расходы по бортам</h1>
+    <a href="/panel/director?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-ghost" data-i18n="summary_btn">← Сводка</a>
 </div>
 
 <div class="filter-bar" style="margin-bottom:22px;">
     <form method="get" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-        <label>С <input type="date" name="from_date" value="{{ from_date }}" style="width:145px;"></label>
-        <label>По <input type="date" name="to_date" value="{{ to_date }}" style="width:145px;"></label>
-        <button type="submit" class="btn btn-sm">Применить</button>
+        <label><span data-i18n="from">С</span> <input type="date" name="from_date" value="{{ from_date }}" style="width:145px;"></label>
+        <label><span data-i18n="to">По</span> <input type="date" name="to_date" value="{{ to_date }}" style="width:145px;"></label>
+        <button type="submit" class="btn btn-sm" data-i18n="apply">Применить</button>
     </form>
 </div>
 
@@ -23,12 +23,12 @@
           <table>
               <thead>
                   <tr>
-                      <th>Рейс</th>
-                      <th>Маршрут</th>
-                      <th>Водитель</th>
-                      <th>Статус</th>
-                      <th>Км</th>
-                      <th>Расходы (₸)</th>
+                      <th data-i18n="trip">Рейс</th>
+                      <th data-i18n="route">Маршрут</th>
+                      <th data-i18n="driver">Водитель</th>
+                      <th data-i18n="status">Статус</th>
+                      <th data-i18n="km_short">Км</th>
+                      <th data-i18n="expenses">Расходы (₸)</th>
                   </tr>
               </thead>
               <tbody>
@@ -38,9 +38,9 @@
                       <td>{{ row.trip.route_details or '—' }}</td>
                       <td>{{ row.trip.driver.name if row.trip.driver else '—' }}</td>
                       <td>
-                          {% if row.trip.status == 'PLANNED' %}<span class="badge badge-planned">Запланирован</span>
-                          {% elif row.trip.status == 'ACTIVE' %}<span class="badge badge-active">Активен</span>
-                          {% elif row.trip.status == 'COMPLETED' %}<span class="badge badge-completed">Завершён</span>
+                          {% if row.trip.status == 'PLANNED' %}<span class="badge badge-planned" data-i18n="status_planned">Запланирован</span>
+                          {% elif row.trip.status == 'ACTIVE' %}<span class="badge badge-active" data-i18n="status_active_trip">Активен</span>
+                          {% elif row.trip.status == 'COMPLETED' %}<span class="badge badge-completed" data-i18n="status_completed">Завершён</span>
                           {% else %}<span class="badge">{{ row.trip.status }}</span>{% endif %}
                       </td>
                       <td>{{ row.km if row.km is not none else '—' }}</td>
@@ -50,7 +50,7 @@
               </tbody>
               <tfoot>
                   <tr>
-                      <td colspan="5">Итого по {{ plate }}</td>
+                      <td colspan="5"><span data-i18n="total_for">Итого по</span> {{ plate }}</td>
                       <td>{{ "{:,.0f}".format(rows | sum(attribute='total_kzt')) }} ₸</td>
                   </tr>
               </tfoot>
@@ -60,7 +60,7 @@
   {% endfor %}
 {% else %}
 <div class="table-wrap">
-    <div class="empty"><div class="empty-icon">🚚</div><p>Нет рейсов за выбранный период.</p></div>
+    <div class="empty"><div class="empty-icon">🚚</div><p data-i18n="no_trips_period">Нет рейсов за выбранный период.</p></div>
 </div>
 {% endif %}
 {% endblock %}

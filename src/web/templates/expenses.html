@@ -3,9 +3,9 @@
 {% block content %}
 
 <div class="page-hdr">
-    <h1>Расходы на одобрение</h1>
+    <h1 data-i18n="expenses_title">Расходы на одобрение</h1>
     {% if expenses %}
-    <span class="badge badge-pending">{{ expenses | length }} ожидают</span>
+    <span class="badge badge-pending">{{ expenses | length }} <span data-i18n="expenses_awaiting">ожидают</span></span>
     {% endif %}
 </div>
 
@@ -13,7 +13,7 @@
 <div class="table-wrap">
     <div class="empty">
         <div class="empty-icon">✅</div>
-        <p>Нет расходов, ожидающих одобрения.</p>
+        <p data-i18n="no_pending_expenses">Нет расходов, ожидающих одобрения.</p>
     </div>
 </div>
 {% else %}
@@ -21,12 +21,12 @@
     <table>
         <thead>
             <tr>
-                <th>Водитель</th>
-                <th>Тип</th>
-                <th>Сумма</th>
-                <th>Фото</th>
-                <th>Дата</th>
-                <th>Действие</th>
+                <th data-i18n="driver">Водитель</th>
+                <th data-i18n="expense_type">Тип</th>
+                <th data-i18n="amount">Сумма</th>
+                <th data-i18n="receipt">Фото</th>
+                <th data-i18n="date">Дата</th>
+                <th data-i18n="actions">Действие</th>
             </tr>
         </thead>
         <tbody>

@@ -2,17 +2,17 @@
 {% block title %}Рейс #{{ trip.id }} — Freight TMS{% endblock %}
 {% block content %}
 
-<a href="/panel/trips" class="back-link">← К списку рейсов</a>
+<a href="/panel/trips" class="back-link" data-i18n="back_to_trips">← К списку рейсов</a>
 
 <div class="page-hdr">
     <div class="page-hdr-left">
-        <h1>Рейс #{{ trip.id }}</h1>
-        <a href="/panel/trips/{{ trip.id }}/edit" class="btn btn-xs btn-ghost" style="margin-left: 8px;">Редактировать</a>
+        <h1 data-i18n="trip_number">Рейс</h1> <h1>#{{ trip.id }}</h1>
+        <a href="/panel/trips/{{ trip.id }}/edit" class="btn btn-xs btn-ghost" style="margin-left: 8px;" data-i18n="edit">Редактировать</a>
     </div>
-    {% if trip.status == 'PLANNED' %}<span class="badge badge-planned">Запланирован</span>
-    {% elif trip.status == 'ACTIVE' %}<span class="badge badge-active">Активен</span>
-    {% elif trip.status == 'COMPLETED' %}<span class="badge badge-completed">Завершён</span>
-    {% elif trip.status == 'CANCELLED' %}<span class="badge badge-cancelled">Отменён</span>
+    {% if trip.status == 'PLANNED' %}<span class="badge badge-planned" data-i18n="status_planned">Запланирован</span>
+    {% elif trip.status == 'ACTIVE' %}<span class="badge badge-active" data-i18n="status_active_trip">Активен</span>
+    {% elif trip.status == 'COMPLETED' %}<span class="badge badge-completed" data-i18n="status_completed">Завершён</span>
+    {% elif trip.status == 'CANCELLED' %}<span class="badge badge-cancelled" data-i18n="status_cancelled">Отменён</span>
     {% else %}<span class="badge">{{ trip.status }}</span>{% endif %}
 </div>
 
@@ -20,70 +20,70 @@
 <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:var(--r); padding:14px 18px; margin-bottom:18px; display:flex; align-items:flex-start; gap:12px;">
     <span style="font-size:20px; line-height:1;">⚠️</span>
     <div>
-        <div style="font-weight:700; color:#92400e; margin-bottom:6px;">На борту есть неисправности ({{ open_repairs | length }})</div>
+        <div style="font-weight:700; color:#92400e; margin-bottom:6px;" data-i18n="faults_on_board">На борту есть неисправности ({{ open_repairs | length }})</div>
         {% for r in open_repairs %}
         <div style="font-size:13px; color:#78350f; margin-bottom:3px;">
             • {{ r.description }}
-            {% if r.priority == 'CRITICAL' %}<span class="badge" style="background:#fee2e2;color:#b91c1c;font-size:10px;">Критический</span>
-            {% elif r.priority == 'HIGH' %}<span class="badge badge-pending" style="font-size:10px;">Высокий</span>{% endif %}
+            {% if r.priority == 'CRITICAL' %}<span class="badge" style="background:#fee2e2;color:#b91c1c;font-size:10px;" data-i18n="priority_critical">Критический</span>
+            {% elif r.priority == 'HIGH' %}<span class="badge badge-pending" style="font-size:10px;" data-i18n="priority_high">Высокий</span>{% endif %}
         </div>
         {% endfor %}
-        <a href="/panel/repairs?vehicle_id={{ trip.vehicle_id }}&status=OPEN" style="font-size:12px; color:#92400e; margin-top:6px; display:inline-block;">Перейти к ремонтам →</a>
+        <a href="/panel/repairs?vehicle_id={{ trip.vehicle_id }}&status=OPEN" style="font-size:12px; color:#92400e; margin-top:6px; display:inline-block;" data-i18n="go_to_repairs">Перейти к ремонтам →</a>
     </div>
 </div>
 {% endif %}
 
 <!-- Trip Info -->
 <div class="card">
-    <div class="card-hdr"><span class="card-title">Информация о рейсе</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="trip_info">Информация о рейсе</span></div>
     <div class="card-body">
         <div class="info-grid">
             <div class="info-item">
-                <label>Водитель</label>
+                <label data-i18n="driver">Водитель</label>
                 <span>{{ trip.driver.name or '—' }}</span>
             </div>
             <div class="info-item">
-                <label>Транспорт</label>
+                <label data-i18n="vehicle">Транспорт</label>
                 <span>{{ trip.vehicle.license_plate }}{% if trip.vehicle.make %} ({{ trip.vehicle.make }} {{ trip.vehicle.model or '' }}){% endif %}</span>
             </div>
             <div class="info-item">
-                <label>Маршрут</label>
+                <label data-i18n="route">Маршрут</label>
                 <span>{{ trip.route_details or '—' }}</span>
             </div>
             <div class="info-item">
-                <label>Груз</label>
+                <label data-i18n="cargo">Груз</label>
                 <span>{{ trip.load_info or '—' }}</span>
             </div>
             <div class="info-item">
-                <label>Клиент</label>
+                <label data-i18n="client">Клиент</label>
                 <span>{{ trip.client_name or '—' }}</span>
             </div>
             <div class="info-item" style="background: #ecfdf5; border-color: #10b98133;">
-                <label style="color: #059669;">Стоимость (Фрахт)</label>
+                <label style="color: #059669;" data-i18n="freight_price">Стоимость (Фрахт)</label>
                 <span style="color: #059669; font-size: 16px;">{{ "{:,.2f}".format(trip.price) if trip.price is not none else '—' }} {{ trip.price_currency }}</span>
             </div>
             <div class="info-item">
-                <label>Выезд (план)</label>
+                <label data-i18n="planned_departure">Выезд (план)</label>
                 <span>{{ trip.planned_departure.strftime('%d.%m.%Y %H:%M') if trip.planned_departure else '—' }}</span>
             </div>
             <div class="info-item">
-                <label>Прибытие (план)</label>
+                <label data-i18n="planned_arrival">Прибытие (план)</label>
                 <span>{{ trip.planned_arrival.strftime('%d.%m.%Y %H:%M') if trip.planned_arrival else '—' }}</span>
             </div>
             <div class="info-item">
-                <label>Одометр (начало)</label>
+                <label data-i18n="start_odometer">Одометр (начало)</label>
                 <span>{{ trip.start_odometer or '—' }}</span>
             </div>
             <div class="info-item">
-                <label>Одометр (конец)</label>
+                <label data-i18n="end_odometer">Одометр (конец)</label>
                 <span>{{ trip.end_odometer or '—' }}</span>
             </div>
             <div class="info-item">
-                <label>Статус доставки</label>
+                <label data-i18n="delivery_status">Статус доставки</label>
                 <span>{{ trip.delivery_status or '—' }}</span>
             </div>
             <div class="info-item">
-                <label>Создан</label>
+                <label data-i18n="date">Создан</label>
                 <span class="text-muted">{{ trip.created_at.strftime('%d.%m.%Y %H:%M') if trip.created_at else '—' }}</span>
             </div>
         </div>
@@ -92,47 +92,47 @@
 
 <!-- Total -->
 <div class="total-banner">
-    <span class="label">Итого расходов (KZT)</span>
+    <span class="label" data-i18n="total_expenses_kzt">Итого расходов (KZT)</span>
     <span class="amount">{{ "{:,.0f}".format(total_kzt) }} ₸</span>
 </div>
 
 <!-- Expenses -->
 <div class="card">
     <div class="card-hdr" style="display: flex; justify-content: space-between; align-items: center;">
-        <span class="card-title" style="margin-bottom:0;">Расходы</span>
-        <a href="/panel/trips/{{ trip.id }}/expenses/add" class="btn btn-xs" style="font-weight:normal; background: white; color: var(--text); border: 1px solid var(--border);">+ Добавить расход</a>
+        <span class="card-title" style="margin-bottom:0;" data-i18n="expenses">Расходы</span>
+        <a href="/panel/trips/{{ trip.id }}/expenses/add" class="btn btn-xs" style="font-weight:normal; background: white; color: var(--text); border: 1px solid var(--border);" data-i18n="add_expense_btn">+ Добавить расход</a>
     </div>
     {% if trip.expenses %}
     <table>
         <thead>
             <tr>
-                <th>Тип</th>
-                <th>Сумма</th>
-                <th>Валюта</th>
-                <th>Сумма (KZT)</th>
-                <th>Фото</th>
-                <th>Статус</th>
-                <th>Дата</th>
-                <th>Комментарий</th>
+                <th data-i18n="expense_type">Тип</th>
+                <th data-i18n="amount">Сумма</th>
+                <th data-i18n="currency">Валюта</th>
+                <th data-i18n="total">Сумма (KZT)</th>
+                <th data-i18n="receipt">Фото</th>
+                <th data-i18n="status">Статус</th>
+                <th data-i18n="date">Дата</th>
+                <th data-i18n="description">Комментарий</th>
             </tr>
         </thead>
         <tbody>
             {% for expense in trip.expenses %}
             <tr>
-                <td>{{ expense.expense_type }}</td>
+                <td class="fw-bold"><span data-i18n="{{ expense.expense_type }}">{{ expense.expense_type }}</span></td>
                 <td>{{ "%.2f"|format(expense.amount) }}</td>
                 <td class="text-muted">{{ expense.currency }}</td>
                 <td>{{ "%.0f"|format(expense.amount_kzt) if expense.amount_kzt is not none else '—' }} {% if expense.amount_kzt %}₸{% endif %}</td>
                 <td>
                     {% set receipt_url = expense.photo_r2_url or expense.photo_file_id %}
-                    {% if receipt_url %}<a href="{{ receipt_url }}" target="_blank" class="btn btn-xs btn-ghost">📎 Чек</a>{% endif %}
+                    {% if receipt_url %}<a href="{{ receipt_url }}" target="_blank" class="btn btn-xs btn-ghost" data-i18n="receipt">📎 Чек</a>{% endif %}
                     {% if expense.card_photo_file_id %}<a href="{{ expense.card_photo_file_id }}" target="_blank" class="btn btn-xs btn-ghost">💳</a>{% endif %}
                     {% if not receipt_url and not expense.card_photo_file_id %}<span class="text-muted">—</span>{% endif %}
                 </td>
                 <td>
-                    {% if expense.status == 'APPROVED' %}<span class="badge badge-approved">Одобрен</span>
-                    {% elif expense.status == 'REJECTED' %}<span class="badge badge-rejected">Отклонён</span>
-                    {% else %}<span class="badge badge-pending">На проверке</span>{% endif %}
+                    {% if expense.status == 'APPROVED' %}<span class="badge badge-approved" data-i18n="status_approved">Одобрен</span>
+                    {% elif expense.status == 'REJECTED' %}<span class="badge badge-rejected" data-i18n="status_rejected">Отклонён</span>
+                    {% else %}<span class="badge badge-pending" data-i18n="on_review">На проверке</span>{% endif %}
                 </td>
                 <td class="text-muted">{{ expense.created_at.strftime('%d.%m.%Y') if expense.created_at else '—' }}</td>
                 <td class="text-muted">{{ expense.comment or '—' }}</td>
@@ -141,19 +141,19 @@
         </tbody>
     </table>
     {% else %}
-    <div class="empty" style="padding:28px;">Расходов нет</div>
+    <div class="empty" style="padding:28px;" data-i18n="no_expenses">Расходов нет</div>
     {% endif %}
 </div>
 
 <!-- Documents -->
 <div class="card">
     <div class="card-hdr" style="display: flex; justify-content: space-between; align-items: center;">
-        <span class="card-title" style="margin-bottom:0;">Документы</span>
+        <span class="card-title" style="margin-bottom:0;" data-i18n="docs">Документы</span>
     </div>
     <div class="card-body" style="border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 16px;">
         <form action="/panel/trips/{{ trip.id }}/documents" method="post" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
             <div>
-                <label style="font-size: 11px; display: block; margin-bottom: 4px; font-weight: 600; color: var(--text-muted);">Тип документа</label>
+                <label style="font-size: 11px; display: block; margin-bottom: 4px; font-weight: 600; color: var(--text-muted);" data-i18n="doc_type">Тип документа</label>
                 <select name="file_type" required style="padding: 6px; font-size: 13px; border-radius: 4px; border: 1px solid var(--border);">
                     <option value="ТТН / СМР">ТТН / СМР</option>
                     <option value="Счет-фактура">Счет-фактура</option>
@@ -163,16 +163,16 @@
                 </select>
             </div>
             <div>
-                <label style="font-size: 11px; display: block; margin-bottom: 4px; font-weight: 600; color: var(--text-muted);">Файл (PDF, Фото)</label>
+                <label style="font-size: 11px; display: block; margin-bottom: 4px; font-weight: 600; color: var(--text-muted);" data-i18n="file_pdf_photo">Файл (PDF, Фото)</label>
                 <input type="file" name="doc_file" required accept="image/*,.pdf" style="font-size: 13px;">
             </div>
-            <button type="submit" class="btn btn-xs" style="height: 32px; padding: 0 16px;">Загрузить</button>
+            <button type="submit" class="btn btn-xs" style="height: 32px; padding: 0 16px;" data-i18n="upload_btn">Загрузить</button>
         </form>
     </div>
     {% if trip.documents %}
     <table>
         <thead>
-            <tr><th>Тип</th><th>Ссылка</th><th>Загружен</th></tr>
+            <tr><th data-i18n="expense_type">Тип</th><th data-i18n="actions">Ссылка</th><th data-i18n="date">Загружен</th></tr>
         </thead>
         <tbody>
             {% for doc in trip.documents %}
@@ -180,7 +180,7 @@
                 <td>{{ doc.file_type }}</td>
                 <td>
                     {% if doc.r2_url %}
-                    <a href="{{ doc.r2_url }}" target="_blank" class="btn btn-xs btn-ghost">📄 Открыть</a>
+                    <a href="{{ doc.r2_url }}" target="_blank" class="btn btn-xs btn-ghost" data-i18n="open">📄 Открыть</a>
                     {% else %}—{% endif %}
                 </td>
                 <td class="text-muted">{{ doc.uploaded_at.strftime('%d.%m.%Y %H:%M') if doc.uploaded_at else '—' }}</td>
@@ -189,17 +189,17 @@
         </tbody>
     </table>
     {% else %}
-    <div class="empty" style="padding:28px;">Документов нет</div>
+    <div class="empty" style="padding:28px;" data-i18n="no_docs">Документов нет</div>
     {% endif %}
 </div>
 
 <!-- Locations -->
 <div class="card">
-    <div class="card-hdr"><span class="card-title">Геопозиции</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="locations_title">Геопозиции</span></div>
     {% if locations %}
     <table>
         <thead>
-            <tr><th>Время</th><th>Широта</th><th>Долгота</th><th>Карта</th></tr>
+            <tr><th data-i18n="time">Время</th><th data-i18n="latitude">Широта</th><th data-i18n="longitude">Долгота</th><th data-i18n="map_btn">Карта</th></tr>
         </thead>
         <tbody>
             {% for loc in locations %}
@@ -207,13 +207,13 @@
                 <td class="text-muted">{{ loc.created_at.strftime('%d.%m.%Y %H:%M:%S') if loc.created_at else '—' }}</td>
                 <td>{{ "%.6f"|format(loc.latitude) }}</td>
                 <td>{{ "%.6f"|format(loc.longitude) }}</td>
-                <td><a href="https://www.google.com/maps?q={{ loc.latitude }},{{ loc.longitude }}" target="_blank" class="btn btn-xs btn-ghost">🗺️ Открыть</a></td>
+                <td><a href="https://www.google.com/maps?q={{ loc.latitude }},{{ loc.longitude }}" target="_blank" class="btn btn-xs btn-ghost" data-i18n="open">🗺️ Открыть</a></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <div class="empty" style="padding:28px;">Геопозиций нет</div>
+    <div class="empty" style="padding:28px;" data-i18n="no_docs">Геопозиций нет</div>
     {% endif %}
 </div>
 {% endblock %}

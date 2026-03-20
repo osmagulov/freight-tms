@@ -3,36 +3,37 @@
 {% block content %}
 
 <div class="page-hdr">
-    <h1>Рейсы</h1>
-    <a href="/panel/trips/create" class="btn">+ Новый рейс</a>
+    <h1 data-i18n="trips">Рейсы</h1>
+    <a href="/panel/trips/create" class="btn" data-i18n="add_trip">+ Новый рейс</a>
 </div>
 
 <form method="get" action="/panel/trips" class="filter-bar">
-    <label>Водитель
+    <label><span data-i18n="driver">Водитель</span>
         <select name="driver_id">
-            <option value="">Все водители</option>
+            <option value="" data-i18n="all_drivers">Все водители</option>
             {% for d in drivers %}
             <option value="{{ d.id }}" {% if filter_driver_id == d.id %}selected{% endif %}>{{ d.name or d.tg_id }}</option>
             {% endfor %}
         </select>
     </label>
-    <label>Транспорт
+    <label><span data-i18n="vehicle">Транспорт</span>
         <select name="vehicle_id">
-            <option value="">Все борты</option>
+            <option value="" data-i18n="all_vehicles">Все борты</option>
             {% for v in vehicles %}
             <option value="{{ v.id }}" {% if filter_vehicle_id == v.id %}selected{% endif %}>{{ v.license_plate }}</option>
             {% endfor %}
         </select>
     </label>
-    <button type="submit" class="btn btn-sm">Применить</button>
-    <a href="/panel/trips" class="btn btn-sm btn-ghost">Сбросить</a>
+    <button type="submit" class="btn btn-sm" data-i18n="apply">Применить</button>
+    <a href="/panel/trips" class="btn btn-sm btn-ghost" data-i18n="reset">Сбросить</a>
 </form>
 
 {% if not trips %}
 <div class="table-wrap">
     <div class="empty">
         <div class="empty-icon">📋</div>
-        <p>Рейсов пока нет. <a href="/panel/trips/create">Создайте первый рейс →</a></p>
+        <p data-i18n="no_trips">Рейсов пока нет.</p>
+        <a href="/panel/trips/create" data-i18n="create_first_trip">Создайте первый рейс →</a>
     </div>
 </div>
 {% else %}
@@ -41,13 +42,13 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th>Водитель</th>
-                <th>Борт</th>
-                <th>Маршрут</th>
-                <th>Груз</th>
-                <th>Клиент</th>
-                <th>Статус</th>
-                <th>Создан</th>
+                <th data-i18n="driver">Водитель</th>
+                <th data-i18n="vehicle">Борт</th>
+                <th data-i18n="route">Маршрут</th>
+                <th data-i18n="cargo">Груз</th>
+                <th data-i18n="client">Клиент</th>
+                <th data-i18n="status">Статус</th>
+                <th data-i18n="date">Создан</th>
                 <th></th>
             </tr>
         </thead>
@@ -61,10 +62,10 @@
                 <td>{{ trip.load_info or '—' }}</td>
                 <td>{{ trip.client_name or '—' }}</td>
                 <td>
-                    {% if trip.status == 'PLANNED' %}<span class="badge badge-planned">Запланирован</span>
-                    {% elif trip.status == 'ACTIVE' %}<span class="badge badge-active">Активен</span>
-                    {% elif trip.status == 'COMPLETED' %}<span class="badge badge-completed">Завершён</span>
-                    {% elif trip.status == 'CANCELLED' %}<span class="badge badge-cancelled">Отменён</span>
+                    {% if trip.status == 'PLANNED' %}<span class="badge badge-planned" data-i18n="status_planned">Запланирован</span>
+                    {% elif trip.status == 'ACTIVE' %}<span class="badge badge-active" data-i18n="status_active_trip">Активен</span>
+                    {% elif trip.status == 'COMPLETED' %}<span class="badge badge-completed" data-i18n="status_completed">Завершён</span>
+                    {% elif trip.status == 'CANCELLED' %}<span class="badge badge-cancelled" data-i18n="status_cancelled">Отменён</span>
                     {% else %}<span class="badge">{{ trip.status }}</span>{% endif %}
                 </td>
                 <td class="text-muted">{{ trip.created_at.strftime('%d.%m.%Y %H:%M') if trip.created_at else '—' }}</td>

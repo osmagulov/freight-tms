@@ -3,8 +3,8 @@
 {% block content %}
 
 <div class="page-hdr">
-    <h1>📄 Истекающие документы</h1>
-    <span class="text-muted" style="font-size:13px;">Следующие 30 дней</span>
+    <h1 data-i18n="docs_title">📄 Истекающие документы</h1>
+    <span class="text-muted" style="font-size:13px;" data-i18n="next_30_days">Следующие 30 дней</span>
 </div>
 
 {% set total = driver_docs|length + vehicle_docs|length %}
@@ -13,7 +13,7 @@
 <div class="table-wrap">
     <div class="empty">
         <div class="empty-icon">✅</div>
-        <p>Все документы в порядке — ничего не истекает в ближайшие 30 дней.</p>
+        <p data-i18n="docs_ok">Все документы в порядке — ничего не истекает в ближайшие 30 дней.</p>
     </div>
 </div>
 {% else %}
@@ -29,29 +29,29 @@
         {% if s == 'warning' %}{% set _ = warning_count.append(1) %}{% endif %}
     {% endfor %}
     <div class="kpi red">
-        <div class="kpi-label">Истекли</div>
+        <div class="kpi-label" data-i18n="expired">Истекли</div>
         <div class="kpi-value">{{ expired_count|length }}</div>
     </div>
     <div class="kpi amber">
-        <div class="kpi-label">До 7 дней</div>
+        <div class="kpi-label" data-i18n="up_to_7_days">До 7 дней</div>
         <div class="kpi-value">{{ critical_count|length }}</div>
     </div>
     <div class="kpi purple">
-        <div class="kpi-label">До 30 дней</div>
+        <div class="kpi-label" data-i18n="up_to_30_days">До 30 дней</div>
         <div class="kpi-value">{{ warning_count|length }}</div>
     </div>
 </div>
 
 {% if driver_docs %}
 <div class="card">
-    <div class="card-hdr"><span class="card-title">👤 Водители</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="drivers">👤 Водители</span></div>
     <table>
         <thead>
             <tr>
-                <th>Водитель</th>
-                <th>Документ</th>
-                <th>Срок истекает</th>
-                <th>Статус</th>
+                <th data-i18n="driver">Водитель</th>
+                <th data-i18n="document">Документ</th>
+                <th data-i18n="expiry_date">Срок истекает</th>
+                <th data-i18n="status">Статус</th>
                 <th></th>
             </tr>
         </thead>
@@ -65,17 +65,17 @@
                 <td>{{ doc.expires_at.strftime('%d.%m.%Y') }}</td>
                 <td>
                     {% if status == 'expired' %}
-                        <span class="badge badge-cancelled">🔴 Истёк {{ days|abs }} дн. назад</span>
+                        <span class="badge badge-cancelled">🔴 <span data-i18n="expired_days_ago">Истёк</span> {{ days|abs }} <span data-i18n="days_ago">дн. назад</span></span>
                     {% elif status == 'critical' %}
-                        <span class="badge badge-cancelled">🔴 Через {{ days }} дн.</span>
+                        <span class="badge badge-cancelled">🔴 <span data-i18n="expires_in_days">Через</span> {{ days }} <span data-i18n="days_short">дн.</span></span>
                     {% else %}
-                        <span class="badge badge-pending">🟡 Через {{ days }} дн.</span>
+                        <span class="badge badge-pending">🟡 <span data-i18n="expires_in_days">Через</span> {{ days }} <span data-i18n="days_short">дн.</span></span>
                     {% endif %}
                 </td>
                 <td>
                     <div class="action-group">
-                        <a href="{{ doc.r2_url }}" target="_blank" class="btn btn-xs btn-ghost">📄 Открыть</a>
-                        <a href="/panel/drivers/{{ driver.id }}/documents" class="btn btn-xs btn-ghost">Все документы</a>
+                        <a href="{{ doc.r2_url }}" target="_blank" class="btn btn-xs btn-ghost" data-i18n="open">📄 Открыть</a>
+                        <a href="/panel/drivers/{{ driver.id }}/documents" class="btn btn-xs btn-ghost" data-i18n="all_docs">Все документы</a>
                     </div>
                 </td>
             </tr>
@@ -87,14 +87,14 @@
 
 {% if vehicle_docs %}
 <div class="card">
-    <div class="card-hdr"><span class="card-title">🚚 Транспорт</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="trucks">🚚 Транспорт</span></div>
     <table>
         <thead>
             <tr>
-                <th>Борт</th>
-                <th>Документ</th>
-                <th>Срок истекает</th>
-                <th>Статус</th>
+                <th data-i18n="vehicle">Борт</th>
+                <th data-i18n="document">Документ</th>
+                <th data-i18n="expiry_date">Срок истекает</th>
+                <th data-i18n="status">Статус</th>
                 <th></th>
             </tr>
         </thead>
@@ -108,17 +108,17 @@
                 <td>{{ doc.expires_at.strftime('%d.%m.%Y') }}</td>
                 <td>
                     {% if status == 'expired' %}
-                        <span class="badge badge-cancelled">🔴 Истёк {{ days|abs }} дн. назад</span>
+                        <span class="badge badge-cancelled">🔴 <span data-i18n="expired_days_ago">Истёк</span> {{ days|abs }} <span data-i18n="days_ago">дн. назад</span></span>
                     {% elif status == 'critical' %}
-                        <span class="badge badge-cancelled">🔴 Через {{ days }} дн.</span>
+                        <span class="badge badge-cancelled">🔴 <span data-i18n="expires_in_days">Через</span> {{ days }} <span data-i18n="days_short">дн.</span></span>
                     {% else %}
-                        <span class="badge badge-pending">🟡 Через {{ days }} дн.</span>
+                        <span class="badge badge-pending">🟡 <span data-i18n="expires_in_days">Через</span> {{ days }} <span data-i18n="days_short">дн.</span></span>
                     {% endif %}
                 </td>
                 <td>
                     <div class="action-group">
-                        <a href="{{ doc.r2_url }}" target="_blank" class="btn btn-xs btn-ghost">📄 Открыть</a>
-                        <a href="/panel/vehicles/{{ vehicle.id }}/documents" class="btn btn-xs btn-ghost">Все документы</a>
+                        <a href="{{ doc.r2_url }}" target="_blank" class="btn btn-xs btn-ghost" data-i18n="open">📄 Открыть</a>
+                        <a href="/panel/vehicles/{{ vehicle.id }}/documents" class="btn btn-xs btn-ghost" data-i18n="all_docs">Все документы</a>
                     </div>
                 </td>
             </tr>

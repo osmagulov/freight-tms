@@ -7,25 +7,25 @@
 {% set maintenance_count = vehicle_data | selectattr('vehicle.status', 'equalto', 'MAINTENANCE')  | list | length %}
 
 <div class="page-hdr">
-    <h1>Парк транспорта</h1>
-    <a href="/panel/vehicles/add" class="btn btn-sm">+ Добавить борт</a>
+    <h1 data-i18n="fleet_title">Парк транспорта</h1>
+    <a href="/panel/vehicles/add" class="btn btn-sm" data-i18n="add_vehicle_btn">+ Добавить борт</a>
 </div>
 
 <div class="kpi-grid">
     <div class="kpi">
-        <div class="kpi-label">Всего ТС</div>
+        <div class="kpi-label" data-i18n="all_vehicles">Всего ТС</div>
         <div class="kpi-value">{{ vehicle_data | length }}</div>
     </div>
     <div class="kpi green">
-        <div class="kpi-label">В рейсе</div>
+        <div class="kpi-label" data-i18n="on_trip">В рейсе</div>
         <div class="kpi-value">{{ on_trip_count }}</div>
     </div>
     <div class="kpi">
-        <div class="kpi-label">Свободно</div>
+        <div class="kpi-label" data-i18n="available">Свободно</div>
         <div class="kpi-value">{{ available_count }}</div>
     </div>
     <div class="kpi amber">
-        <div class="kpi-label">На ТО</div>
+        <div class="kpi-label" data-i18n="on_maintenance">На ТО</div>
         <div class="kpi-value">{{ maintenance_count }}</div>
     </div>
 </div>
@@ -35,13 +35,13 @@
     <table>
         <thead>
             <tr>
-                <th>Гос. номер</th>
-                <th>Марка / Модель / Год</th>
-                <th>Статус</th>
-                <th>Ремонты</th>
-                <th>Водитель</th>
-                <th>Рейс</th>
-                <th>Действия</th>
+                <th data-i18n="license_plate">Гос. номер</th>
+                <th data-i18n="make_model_year">Марка / Модель / Год</th>
+                <th data-i18n="status">Статус</th>
+                <th data-i18n="maintenance">Ремонты</th>
+                <th data-i18n="driver">Водитель</th>
+                <th data-i18n="trip">Рейс</th>
+                <th data-i18n="actions">Действия</th>
             </tr>
         </thead>
         <tbody>
@@ -57,9 +57,9 @@
                     {% if not vehicle.make and not vehicle.year %}—{% endif %}
                 </td>
                 <td>
-                    {% if vehicle.status == 'AVAILABLE' %}<span class="badge badge-available">Свободен</span>
-                    {% elif vehicle.status == 'ON_TRIP' %}<span class="badge badge-on-trip">В рейсе</span>
-                    {% elif vehicle.status == 'MAINTENANCE' %}<span class="badge badge-maintenance">На ТО</span>
+                    {% if vehicle.status == 'AVAILABLE' %}<span class="badge badge-available" data-i18n="status_available">Свободен</span>
+                    {% elif vehicle.status == 'ON_TRIP' %}<span class="badge badge-on-trip" data-i18n="status_on_trip">В рейсе</span>
+                    {% elif vehicle.status == 'MAINTENANCE' %}<span class="badge badge-maintenance" data-i18n="status_maintenance">На ТО</span>
                     {% else %}<span class="badge">{{ vehicle.status }}</span>{% endif %}
                 </td>
                 <td>
@@ -72,14 +72,14 @@
                 <td>{{ active_trip.driver.name if active_trip and active_trip.driver else '—' }}</td>
                 <td>
                     {% if active_trip %}
-                    <a href="/panel/trips/{{ active_trip.id }}" class="btn btn-xs btn-ghost">Рейс #{{ active_trip.id }}</a>
+                    <a href="/panel/trips/{{ active_trip.id }}" class="btn btn-xs btn-ghost"><span data-i18n="trip_number">Рейс</span> #{{ active_trip.id }}</a>
                     {% else %}<span class="text-muted">—</span>{% endif %}
                 </td>
                 <td>
                     <div class="action-group">
-                        <a href="/panel/vehicles/{{ vehicle.id }}/edit" class="btn btn-xs btn-ghost">Изменить</a>
-                        <a href="/panel/repairs?vehicle_id={{ vehicle.id }}" class="btn btn-xs btn-ghost">🔧 Ремонты</a>
-                        <a href="/panel/vehicles/{{ vehicle.id }}/documents" class="btn btn-xs btn-ghost">📄 Документы</a>
+                        <a href="/panel/vehicles/{{ vehicle.id }}/edit" class="btn btn-xs btn-ghost" data-i18n="edit">Изменить</a>
+                        <a href="/panel/repairs?vehicle_id={{ vehicle.id }}" class="btn btn-xs btn-ghost" data-i18n="repair">🔧 Ремонты</a>
+                        <a href="/panel/vehicles/{{ vehicle.id }}/documents" class="btn btn-xs btn-ghost" data-i18n="docs">📄 Документы</a>
                     </div>
                 </td>
             </tr>
@@ -91,7 +91,7 @@
 <div class="table-wrap">
     <div class="empty">
         <div class="empty-icon">🚚</div>
-        <p>Транспортных средств пока нет. <a href="/panel/vehicles/add" class="btn btn-sm" style="margin-top:8px;">+ Добавить борт</a></p>
+        <p><span data-i18n="no_vehicles">Транспортных средств пока нет.</span> <a href="/panel/vehicles/add" class="btn btn-sm" style="margin-top:8px;" data-i18n="add_vehicle_btn">+ Добавить борт</a></p>
     </div>
 </div>
 {% endif %}
