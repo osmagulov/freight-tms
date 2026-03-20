@@ -2,20 +2,20 @@
 {% block title %}Добавить расход — Рейс #{{ trip.id }}{% endblock %}
 {% block content %}
 
-<a href="/panel/trips/{{ trip.id }}" class="back-link">← Вернуться к рейсу</a>
+<a href="/panel/trips/{{ trip.id }}" class="back-link" data-i18n="back_to_trip">← Вернуться к рейсу</a>
 
 <div class="page-hdr" style="margin-bottom:20px;">
-    <h1>Добавить расход для Рейса #{{ trip.id }}</h1>
+    <h1 data-i18n="add_expense_title">Добавить расход</h1> <h1>#{{ trip.id }}</h1>
 </div>
 
 <div class="card" style="max-width:680px;">
-    <div class="card-hdr"><span class="card-title">Детали расхода</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="expense_details">Детали расхода</span></div>
     <div class="card-body">
         <form action="/panel/trips/{{ trip.id }}/expenses/add" method="post" enctype="multipart/form-data">
             
             <div class="form-grid-2">
                 <div class="form-row">
-                    <label for="expense_type">Тип расхода *</label>
+                    <label for="expense_type" data-i18n="expense_type_required">Тип расхода *</label>
                     <select name="expense_type" id="expense_type" required onchange="toggleFuelFields()">
                         {% for et in ExpenseType %}
                         <option value="{{ et.value }}">
@@ -33,11 +33,11 @@
 
             <div class="form-grid-2">
                 <div class="form-row">
-                    <label for="amount">Сумма *</label>
+                    <label for="amount" data-i18n="amount_required">Сумма *</label>
                     <input type="number" step="0.01" name="amount" id="amount" required>
                 </div>
                 <div class="form-row">
-                    <label for="currency">Валюта *</label>
+                    <label for="currency" data-i18n="currency_required">Валюта *</label>
                     <select name="currency" id="currency" required>
                         <option value="KZT">KZT</option>
                         <option value="RUB">RUB</option>
@@ -49,45 +49,45 @@
             </div>
 
             <div id="fuel-fields" style="display: none; background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
-                <div style="font-weight: 600; font-size: 13px; margin-bottom: 12px; color: #475569;">Данные по заправке</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 12px; color: #475569;" data-i18n="fuel_info">Данные по заправке</div>
                 <div class="form-grid-2">
                     <div class="form-row">
-                        <label for="liters">Литры</label>
+                        <label for="liters" data-i18n="liters_label">Литры</label>
                         <input type="number" step="0.01" name="liters" id="liters">
                     </div>
                     <div class="form-row">
-                        <label for="odometer_reading">Показания одометра</label>
+                        <label for="odometer_reading" data-i18n="odometer_reading_label">Показания одометра</label>
                         <input type="number" name="odometer_reading" id="odometer_reading">
                     </div>
                 </div>
                 <div class="form-row">
-                    <label for="station">АЗС (Сеть/Адрес)</label>
+                    <label for="station" data-i18n="gas_station_label">АЗС (Сеть/Адрес)</label>
                     <input type="text" name="station" id="station">
                 </div>
             </div>
 
             <div class="form-row">
-                <label for="status">Статус *</label>
+                <label for="status" data-i18n="status_required">Статус *</label>
                 <select name="status" id="status" required>
-                    <option value="APPROVED">Одобрен</option>
-                    <option value="PENDING">На проверке</option>
-                    <option value="REJECTED">Отклонён</option>
+                    <option value="APPROVED" data-i18n="status_approved">Одобрен</option>
+                    <option value="PENDING" data-i18n="on_review">На проверке</option>
+                    <option value="REJECTED" data-i18n="status_rejected">Отклонён</option>
                 </select>
             </div>
 
             <div class="form-row">
-                <label for="comment">Комментарий</label>
+                <label for="comment" data-i18n="comment_label">Комментарий</label>
                 <input type="text" name="comment" id="comment" placeholder="Описание расхода (опционально)">
             </div>
 
             <div class="form-row">
-                <label for="receipt_file">Чек / Документ (фото, опционально)</label>
+                <label for="receipt_file" data-i18n="receipt_doc">Чек / Документ (фото, опционально)</label>
                 <input type="file" name="receipt_file" id="receipt_file" accept=".jpg,.jpeg,.png,.pdf">
             </div>
 
             <div class="action-group" style="margin-top:8px;">
-                <button type="submit" class="btn">Сохранить</button>
-                <a href="/panel/trips/{{ trip.id }}" class="btn btn-ghost">Отмена</a>
+                <button type="submit" class="btn" data-i18n="save_btn">Сохранить</button>
+                <a href="/panel/trips/{{ trip.id }}" class="btn btn-ghost" data-i18n="cancel">Отмена</a>
             </div>
         </form>
     </div>

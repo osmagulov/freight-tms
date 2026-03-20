@@ -2,10 +2,10 @@
 {% block title %}Добавить борт — Freight TMS{% endblock %}
 {% block content %}
 
-<a href="/panel/fleet" class="back-link">← Транспорт</a>
+<a href="/panel/fleet" class="back-link" data-i18n="fleet_title">← Транспорт</a>
 
 <div class="page-hdr" style="margin-bottom:20px;">
-    <h1>Новый борт</h1>
+    <h1 data-i18n="new_vehicle">Новый борт</h1>
 </div>
 
 {% if error %}
@@ -13,36 +13,36 @@
 {% endif %}
 
 <div class="card" style="max-width:520px;">
-    <div class="card-hdr"><span class="card-title">Данные транспортного средства</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="vehicle_data_card">Данные транспортного средства</span></div>
     <div class="card-body">
         <form method="post" action="/panel/vehicles/add">
             <div class="form-row">
-                <label>Гос. номер *</label>
+                <label data-i18n="license_plate">Гос. номер *</label>
                 <input type="text" name="license_plate" placeholder="018 АВ 01" required autofocus>
             </div>
             <div class="form-grid-2">
                 <div class="form-row">
-                    <label>Марка</label>
+                    <label data-i18n="make">Марка</label>
                     <input type="text" name="make" placeholder="КАМАЗ">
                 </div>
                 <div class="form-row">
-                    <label>Модель</label>
+                    <label data-i18n="model">Модель</label>
                     <input type="text" name="model" placeholder="65117">
                 </div>
             </div>
             <div class="form-grid-2">
                 <div class="form-row">
-                    <label>Год выпуска</label>
+                    <label data-i18n="year_of_issue">Год выпуска</label>
                     <input type="number" name="year" placeholder="2018" min="1990" max="2030">
                 </div>
                 <div class="form-row">
-                    <label>Норма расхода (л/100км)</label>
+                    <label data-i18n="fuel_norm">Норма расхода (л/100км)</label>
                     <input type="number" name="fuel_norm_per_100km" step="0.1" min="0" placeholder="28.5">
                 </div>
             </div>
             <div class="action-group" style="margin-top:8px;">
-                <button type="submit" class="btn">Добавить</button>
-                <a href="/panel/fleet" class="btn btn-ghost">Отмена</a>
+                <button type="submit" class="btn" data-i18n="add_btn">Добавить</button>
+                <a href="/panel/fleet" class="btn btn-ghost" data-i18n="cancel">Отмена</a>
             </div>
         </form>
     </div>

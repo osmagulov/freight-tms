@@ -1,6 +1,13 @@
 <tr id="expense-{{ expense.id }}">
   <td class="fw-bold">{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</td>
-  <td>{{ expense.expense_type }}</td>
+  <td>
+    {% if expense.expense_type == 'FUEL' %}<span data-i18n="expense_type_fuel">Топливо</span>
+    {% elif expense.expense_type == 'PER_DIEM' %}<span data-i18n="expense_type_per_diem">Суточные</span>
+    {% elif expense.expense_type == 'FINE' %}<span data-i18n="expense_type_fine">Штраф</span>
+    {% elif expense.expense_type == 'REPAIR' %}<span data-i18n="expense_type_repair">Ремонт</span>
+    {% elif expense.expense_type == 'OTHER' %}<span data-i18n="expense_type_other">Прочее</span>
+    {% else %}{{ expense.expense_type }}{% endif %}
+  </td>
   <td>
     {{ expense.amount }} {{ expense.currency }}
     {% if expense.amount_kzt and expense.currency != 'KZT' %}

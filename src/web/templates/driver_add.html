@@ -2,10 +2,10 @@
 {% block title %}Добавить водителя — Freight TMS{% endblock %}
 {% block content %}
 
-<a href="/panel/drivers" class="back-link">← Водители</a>
+<a href="/panel/drivers" class="back-link" data-i18n="drivers">← Водители</a>
 
 <div class="page-hdr" style="margin-bottom:20px;">
-    <h1>Новый водитель</h1>
+    <h1 data-i18n="new_driver">Новый водитель</h1>
 </div>
 
 {% if error %}
@@ -13,31 +13,31 @@
 {% endif %}
 
 <div class="card" style="max-width:520px;">
-    <div class="card-hdr"><span class="card-title">Данные водителя</span></div>
+    <div class="card-hdr"><span class="card-title" data-i18n="driver_data_card">Данные водителя</span></div>
     <div class="card-body">
         <form method="post" action="/panel/drivers/add" enctype="multipart/form-data">
             <div class="form-row">
-                <label>ФИО *</label>
+                <label data-i18n="full_name">ФИО *</label>
                 <input type="text" name="name" placeholder="Иванов Иван Иванович" required autofocus>
             </div>
             <div class="form-grid-2">
                 <div class="form-row">
-                    <label>Телефон (логин) *</label>
+                    <label data-i18n="phone_login">Телефон (логин) *</label>
                     <input type="text" name="phone" placeholder="+7 777 000 00 00" required>
                 </div>
                 <div class="form-row">
-                    <label>Пароль для входа *</label>
+                    <label data-i18n="password_for_login">Пароль для входа *</label>
                     <input type="text" name="password" placeholder="Пароль" required>
                 </div>
             </div>
             <div class="form-row">
-                <label>ИИН</label>
+                <label data-i18n="iin">ИИН</label>
                 <input type="text" name="iin" placeholder="123456789012" maxlength="12">
             </div>
             <div class="form-row">
-                <label>Назначить борт</label>
+                <label data-i18n="assign_vehicle">Назначить борт</label>
                 <select name="vehicle_id">
-                    <option value="">— Не назначен —</option>
+                    <option value="" data-i18n="not_assigned">— Не назначен —</option>
                     {% for v in vehicles %}
                     <option value="{{ v.id }}">{{ v.license_plate }}{% if v.make %} — {{ v.make }}{% if v.model %} {{
                         v.model }}{% endif %}{% endif %}</option>
@@ -45,12 +45,12 @@
                 </select>
             </div>
             <div class="form-row">
-                <label>Скан паспорта (фото или PDF)</label>
+                <label data-i18n="passport_scan">Скан паспорта (фото или PDF)</label>
                 <input type="file" name="passport_file" accept="image/*,.pdf" style="padding:6px 0;">
             </div>
             <div class="action-group" style="margin-top:8px;">
-                <button type="submit" class="btn">Добавить</button>
-                <a href="/panel/drivers" class="btn btn-ghost">Отмена</a>
+                <button type="submit" class="btn" data-i18n="add_btn">Добавить</button>
+                <a href="/panel/drivers" class="btn btn-ghost" data-i18n="cancel">Отмена</a>
             </div>
         </form>
     </div>

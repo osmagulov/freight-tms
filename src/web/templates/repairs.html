@@ -30,7 +30,7 @@
                 <div>
                     <label data-i18n="vehicle">Борт *</label>
                     <select name="vehicle_id" required>
-                        <option value="">— Выберите борт —</option>
+                        <option value="" data-i18n="select_vehicle">— Выберите борт —</option>
                         {% for v in vehicles %}
                         <option value="{{ v.id }}">{{ v.license_plate }}{% if v.make %} — {{ v.make }}{% if v.model %} {{ v.model }}{% endif %}{% endif %}</option>
                         {% endfor %}
@@ -164,7 +164,7 @@
 
                     <div style="margin-top: 8px; border-top: 1px dotted #e5e7eb; padding-top: 6px;">
                         <form method="post" action="/panel/repairs/{{ r.id }}/delete" onsubmit="return confirm('Удалить эту запись о ремонте?')" style="display:inline;">
-                            <button class="btn btn-xs btn-ghost" title="Удалить" style="color: #ef4444; border: none; opacity: 0.6;">🗑️ Удалить</button>
+                            <button class="btn btn-xs btn-ghost" title="Удалить" style="color: #ef4444; border: none; opacity: 0.6;" data-i18n="delete_btn">🗑️ Удалить</button>
                         </form>
                     </div>
                 </td>
@@ -177,7 +177,7 @@
 <div class="table-wrap">
     <div class="empty">
         <div class="empty-icon">🔧</div>
-        <p>Нет записей о ремонтах.</p>
+        <p data-i18n="no_repairs">Нет записей о ремонтах.</p>
     </div>
 </div>
 {% endif %}
