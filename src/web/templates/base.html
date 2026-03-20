@@ -613,6 +613,10 @@
             "fleet_title": "Транспорт",
             "drivers": "Водители",
             "trips": "Рейсы",
+            "download_act": "Скачать акт",
+            "all_drivers": "Все водители",
+            "all_vehicles": "Все борты",
+            "all_statuses": "Все",
         },
         kk: {
             "tagline": "Тасымалдарды басқару",
@@ -865,6 +869,10 @@
             "fleet_title": "Транспорт",
             "drivers": "Жүргізушілер",
             "trips": "Рейстер",
+            "download_act": "Актіні жүктеп алу",
+            "all_drivers": "Барлық жүргізушілер",
+            "all_vehicles": "Барлық борттар",
+            "all_statuses": "Барлығы",
         },
         zh: {
             "tagline": "物流运输管理系统",
@@ -1117,6 +1125,10 @@
             "fleet_title": "车队管理",
             "drivers": "司机管理",
             "trips": "行程列表",
+            "download_act": "点击下载车辆报告/单据",
+            "all_drivers": "显示所有驾驶员",
+            "all_vehicles": "显示全部车辆列表",
+            "all_statuses": "全部显示",
         }
     };
 
@@ -1125,20 +1137,70 @@
         applyLang(lang);
     }
 
+    const dynamicMap = {
+        kk: {
+            "Алматы": "Алматы", "Астана": "Астана", "Шымкент": "Шымкент", "Тараз": "Тараз",
+            "Атырау": "Атырау", "Актобе": "Ақтөбе", "Москва": "Мәскеу", "Урумчи": "Үрімжі",
+            "Гуанчжоу": "Гуанчжоу", "Хоргос": "Қорғас", "Китай": "Қытай", "Пекин": "Бейжің",
+        },
+        zh: {
+            "Алматы": "阿拉木图", "Астана": "阿斯塔纳", "Шымкент": "奇姆肯特", "Тараз": "塔拉兹",
+            "Атырау": "阿特劳", "Актобе": "阿克托别", "Москва": "莫斯科", "Урумчи": "乌鲁木齐",
+            "Гуанчжоу": "广州", "Хоргос": "霍尔格斯", "Достык": "多斯特克", "Чэнду": "成都", "西安": "西安",
+            "Активен": "运行中", "Завершён": "已完成", "Отменён": "已取消", "Запланирован": "计划中",
+            "Доставлено": "已送达", "В пути": "运输中", "Пустой": "空放", "Груженый": "重柜",
+            "Стандарт": "标准", "Ремонт": "维修", "Суточные": "补助", "Штраф": "罚款", "Топливо": "加油",
+            "Китай": "中国", "Казахстан": "哈萨克斯坦", "Россия": "俄罗斯", "Пекин": "北京", "Шанхай": "上海",
+            "Урумчи": "乌鲁木齐", "Ухань": "武汉", "Хоргос": "霍尔果斯", "Иу": "义乌", "Цзиньхуа": "金华",
+            "Иванов": "伊万诺夫", "Петров": "彼得罗夫", "Сергей": "谢尔盖", "Александр": "亚历山大"
+        }
+    };
+
     function applyLang(lang) {
         const t = translations[lang] || translations['ru'];
+        // Static translations
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
             if (t[key]) {
                 if (el.tagName === 'INPUT' && (el.type === 'button' || el.type === 'submit')) {
                     el.value = t[key];
                 } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                    el.placeholder = t[key];
+                    if (el.placeholder) el.placeholder = t[key];
                 } else {
                     el.innerText = t[key];
                 }
             }
         });
+
+        // Dynamic content translation (best effort for user-input strings)
+        if (lang !== 'ru' && dynamicMap[lang]) {
+            const map = dynamicMap[lang];
+            document.querySelectorAll('td, .fw-bold, .text-muted, .badge, .card-title, h1').forEach(el => {
+                let text = el.innerText;
+                let changed = false;
+                for (const [ru, target] of Object.entries(map)) {
+                    if (text.includes(ru)) {
+                        text = text.replaceAll(ru, target);
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    // Only update if it's a leaf node or we are sure we won't break HTML
+                    if (el.children.length === 0) {
+                        el.innerText = text;
+                    } else {
+                        // For nodes with children, we swap only text nodes
+                        for (let node of el.childNodes) {
+                            if (node.nodeType === 3) { // Text node
+                                for (const [ru, target] of Object.entries(map)) {
+                                    node.nodeValue = node.nodeValue.replaceAll(ru, target);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
         // Toggle active class on buttons
         document.querySelectorAll('.lang-btn').forEach(btn => {
