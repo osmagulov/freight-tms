@@ -7,7 +7,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select, update as sa_update
+from sqlalchemy import func, select, update as sa_update, delete
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
@@ -136,6 +136,17 @@ async def driver_delete(
         result = await session.execute(select(Driver).where(Driver.id == driver_id))
         driver = result.scalars().first()
         if driver:
+            # Clean up LocationUpdate manually (no cascade defined)
+            await session.execute(delete(LocationUpdate).where(LocationUpdate.driver_id == driver_id))
+            
+            # Find trips for this driver
+            trip_ids = (await session.execute(select(Trip.id).where(Trip.driver_id == driver_id))).scalars().all()
+            if trip_ids:
+                # Clean up FuelAnomaly and reset trip_id on LocationUpdate/VehicleRepair
+                await session.execute(delete(FuelAnomaly).where(FuelAnomaly.trip_id.in_(trip_ids)))
+                await session.execute(sa_update(LocationUpdate).where(LocationUpdate.trip_id.in_(trip_ids)).values(trip_id=None))
+                await session.execute(sa_update(VehicleRepair).where(VehicleRepair.trip_id.in_(trip_ids)).values(trip_id=None))
+            
             await session.delete(driver)
             await session.commit()
     return RedirectResponse(url="/panel/drivers", status_code=302)
@@ -150,6 +161,15 @@ async def vehicle_delete(
         result = await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
         vehicle = result.scalars().first()
         if vehicle:
+            # Find trips for this vehicle
+            trip_ids = (await session.execute(select(Trip.id).where(Trip.vehicle_id == vehicle_id))).scalars().all()
+            if trip_ids:
+                await session.execute(sa_update(LocationUpdate).where(LocationUpdate.trip_id.in_(trip_ids)).values(trip_id=None))
+                # Note: VehicleRepairs are cascade deleted by Vehicle anyway
+            
+            # Clean up FuelAnomaly manually
+            await session.execute(delete(FuelAnomaly).where(FuelAnomaly.vehicle_id == vehicle_id))
+
             await session.delete(vehicle)
             await session.commit()
     return RedirectResponse(url="/panel/drivers", status_code=302)
@@ -613,6 +633,11 @@ async def trip_delete(
         result = await session.execute(select(Trip).where(Trip.id == trip_id))
         trip = result.scalars().first()
         if trip:
+            # Clean up foreign keys that don't have cascade
+            await session.execute(delete(FuelAnomaly).where(FuelAnomaly.trip_id == trip_id))
+            await session.execute(sa_update(LocationUpdate).where(LocationUpdate.trip_id == trip_id).values(trip_id=None))
+            await session.execute(sa_update(VehicleRepair).where(VehicleRepair.trip_id == trip_id).values(trip_id=None))
+
             await session.delete(trip)
             await session.commit()
     return RedirectResponse(url="/panel/trips", status_code=302)
