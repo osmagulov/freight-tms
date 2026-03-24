@@ -1,0 +1,89 @@
+{% extends "mobile/base_mobile.html" %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="/app/"
+        class="inline-flex items-center text-blue-600 font-black text-xl bg-blue-50 px-4 py-2 rounded-xl active:bg-blue-100">
+        <span class="text-3xl mr-2">←</span> <span>НАЗАД</span>
+    </a>
+</div>
+
+<div class="bg-white rounded-2xl shadow-xl p-6 border-t-[10px] border-purple-500">
+    <div class="flex justify-center -mt-10 mb-4">
+        <div class="bg-purple-100 p-4 rounded-full border-4 border-white shadow-md">
+            <span class="text-5xl">⏳</span>
+        </div>
+    </div>
+
+    <h1 class="text-2xl font-black text-center mb-2 uppercase tracking-wide text-gray-800">Статус / Простой</h1>
+    <p class="text-center text-gray-500 font-medium mb-6">Отметьтесь, если вы на границе или стоите в ожидании.</p>
+
+    <form method="POST" action="/app/trip-event" class="space-y-6 ajax-compress-form">
+        
+        <div>
+            <label class="block text-gray-700 text-lg font-bold mb-2">Выберите событие:</label>
+            <select name="event_type" required class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500 bg-gray-50 focus:bg-white outline-none">
+                <option value="">— Выбрать —</option>
+                <optgroup label="Граница">
+                    <option value="BORDER_QUEUE_START">Прибыл на границу (В очередь)</option>
+                    <option value="BORDER_QUEUE_END">Граница пройдена</option>
+                </optgroup>
+                <optgroup label="Таможня (СВХ)">
+                    <option value="CUSTOMS_START">Заехал на СВХ / Таможню</option>
+                    <option value="CUSTOMS_END">Выехал с таможни</option>
+                </optgroup>
+                <optgroup label="Погрузка / Выгрузка">
+                    <option value="UNLOADING_START">Прибыл на загрузку/выгрузку</option>
+                    <option value="UNLOADING_END">Погрузка/выгрузка завершена</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-gray-700 text-lg font-bold mb-2">Локация (необязательно)</label>
+            <input type="text" name="location_name" placeholder="Например: Хоргос" 
+                class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500 bg-gray-50 focus:bg-white outline-none">
+        </div>
+
+        <button type="submit"
+            class="w-full text-white text-2xl font-black py-6 rounded-2xl shadow-[0_6px_0_#6b21a8] active:shadow-none active:translate-y-2 transition-all mt-8 bg-gradient-to-b from-purple-500 to-purple-600 flex justify-center items-center space-x-3">
+            <span>ОТМЕТИТЬСЯ</span>
+        </button>
+    </form>
+</div>
+
+<!-- History -->
+{% if events %}
+<div class="mt-8 bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
+    <h3 class="text-xl font-black text-gray-800 border-b pb-2 mb-4">📝 История статусов:</h3>
+    <ul class="space-y-3 relative">
+        <div class="absolute left-[15px] top-2 bottom-4 w-1 bg-gray-200 rounded"></div>
+        {% for ev in events %}
+        <li class="relative pl-10 flex items-center justify-between">
+            <div class="absolute left-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
+                {% if 'START' in ev.event_type %}bg-yellow-100 border-2 border-yellow-400 text-yellow-600
+                {% else %}bg-green-100 border-2 border-green-400 text-green-600{% endif %}">
+                {% if 'START' in ev.event_type %}↓{% else %}↑{% endif %}
+            </div>
+            <div>
+                <dt class="font-bold text-gray-800">
+                    {% if ev.event_type == 'BORDER_QUEUE_START' %}Прибыл на границу
+                    {% elif ev.event_type == 'BORDER_QUEUE_END' %}Граница пройдена
+                    {% elif ev.event_type == 'CUSTOMS_START' %}Заезд на СВХ
+                    {% elif ev.event_type == 'CUSTOMS_END' %}Выезд с СВХ
+                    {% elif ev.event_type == 'UNLOADING_START' %}На загрузке/выгрузке
+                    {% elif ev.event_type == 'UNLOADING_END' %}Загрузка/выгрузка завершена
+                    {% else %}{{ ev.event_type }}{% endif %}
+                </dt>
+                <div class="text-gray-500 text-xs mt-1">
+                    {{ ev.created_at.strftime('%d.%m %H:%M') }} 
+                    {% if ev.location_name %}({{ ev.location_name }}){% endif %}
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% endblock %}

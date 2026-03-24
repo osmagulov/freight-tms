@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 from src.core.config import settings
 from src.db.database import async_session
-from src.db.models import Driver, Trip, Expense, Vehicle, TripStatus, LocationUpdate, VehicleRepair, RepairStatus, DriverDocument, TripDocument
+from src.db.models import Driver, Trip, Expense, Vehicle, TripStatus, LocationUpdate, VehicleRepair, RepairStatus, DriverDocument, TripDocument, TripEvent
 from antigravity_modules.expense_crud import get_active_trip_for_driver, create_expense
 from src.services.r2 import save_uploaded_file
 from src.web.auth import verify_password
@@ -574,3 +574,39 @@ async def report_repair_post(
             session.add(repair)
             await session.commit()
     return RedirectResponse("/app/", status_code=302)
+
+
+# --- REPORT EVENT (BOTTLENECK) ---
+@router.get("/trip-event", response_class=HTMLResponse)
+async def trip_event_get(request: Request):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        trip = await get_active_trip_for_driver(session, driver_id)
+        if not trip:
+            return RedirectResponse("/app/", status_code=302)
+        # Load past events
+        result = await session.execute(
+            select(TripEvent).where(TripEvent.trip_id == trip.id).order_by(TripEvent.created_at.desc())
+        )
+        events = result.scalars().all()
+    return templates.TemplateResponse(request, "mobile/report_event.html", {"request": request, "events": events})
+
+
+@router.post("/trip-event")
+async def trip_event_post(
+    request: Request,
+    event_type: str = Form(...),
+    location_name: str = Form("")
+):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        trip = await get_active_trip_for_driver(session, driver_id)
+        if trip:
+            event = TripEvent(
+                trip_id=trip.id,
+                event_type=event_type,
+                location_name=location_name.strip() or None
+            )
+            session.add(event)
+            await session.commit()
+    return RedirectResponse("/app/trip-event", status_code=302)

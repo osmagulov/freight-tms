@@ -495,6 +495,7 @@ async def trip_detail(
                 selectinload(Trip.vehicle),
                 selectinload(Trip.expenses),
                 selectinload(Trip.documents),
+                selectinload(Trip.events),
             )
         )
         trip = result.scalars().first()

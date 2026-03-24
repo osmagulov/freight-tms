@@ -145,6 +145,43 @@
     {% endif %}
 </div>
 
+<!-- Timeline / Bottlenecks -->
+<div class="card">
+    <div class="card-hdr"><span class="card-title">⏳ История статусов (Простои)</span></div>
+    {% if trip.events %}
+    <div class="card-body table-responsive" style="padding:0;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Время</th>
+                    <th>Событие</th>
+                    <th>Локация</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in trip.events %}
+                <tr>
+                    <td class="text-muted">{{ ev.created_at.strftime('%d.%m.%Y %H:%M') if ev.created_at else '—' }}</td>
+                    <td class="fw-bold">
+                        {% if ev.event_type == 'BORDER_QUEUE_START' %}Прибыл на границу (Очередь)
+                        {% elif ev.event_type == 'BORDER_QUEUE_END' %}Граница пройдена
+                        {% elif ev.event_type == 'CUSTOMS_START' %}Заезд на СВХ
+                        {% elif ev.event_type == 'CUSTOMS_END' %}Выезд с СВХ
+                        {% elif ev.event_type == 'UNLOADING_START' %}На загрузке/выгрузке
+                        {% elif ev.event_type == 'UNLOADING_END' %}Загрузка/выгрузка завершена
+                        {% else %}{{ ev.event_type }}{% endif %}
+                    </td>
+                    <td>{{ ev.location_name or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty" style="padding:28px;">Событий не зафиксировано</div>
+    {% endif %}
+</div>
+
 <!-- Documents -->
 <div class="card">
     <div class="card-hdr" style="display: flex; justify-content: space-between; align-items: center;">
