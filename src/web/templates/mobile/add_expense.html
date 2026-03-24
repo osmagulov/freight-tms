@@ -80,15 +80,26 @@
             </div>
         </div>
 
-        <!-- Fuel card number (FUEL only, auto-saved) -->
+        <!-- Payment Method -->
         <div id="fuel-card-field" class="hidden">
-            <label class="block text-gray-700 text-lg font-bold mb-2">💳 Номер топливной карты <span
-                    class="text-gray-400 font-normal">(сохранится)</span></label>
-            <input type="text" name="fuel_card_number" id="fuel_card_number" value="{{ fuel_card_number }}"
-                placeholder="Введите номер карты"
-                class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none tracking-wider">
+            <label class="block text-gray-700 text-lg font-bold mb-2">💳 Способ оплаты</label>
+            <select id="payment_method_select" onchange="onPaymentMethodChange()"
+                class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none mb-3">
+                {% if fuel_card_number %}
+                <option value="{{ fuel_card_number }}">Моя карта ({{ fuel_card_number|truncate(8, True) }})</option>
+                {% endif %}
+                <option value="CASH">💵 Наличные</option>
+                <option value="OTHER_CARD" {% if not fuel_card_number %}selected{% endif %}>💳 Другая карта (указать вручную)</option>
+            </select>
+            
+            <div id="other-card-div" class="{% if fuel_card_number %}hidden{% endif %}">
+                <input type="text" name="fuel_card_number" id="fuel_card_number" value="{{ fuel_card_number or '' }}"
+                    placeholder="Пример: 4433 2211 0000 9999"
+                    class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none tracking-wider">
+            </div>
+            
             {% if fuel_card_number %}
-            <div class="text-green-600 text-sm font-bold mt-1">✓ Номер сохранён, подставлен автоматически</div>
+            <div id="saved-card-hint" class="text-green-600 text-sm font-bold mt-1">✓ Выбрана ваша сохранённая карта</div>
             {% endif %}
         </div>
 
@@ -127,6 +138,28 @@
             fuelCardField.classList.add('hidden');
             liters.required = false;
             odometer.required = false;
+        }
+    }
+
+    function onPaymentMethodChange() {
+        const pm = document.getElementById('payment_method_select').value;
+        const otherDiv = document.getElementById('other-card-div');
+        const input = document.getElementById('fuel_card_number');
+        const savedHint = document.getElementById('saved-card-hint');
+        
+        if (pm === 'OTHER_CARD') {
+            otherDiv.classList.remove('hidden');
+            input.value = ''; // let them type
+            if(savedHint) savedHint.classList.add('hidden');
+        } else if (pm === 'CASH') {
+            otherDiv.classList.add('hidden');
+            input.value = 'Наличные';
+            if(savedHint) savedHint.classList.add('hidden');
+        } else {
+            // It's the saved card
+            otherDiv.classList.add('hidden');
+            input.value = pm;
+            if(savedHint) savedHint.classList.remove('hidden');
         }
     }
 

@@ -250,12 +250,16 @@ async def add_expense_post(
             key = f"expenses/card_{uuid.uuid4()}.{ext}"
             card_url = await save_uploaded_file(file_bytes, key, content_type=card_photo.content_type)
 
+        final_comment = comment.strip()
+        if expense_type == "FUEL" and fuel_card_number.strip():
+            final_comment = f"[Оплата: {fuel_card_number.strip()}] {final_comment}".strip()
+
         expense = Expense(
             trip_id=trip.id,
             expense_type=expense_type,
             amount=amount,
             currency=currency,
-            comment=comment or None,
+            comment=final_comment or None,
             photo_file_id=receipt_url,
             card_photo_file_id=card_url,
             fx_rate=fx_rate,
@@ -312,12 +316,13 @@ async def add_expense_post(
                     )
                     session.add(anomaly)
 
-        # Save fuel card number to driver profile for auto-fill
+        # Save fuel card number to driver profile for auto-fill ONLY if it's currently empty, to avoid overwriting with CASH/other card
         if expense_type == "FUEL" and fuel_card_number.strip():
-            driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
-            driver = driver_res.scalars().first()
-            if driver and driver.fuel_card_number != fuel_card_number.strip():
-                driver.fuel_card_number = fuel_card_number.strip()
+            if not fuel_card_number.strip().lower().startswith("нал"):
+                driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+                driver = driver_res.scalars().first()
+                if driver and not driver.fuel_card_number:
+                    driver.fuel_card_number = fuel_card_number.strip()
 
         await session.commit()
 
