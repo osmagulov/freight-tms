@@ -106,8 +106,7 @@ async def list_drivers(
             .order_by(Driver.created_at.desc())
         )
         rows = result.all()  # List of (Driver, Vehicle|None) tuples
-    return templates.TemplateResponse(
-        "drivers.html",
+    return templates.TemplateResponse(request, "drivers.html",
         {"request": request, "rows": rows, "user": current_user},
     )
 
@@ -186,8 +185,7 @@ async def vehicle_edit_form(
         vehicle = result.scalars().first()
     if not vehicle:
         return RedirectResponse(url="/panel/drivers", status_code=302)
-    return templates.TemplateResponse(
-        "vehicle_edit.html",
+    return templates.TemplateResponse(request, "vehicle_edit.html",
         {"request": request, "vehicle": vehicle, "user": current_user},
     )
 
@@ -232,8 +230,7 @@ async def list_expenses(
             )
         )
         expenses = result.scalars().all()
-    return templates.TemplateResponse(
-        "expenses.html",
+    return templates.TemplateResponse(request, "expenses.html",
         {"request": request, "expenses": expenses, "user": current_user},
     )
 
@@ -259,8 +256,7 @@ async def approve_expense(
             await session.commit()
             await session.refresh(expense)
     await notify_driver_expense_decision(expense, approved=True)
-    return templates.TemplateResponse(
-        "expense_row.html",
+    return templates.TemplateResponse(request, "expense_row.html",
         {"request": request, "expense": expense},
     )
 
@@ -288,8 +284,7 @@ async def reject_expense(
             await session.commit()
             await session.refresh(expense)
     await notify_driver_expense_decision(expense, approved=False, rejection_comment=comment)
-    return templates.TemplateResponse(
-        "expense_row.html",
+    return templates.TemplateResponse(request, "expense_row.html",
         {"request": request, "expense": expense},
     )
 
@@ -306,8 +301,7 @@ async def list_anomalies(
             .order_by(FuelAnomaly.created_at.desc())
         )
         anomalies = result.scalars().all()
-    return templates.TemplateResponse(
-        "anomalies.html",
+    return templates.TemplateResponse(request, "anomalies.html",
         {"request": request, "anomalies": anomalies, "user": current_user},
     )
 
@@ -363,8 +357,7 @@ async def list_trips(
         )
         vehicles = vehicles_result.scalars().all()
 
-    return templates.TemplateResponse(
-        "trips_list.html",
+    return templates.TemplateResponse(request, "trips_list.html",
         {
             "request": request,
             "trips": trips,
@@ -393,8 +386,7 @@ async def create_trip_form(
         )
         vehicles = vehicles_result.scalars().all()
 
-    return templates.TemplateResponse(
-        "trips_create.html",
+    return templates.TemplateResponse(request, "trips_create.html",
         {
             "request": request,
             "drivers": drivers,
@@ -511,8 +503,7 @@ async def trip_detail(
         for e in trip.expenses
     )
 
-    return templates.TemplateResponse(
-        "trip_detail.html",
+    return templates.TemplateResponse(request, "trip_detail.html",
         {
             "request": request,
             "trip": trip,
@@ -548,8 +539,7 @@ async def trip_edit_form(
         )
         vehicles = vehicles_result.scalars().all()
 
-    return templates.TemplateResponse(
-        "trip_edit.html",
+    return templates.TemplateResponse(request, "trip_edit.html",
         {
             "request": request,
             "trip": trip,
@@ -656,8 +646,7 @@ async def add_trip_expense_form(
         if not trip:
             return RedirectResponse(url="/panel/trips", status_code=302)
 
-    return templates.TemplateResponse(
-        "expense_add.html",
+    return templates.TemplateResponse(request, "expense_add.html",
         {
             "request": request,
             "trip": trip,
@@ -797,8 +786,7 @@ async def fleet_dashboard(
         )
         vehicle_data.append({"vehicle": vehicle, "active_trip": active_trip, "open_repairs": open_repairs})
 
-    return templates.TemplateResponse(
-        "fleet.html",
+    return templates.TemplateResponse(request, "fleet.html",
         {
             "request": request,
             "vehicle_data": vehicle_data,
@@ -866,8 +854,7 @@ async def fleet_map(
 ):
     async with async_session() as session:
         markers = await _get_fleet_markers(session)
-    return templates.TemplateResponse(
-        "map.html",
+    return templates.TemplateResponse(request, "map.html",
         {"request": request, "markers": markers, "user": current_user},
     )
 
@@ -888,8 +875,7 @@ async def vehicle_add_form(
     request: Request,
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
-    return templates.TemplateResponse(
-        "vehicle_add.html",
+    return templates.TemplateResponse(request, "vehicle_add.html",
         {"request": request, "user": current_user},
     )
 
@@ -908,8 +894,7 @@ async def vehicle_add_submit(
     async with async_session() as session:
         existing = await session.execute(select(Vehicle).where(Vehicle.license_plate == plate))
         if existing.scalars().first():
-            return templates.TemplateResponse(
-                "vehicle_add.html",
+            return templates.TemplateResponse(request, "vehicle_add.html",
                 {"request": request, "user": current_user, "error": f"Борт {plate} уже существует"},
                 status_code=400,
             )
@@ -935,8 +920,7 @@ async def driver_add_form(
     async with async_session() as session:
         vehicles_result = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
         vehicles = vehicles_result.scalars().all()
-    return templates.TemplateResponse(
-        "driver_add.html",
+    return templates.TemplateResponse(request, "driver_add.html",
         {"request": request, "vehicles": vehicles, "user": current_user},
     )
 
@@ -993,8 +977,7 @@ async def driver_edit_form(
             return RedirectResponse(url="/panel/drivers", status_code=302)
         vehicles_result = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
         vehicles = vehicles_result.scalars().all()
-    return templates.TemplateResponse(
-        "driver_edit.html",
+    return templates.TemplateResponse(request, "driver_edit.html",
         {"request": request, "driver": driver, "vehicles": vehicles, "user": current_user},
     )
 
@@ -1071,8 +1054,7 @@ async def list_repairs(
     open_count = sum(1 for r in repairs if r.status == RepairStatus.OPEN)
     in_progress_count = sum(1 for r in repairs if r.status == RepairStatus.IN_PROGRESS)
 
-    return templates.TemplateResponse(
-        "repairs.html",
+    return templates.TemplateResponse(request, "repairs.html",
         {
             "request": request,
             "repairs": repairs,
@@ -1140,8 +1122,7 @@ async def repair_act(
         if not repair:
             raise HTTPException(status_code=404, detail="Repair not found")
 
-    return templates.TemplateResponse(
-        "repair_act.html",
+    return templates.TemplateResponse(request, "repair_act.html",
         {"request": request, "repair": repair, "user": current_user},
     )
 
@@ -1229,7 +1210,7 @@ async def driver_documents_get(
             .order_by(DriverDocument.uploaded_at.desc())
         )
         docs = docs_result.scalars().all()
-    return templates.TemplateResponse("driver_documents.html", {
+    return templates.TemplateResponse(request, "driver_documents.html", {
         "request": request,
         "driver": driver,
         "docs": docs,
@@ -1317,7 +1298,7 @@ async def vehicle_documents_get(
             .order_by(VehicleDocument.uploaded_at.desc())
         )
         docs = docs_result.scalars().all()
-    return templates.TemplateResponse("vehicle_documents.html", {
+    return templates.TemplateResponse(request, "vehicle_documents.html", {
         "request": request,
         "vehicle": vehicle,
         "docs": docs,
@@ -1417,7 +1398,7 @@ async def documents_expiring(
         )
         vehicle_docs = vehicle_docs_res.all()
 
-    return templates.TemplateResponse("documents_expiring.html", {
+    return templates.TemplateResponse(request, "documents_expiring.html", {
         "request": request,
         "driver_docs": driver_docs,
         "vehicle_docs": vehicle_docs,

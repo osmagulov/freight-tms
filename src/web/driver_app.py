@@ -70,7 +70,7 @@ async def requires_driver(request: Request):
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_get(request: Request):
-    return templates.TemplateResponse("mobile/login.html", {"request": request})
+    return templates.TemplateResponse(request, "mobile/login.html", {"request": request})
 
 @router.post("/login", response_class=HTMLResponse)
 async def login_post(request: Request, phone: str = Form(...), password: str = Form(...)):
@@ -79,7 +79,7 @@ async def login_post(request: Request, phone: str = Form(...), password: str = F
         driver = result.scalars().first()
         
         if not driver or not driver.password_hash or not verify_password(password, driver.password_hash):
-            return templates.TemplateResponse("mobile/login.html", {
+            return templates.TemplateResponse(request, "mobile/login.html", {
                 "request": request, 
                 "error": "Неверный номер телефона или пароль. Попросите диспетчера выдать вам данные для входа."
             }, status_code=401)
@@ -122,7 +122,7 @@ async def dashboard(request: Request):
                 )
                 open_repairs = repairs_res.scalars().all()
 
-    return templates.TemplateResponse("mobile/index.html", {
+    return templates.TemplateResponse(request, "mobile/index.html", {
         "request": request,
         "driver": driver,
         "active_trip": active_trip,
@@ -137,7 +137,7 @@ async def open_trip_get(request: Request):
     async with async_session() as session:
         v_res = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
         vehicles = v_res.scalars().all()
-    return templates.TemplateResponse("mobile/open_trip.html", {"request": request, "vehicles": vehicles})
+    return templates.TemplateResponse(request, "mobile/open_trip.html", {"request": request, "vehicles": vehicles})
 
 @router.post("/open-trip")
 async def open_trip_post(
@@ -199,7 +199,7 @@ async def add_expense_get(request: Request):
         # Load driver's saved fuel card number
         driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
         driver = driver_res.scalars().first()
-    return templates.TemplateResponse("mobile/add_expense.html", {
+    return templates.TemplateResponse(request, "mobile/add_expense.html", {
         "request": request,
         "fuel_card_number": driver.fuel_card_number or "" if driver else "",
     })
@@ -415,7 +415,7 @@ async def parse_receipt(request: Request, receipt: UploadFile = File(...)):
 @router.get("/close-trip", response_class=HTMLResponse)
 async def close_trip_get(request: Request):
     driver_id = await requires_driver(request)
-    return templates.TemplateResponse("mobile/close_trip.html", {"request": request})
+    return templates.TemplateResponse(request, "mobile/close_trip.html", {"request": request})
 
 @router.post("/close-trip")
 async def close_trip_post(
@@ -466,7 +466,7 @@ async def documents_get(request: Request):
             )
             trip_docs = td_res.scalars().all()
             
-    return templates.TemplateResponse("mobile/documents.html", {
+    return templates.TemplateResponse(request, "mobile/documents.html", {
         "request": request, 
         "driver": driver, 
         "docs": docs, 
@@ -550,7 +550,7 @@ async def report_repair_get(request: Request):
         trip = await get_active_trip_for_driver(session, driver_id)
         if not trip:
             return RedirectResponse("/app/", status_code=302)
-    return templates.TemplateResponse("mobile/report_repair.html", {"request": request})
+    return templates.TemplateResponse(request, "mobile/report_repair.html", {"request": request})
 
 
 @router.post("/report-repair")

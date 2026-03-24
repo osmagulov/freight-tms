@@ -141,8 +141,7 @@ async def director_summary(
     fuel_count = fuel_row.cnt if fuel_row else 0
     avg_price_per_liter = round(fuel_total_kzt / fuel_total_liters, 1) if fuel_total_liters else 0
 
-    return templates.TemplateResponse(
-        "director_summary.html",
+    return templates.TemplateResponse(request, "director_summary.html",
         {
             "request": request,
             "user": current_user,
@@ -201,8 +200,7 @@ async def director_trucks(
 
     vehicle_trips = sorted(by_vehicle.items())
 
-    return templates.TemplateResponse(
-        "director_trucks.html",
+    return templates.TemplateResponse(request, "director_trucks.html",
         {
             "request": request,
             "user": current_user,
@@ -288,8 +286,7 @@ async def director_anomalies(
         )
         anomalies = result.scalars().all()
 
-    return templates.TemplateResponse(
-        "director_anomalies.html",
+    return templates.TemplateResponse(request, "director_anomalies.html",
         {"request": request, "user": current_user, "anomalies": anomalies},
     )
 
@@ -305,8 +302,7 @@ async def director_driver_pick(
         )
         drivers = result.scalars().all()
 
-    return templates.TemplateResponse(
-        "director_driver_pick.html",
+    return templates.TemplateResponse(request, "director_driver_pick.html",
         {"request": request, "user": current_user, "drivers": drivers},
     )
 
@@ -404,8 +400,7 @@ async def director_driver_history(
     fuel_kzt = fuel_row.fuel_kzt if fuel_row and fuel_row.fuel_kzt else 0
     fuel_count = fuel_row.fuel_count if fuel_row else 0
 
-    return templates.TemplateResponse(
-        "director_driver.html",
+    return templates.TemplateResponse(request, "director_driver.html",
         {
             "request": request,
             "user": current_user,
