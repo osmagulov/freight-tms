@@ -78,7 +78,12 @@ PHOTO_DIR.mkdir(parents=True, exist_ok=True)
 
 def _save_local(file_bytes: bytes, key: str) -> str:
     """Save file to local filesystem, return URL path."""
-    file_path = PHOTO_DIR / key
+    # Prevent path traversal vulnerabilities
+    safe_key = key.replace("../", "").replace("..\\", "")
+    while "../" in safe_key or "..\\" in safe_key:
+        safe_key = safe_key.replace("../", "").replace("..\\", "")
+        
+    file_path = PHOTO_DIR / safe_key
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_bytes(file_bytes)
     logger.info(f"File saved locally: {file_path}")

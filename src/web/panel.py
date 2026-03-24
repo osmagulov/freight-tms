@@ -145,6 +145,7 @@ async def driver_delete(
                 await session.execute(delete(FuelAnomaly).where(FuelAnomaly.trip_id.in_(trip_ids)))
                 await session.execute(sa_update(LocationUpdate).where(LocationUpdate.trip_id.in_(trip_ids)).values(trip_id=None))
                 await session.execute(sa_update(VehicleRepair).where(VehicleRepair.trip_id.in_(trip_ids)).values(trip_id=None))
+                await session.execute(sa_update(DriverRequest).where(DriverRequest.trip_id.in_(trip_ids)).values(trip_id=None))
             
             await session.delete(driver)
             await session.commit()
@@ -164,6 +165,7 @@ async def vehicle_delete(
             trip_ids = (await session.execute(select(Trip.id).where(Trip.vehicle_id == vehicle_id))).scalars().all()
             if trip_ids:
                 await session.execute(sa_update(LocationUpdate).where(LocationUpdate.trip_id.in_(trip_ids)).values(trip_id=None))
+                await session.execute(sa_update(DriverRequest).where(DriverRequest.trip_id.in_(trip_ids)).values(trip_id=None))
                 # Note: VehicleRepairs are cascade deleted by Vehicle anyway
             
             # Clean up FuelAnomaly manually
@@ -696,6 +698,7 @@ async def trip_delete(
             await session.execute(delete(FuelAnomaly).where(FuelAnomaly.trip_id == trip_id))
             await session.execute(sa_update(LocationUpdate).where(LocationUpdate.trip_id == trip_id).values(trip_id=None))
             await session.execute(sa_update(VehicleRepair).where(VehicleRepair.trip_id == trip_id).values(trip_id=None))
+            await session.execute(sa_update(DriverRequest).where(DriverRequest.trip_id == trip_id).values(trip_id=None))
 
             await session.delete(trip)
             await session.commit()
