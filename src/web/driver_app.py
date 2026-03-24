@@ -331,89 +331,82 @@ async def add_expense_post(
 # --- AI RECEIPT PARSING ---
 @router.post("/parse-receipt")
 async def parse_receipt(request: Request, receipt: UploadFile = File(...)):
-    """Parse a fuel receipt photo using GPT-4 Vision and return extracted data."""
+    """Parse a fuel receipt photo using free local OCR (Tesseract) and return extracted data."""
     driver_id = await requires_driver(request)
 
-    if not settings.OPENAI_API_KEY:
-        return {"ok": False, "error": "AI не настроен"}
-
     file_bytes = await receipt.read()
-    if len(file_bytes) > 10 * 1024 * 1024:  # 10MB max
+    if len(file_bytes) > 20 * 1024 * 1024:  # 20MB max
         return {"ok": False, "error": "Файл слишком большой"}
 
-    import base64
-    import httpx
-
-    b64_image = base64.b64encode(file_bytes).decode("utf-8")
-    content_type = receipt.content_type or "image/jpeg"
-
-    prompt = """Проанализируй фото чека с заправки. Извлеки следующие данные:
-- liters: количество литров (число)
-- amount: сумма оплаты (число)
-- currency: валюта (KZT, RUB, USD, EUR, TRY). Определи по символам (₸=KZT, ₽=RUB, $=USD, €=EUR, ₺=TRY) или по стране
-- station: название АЗС (текст)
-
-Ответь СТРОГО в формате JSON, без лишнего текста:
-{"liters": 50.0, "amount": 15000, "currency": "KZT", "station": "Shell"}
-
-Если не можешь определить какое-то поле — укажи null.
-Если это НЕ чек с заправки — ответь: {"error": "Это не чек с заправки"}"""
+    import io
+    import re
+    import asyncio
+    from functools import partial
+    try:
+        from PIL import Image, ImageEnhance
+        import pytesseract
+    except ImportError:
+        return {"ok": False, "error": "OCR модуль не установлен на сервере"}
 
     try:
-        import asyncio
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": prompt},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:{content_type};base64,{b64_image}",
-                                        "detail": "low",
-                                    },
-                                },
-                            ],
-                        }
-                    ],
-                    "max_tokens": 200,
-                },
-            )
+        # Load and enhance image for OCR
+        img = Image.open(io.BytesIO(file_bytes))
+        img = img.convert('L') # Grayscale
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(2.0)
 
-        if resp.status_code != 200:
-            return {"ok": False, "error": f"API ошибка: {resp.status_code}"}
+        # Run tesseract in thread to avoid blocking asyncio
+        loop = asyncio.get_event_loop()
+        text = await loop.run_in_executor(None, partial(pytesseract.image_to_string, img, lang="rus+eng"))
+        
+        # Parse data out of OCR text using Regex
+        text_lower = text.lower()
+        
+        liters = None
+        amount = None
+        currency = "KZT"
+        station = None
 
-        import json
-        result_text = resp.json()["choices"][0]["message"]["content"].strip()
-        # Extract JSON from response (might have markdown backticks)
-        if "```" in result_text:
-            result_text = result_text.split("```")[1]
-            if result_text.startswith("json"):
-                result_text = result_text[4:]
-        parsed = json.loads(result_text)
+        # Extract Liters
+        l_match = re.search(r'(?:литр|лит\.|лит|lit\.|lit|объем|кол-во|доза)\s*[:=]?\s*(\d+[.,]\d+)', text_lower)
+        if l_match:
+            try:
+                liters = float(l_match.group(1).replace(',', '.'))
+            except: pass
 
-        if "error" in parsed:
-            return {"ok": False, "error": parsed["error"]}
+        # Extract Amount
+        a_match = re.search(r'(?:сумма|итого|всего|total|sum|к оплате)\s*[:=]?\s*(\d+[ \d]*[.,]\d+)', text_lower)
+        if a_match:
+            try:
+                cleaned = a_match.group(1).replace(' ', '').replace(',', '.')
+                amount = float(cleaned)
+            except: pass
+                
+        # Currency Heuristic
+        if 'rub' in text_lower or 'руб' in text_lower or '₽' in text: currency = "RUB"
+        elif 'kzt' in text_lower or 'тнг' in text_lower or 'тенге' in text_lower or '₸' in text: currency = "KZT"
+        elif 'eur' in text_lower or 'евро' in text_lower or '€' in text: currency = "EUR"
+        elif 'usd' in text_lower or 'долл' in text_lower or '$' in text: currency = "USD"
+            
+        # Basic Station Heuristic
+        if 'gazprom' in text_lower or 'газпром' in text_lower: station = "Газпромнефть"
+        elif 'lukoil' in text_lower or 'лукойл' in text_lower: station = "Лукойл"
+        elif 'helios' in text_lower or 'гелиос' in text_lower: station = "Helios"
+        elif 'sinooil' in text_lower or 'синоил' in text_lower: station = "Sinooil"
+        elif 'qazaq' in text_lower or 'казак' in text_lower: station = "Qazaq Oil"
+        elif 'rosneft' in text_lower or 'роснефть' in text_lower: station = "Роснефть"
+        elif 'tatneft' in text_lower or 'татнефть' in text_lower: station = "Татнефть"
+        elif 'shell' in text_lower: station = "Shell"
 
         return {
-            "ok": True,
-            "liters": parsed.get("liters"),
-            "amount": parsed.get("amount"),
-            "currency": parsed.get("currency", "KZT"),
-            "station": parsed.get("station"),
+            "ok": True, 
+            "liters": liters, 
+            "amount": amount, 
+            "currency": currency, 
+            "station": station
         }
-
     except Exception as e:
-        return {"ok": False, "error": f"Ошибка парсинга: {str(e)}"}
+        return {"ok": False, "error": f"Ошибка OCR: {str(e)}"}
 
 
 # --- CLOSE TRIP ---
