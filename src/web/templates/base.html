@@ -87,6 +87,7 @@
         /* Sidebar icon colors per section */
         .sb-link[href*="trips"].active .sb-icon    { background: rgba(59,130,246,.25); }
         .sb-link[href*="expenses"].active .sb-icon { background: rgba(16,185,129,.2); }
+        .sb-link[href*="requests"].active .sb-icon { background: rgba(20,184,166,.2); }
         .sb-link[href*="anomalies"].active .sb-icon{ background: rgba(245,158,11,.2); }
         .sb-link[href*="fleet"].active .sb-icon    { background: rgba(139,92,246,.2); }
         .sb-link[href*="drivers"].active .sb-icon  { background: rgba(249,115,22,.2); }
@@ -348,6 +349,9 @@
         </a>
         <a href="/panel/expenses"  class="sb-link {% if request.url.path.startswith('/panel/expenses') %}active{% endif %}">
             <span class="sb-icon">💳</span> <span data-i18n="expenses">Расходы</span>
+        </a>
+        <a href="/panel/requests"  class="sb-link {% if request.url.path.startswith('/panel/requests') %}active{% endif %}">
+            <span class="sb-icon">💬</span> <span>Заявки</span>
         </a>
         <a href="/panel/anomalies" class="sb-link {% if request.url.path.startswith('/panel/anomalies') %}active{% endif %}">
             <span class="sb-icon">⚠️</span> <span data-i18n="anomalies">Аномалии</span>

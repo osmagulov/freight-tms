@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 from src.core.config import settings
 from src.db.database import async_session
-from src.db.models import Driver, Trip, Expense, Vehicle, TripStatus, LocationUpdate, VehicleRepair, RepairStatus, DriverDocument, TripDocument, TripEvent
+from src.db.models import Driver, Trip, Expense, Vehicle, TripStatus, LocationUpdate, VehicleRepair, RepairStatus, DriverDocument, TripDocument, TripEvent, DriverRequest, RequestType, RequestStatus
 from antigravity_modules.expense_crud import get_active_trip_for_driver, create_expense
 from src.services.r2 import save_uploaded_file
 from src.web.auth import verify_password
@@ -610,3 +610,40 @@ async def trip_event_post(
             session.add(event)
             await session.commit()
     return RedirectResponse("/app/trip-event", status_code=302)
+
+# --- REQUEST FUNDS / BORDER QUEUE ---
+@router.get("/request-funds", response_class=HTMLResponse)
+async def request_funds_get(request: Request):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        trip = await get_active_trip_for_driver(session, driver_id)
+        # We can still let them request even without an active trip, but it's better if they have one.
+        result = await session.execute(
+            select(DriverRequest).where(DriverRequest.driver_id == driver_id).order_by(DriverRequest.created_at.desc())
+        )
+        requests = result.scalars().all()
+    return templates.TemplateResponse(request, "mobile/request_funds.html", {"request": request, "requests": requests})
+
+@router.post("/create-request")
+async def request_funds_post(
+    request: Request,
+    request_type: str = Form(...),
+    description: str = Form(...),
+    amount: float = Form(None),
+    currency: str = Form("KZT")
+):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        trip = await get_active_trip_for_driver(session, driver_id)
+        new_req = DriverRequest(
+            driver_id=driver_id,
+            trip_id=trip.id if trip else None,
+            request_type=request_type,
+            description=description.strip(),
+            amount=amount,
+            currency=currency if amount else None,
+            status=RequestStatus.PENDING
+        )
+        session.add(new_req)
+        await session.commit()
+    return RedirectResponse("/app/request-funds", status_code=302)

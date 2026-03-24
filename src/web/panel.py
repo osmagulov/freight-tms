@@ -11,7 +11,7 @@ from sqlalchemy import func, select, update as sa_update, delete
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
-from src.db.models import Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate, RepairStatus, Trip, TripDocument, TripStatus, Vehicle, VehicleDocument, VehicleRepair, VehicleStatus
+from src.db.models import Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate, RepairStatus, Trip, TripDocument, TripStatus, Vehicle, VehicleDocument, VehicleRepair, VehicleStatus, DriverRequest, RequestStatus
 from src.services.r2 import save_uploaded_file
 from datetime import date as date_type
 from src.web.auth import (
@@ -291,6 +291,53 @@ async def reject_expense(
     return templates.TemplateResponse(request, "expense_row.html",
         {"request": request, "expense": expense},
     )
+
+
+
+@router.get("/requests", response_class=HTMLResponse)
+async def list_requests(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        # pending
+        res_pending = await session.execute(
+            select(DriverRequest)
+            .options(selectinload(DriverRequest.driver), selectinload(DriverRequest.trip))
+            .where(DriverRequest.status == RequestStatus.PENDING)
+            .order_by(DriverRequest.created_at.desc())
+        )
+        pending = res_pending.scalars().all()
+        # history
+        res_hist = await session.execute(
+            select(DriverRequest)
+            .options(selectinload(DriverRequest.driver), selectinload(DriverRequest.trip))
+            .where(DriverRequest.status != RequestStatus.PENDING)
+            .order_by(DriverRequest.resolved_at.desc())
+            .limit(30)
+        )
+        history = res_hist.scalars().all()
+
+    return templates.TemplateResponse(request, "requests.html", {
+        "request": request, "pending": pending, "history": history
+    })
+
+@router.post("/requests/{req_id}/resolve")
+async def resolve_request(
+    req_id: int,
+    action: str = Form(...), # APPROVE or REJECT
+    comment: str = Form(""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        res = await session.execute(select(DriverRequest).where(DriverRequest.id == req_id))
+        req = res.scalars().first()
+        if req:
+            req.status = RequestStatus.RESOLVED if action == 'APPROVE' else RequestStatus.REJECTED
+            req.resolution_comment = comment.strip()
+            req.resolved_at = func.now()
+            await session.commit()
+    return RedirectResponse("/panel/requests", status_code=302)
 
 
 @router.get("/anomalies", response_class=HTMLResponse)

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Заявки от водителей — Freight TMS{% endblock %}
+{% block content %}
+
+<div class="page-hdr">
+    <div>
+        <h1>Заявки от водителей</h1>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 30px;">
+    <div class="card-hdr" style="background:var(--surface);">
+        <span class="card-title">⏳ Ожидают решения ({{ pending|length }})</span>
+    </div>
+    {% if pending %}
+    <div class="table-wrap" style="border-radius:0 0 var(--r) var(--r); border:none;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Время</th>
+                    <th>Водитель</th>
+                    <th>Рейс</th>
+                    <th>Тип заявки</th>
+                    <th>Комментарий</th>
+                    <th>Сумма</th>
+                    <th style="text-align:right;">Решение</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in pending %}
+                <tr>
+                    <td class="text-muted">{{ req.created_at.strftime('%d.%m %H:%M') }}</td>
+                    <td class="fw-bold"><a href="/panel/drivers/{{ req.driver.id }}/edit" style="color:var(--text); text-decoration:none;">{{ req.driver.name }}</a></td>
+                    <td>
+                        {% if req.trip %}
+                        <a href="/panel/trips/{{ req.trip.id }}" style="color:var(--accent); text-decoration:none; font-weight:600;">#{{ req.trip.id }}</a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if req.request_type == 'BORDER_QUEUE' %}<span class="badge" style="background:#e0e7ff; color:#3730a3;">Очередь на границу</span>
+                        {% elif req.request_type == 'PER_DIEM' %}<span class="badge" style="background:#dcfce7; color:#166534;">Суточные</span>
+                        {% elif req.request_type == 'FOREIGN_EXPENSE' %}<span class="badge" style="background:#fef9c3; color:#854d0e;">Ин. расходы</span>
+                        {% else %}<span class="badge">Другое</span>{% endif %}
+                    </td>
+                    <td>{{ req.description }}</td>
+                    <td class="fw-bold">{% if req.amount %}{{ req.amount }} {{ req.currency }}{% else %}—{% endif %}</td>
+                    <td style="text-align:right;">
+                        <form method="post" action="/panel/requests/{{ req.id }}/resolve" style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+                            <input type="text" name="comment" placeholder="Действие/Ответ..." style="width:140px; padding:6px 10px; font-size:12px; height:30px;">
+                            <button type="submit" name="action" value="APPROVE" class="btn btn-success btn-xs" style="height:30px; font-size:12px;">✅ Одобрить/Сделано</button>
+                            <button type="submit" name="action" value="REJECT" class="btn btn-danger btn-xs" style="height:30px; font-size:12px;">❌ Отказать</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">
+        <div class="empty-icon" style="opacity:1;">🎉</div>
+        <p class="text-muted fw-bold">Все заявки обработаны. Новых нет.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-hdr" style="background:#fafafa;">
+        <span class="card-title text-muted">📜 История заявок (последние 30)</span>
+    </div>
+    {% if history %}
+    <div class="table-wrap" style="border-radius:0 0 var(--r) var(--r); border:none;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Время решения</th>
+                    <th>Водитель</th>
+                    <th>Тип</th>
+                    <th>Что просил</th>
+                    <th>Статус</th>
+                    <th>Ответ диспетчера</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in history %}
+                <tr>
+                    <td class="text-muted">{{ req.resolved_at.strftime('%d.%m %H:%M') if req.resolved_at else '—' }}</td>
+                    <td class="fw-bold">{{ req.driver.name }}</td>
+                    <td>
+                        {% if req.request_type == 'BORDER_QUEUE' %}<span class="text-muted">Очередь</span>
+                        {% elif req.request_type == 'PER_DIEM' %}<span class="text-muted">Суточные</span>
+                        {% elif req.request_type == 'FOREIGN_EXPENSE' %}<span class="text-muted">Ин. расходы</span>
+                        {% else %}<span class="text-muted">Другое</span>{% endif %}
+                    </td>
+                    <td>{{ req.description }} {% if req.amount %}(<b>{{ req.amount }} {{ req.currency }}</b>){% endif %}</td>
+                    <td>
+                        {% if req.status == 'RESOLVED' %}<span class="badge badge-approved">Одобрено/Сделано</span>
+                        {% else %}<span class="badge badge-rejected">Отклонено</span>{% endif %}
+                    </td>
+                    <td class="text-muted">{{ req.resolution_comment or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty" style="padding:40px;">История пуста</div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -31,7 +31,6 @@ class RepairStatus(str, enum.Enum):
     OPEN = "OPEN"           # Требует ремонта
     IN_PROGRESS = "IN_PROGRESS"  # В ремонте
     RESOLVED = "RESOLVED"   # Отремонтировано
-
 class TripEventType(str, enum.Enum):
     BORDER_QUEUE_START = "BORDER_QUEUE_START" 
     BORDER_QUEUE_END = "BORDER_QUEUE_END"
@@ -39,6 +38,17 @@ class TripEventType(str, enum.Enum):
     UNLOADING_END = "UNLOADING_END"
     CUSTOMS_START = "CUSTOMS_START"
     CUSTOMS_END = "CUSTOMS_END"
+
+class RequestType(str, enum.Enum):
+    BORDER_QUEUE = "BORDER_QUEUE"
+    PER_DIEM = "PER_DIEM"
+    FOREIGN_EXPENSE = "FOREIGN_EXPENSE"
+    OTHER = "OTHER"
+
+class RequestStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    RESOLVED = "RESOLVED"
+    REJECTED = "REJECTED"
 
 class Driver(Base):
     __tablename__ = "drivers"
@@ -59,6 +69,25 @@ class Driver(Base):
     trips = relationship("Trip", back_populates="driver", cascade="all, delete-orphan")
     vehicle = relationship("Vehicle", back_populates="drivers")
     documents = relationship("DriverDocument", back_populates="driver", cascade="all, delete-orphan", order_by="DriverDocument.uploaded_at.desc()")
+    requests = relationship("DriverRequest", back_populates="driver", cascade="all, delete-orphan", order_by="DriverRequest.created_at.desc()")
+
+class DriverRequest(Base):
+    __tablename__ = "driver_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=True)
+    request_type = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    amount = Column(Float, nullable=True)     # If asking for money
+    currency = Column(String, nullable=True)  # USD, EUR, RUB, KZT
+    status = Column(String, default=RequestStatus.PENDING)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolution_comment = Column(String, nullable=True)
+
+    driver = relationship("Driver", back_populates="requests")
+    trip = relationship("Trip")
 
 class Vehicle(Base):
     __tablename__ = "vehicles"
