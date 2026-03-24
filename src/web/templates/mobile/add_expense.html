@@ -57,6 +57,12 @@
                     oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                     class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-400 bg-white outline-none">
             </div>
+            <div id="other-card-container" class="mt-4 hidden animate-fade-in">
+                <label class="block text-gray-700 text-sm font-bold mb-1" data-i18n="pay_enter_card">Введите номер карты:</label>
+                <input type="text" name="fuel_card_number" id="fuel_card_number" placeholder="Например: 4400 1100 0000 0000"
+                    oninput="this.value = this.value.replace(/[^0-9 ]/g, '')"
+                    class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-all outline-none">
+            </div>
             <div>
                 <label class="block text-gray-700 text-base font-bold mb-1">Название АЗС</label>
                 <input type="text" name="station" id="station" placeholder="Shell Алматы"
@@ -81,28 +87,16 @@
         </div>
 
         <!-- Payment Method -->
-        <div id="fuel-card-field" class="hidden">
-            <label class="block text-gray-700 text-lg font-bold mb-2">💳 Способ оплаты</label>
-            <select id="payment_method_select" onchange="onPaymentMethodChange()"
-                class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none mb-3">
-                {% if fuel_card_number %}
-                <option value="{{ fuel_card_number }}">Моя карта ({{ fuel_card_number|truncate(8, True) }})</option>
+        <div id="payment-method-container" class="mt-4 hidden animate-fade-in">
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="payment_method_label">💳 Способ оплаты</label>
+            <select name="payment_method" id="payment_method_select" onchange="onPaymentMethodChange()" class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-all outline-none">
+                {% if driver.fuel_card_number %}
+                <option value="CARD_{{ driver.fuel_card_number }}" data-i18n="pay_my_card">Моя карта (**** {{ driver.fuel_card_number[-4:] if driver.fuel_card_number|length >= 4 else driver.fuel_card_number }})</option>
                 {% endif %}
-                <option value="CASH">💵 Наличные</option>
-                <option value="OTHER_CARD" {% if not fuel_card_number %}selected{% endif %}>💳 Другая карта (указать вручную)</option>
+                <option value="CASH" data-i18n="pay_cash">💵 Наличные</option>
+                <option value="OTHER_CARD" data-i18n="pay_other_card">💳 Другая карта (указать вручную)</option>
             </select>
-            
-            <div id="other-card-div" class="{% if fuel_card_number %}hidden{% endif %}">
-                <input type="text" name="fuel_card_number" id="fuel_card_number" value="{{ fuel_card_number or '' }}"
-                    placeholder="Пример: 4433 2211 0000 9999"
-                    class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 bg-gray-50 focus:bg-white outline-none tracking-wider">
-            </div>
-            
-            {% if fuel_card_number %}
-            <div id="saved-card-hint" class="text-green-600 text-sm font-bold mt-1">✓ Выбрана ваша сохранённая карта</div>
-            {% endif %}
         </div>
-
 
 
         <div>
@@ -125,41 +119,46 @@
     function onTypeChange() {
         const type = document.getElementById('expense_type').value;
         const fuelFields = document.getElementById('fuel-fields');
-        const fuelCardField = document.getElementById('fuel-card-field');
+        const paymentMethodContainer = document.getElementById('payment-method-container');
         const liters = document.getElementById('liters');
         const odometer = document.getElementById('odometer');
         if (type === 'FUEL') {
             fuelFields.classList.remove('hidden');
-            fuelCardField.classList.remove('hidden');
+            paymentMethodContainer.classList.remove('hidden');
             liters.required = true;
             odometer.required = true;
         } else {
             fuelFields.classList.add('hidden');
-            fuelCardField.classList.add('hidden');
+            paymentMethodContainer.classList.add('hidden');
             liters.required = false;
             odometer.required = false;
         }
+        onPaymentMethodChange(); // Re-evaluate payment method visibility
     }
 
     function onPaymentMethodChange() {
         const pm = document.getElementById('payment_method_select').value;
-        const otherDiv = document.getElementById('other-card-div');
+        const otherCardDiv = document.getElementById('other-card-container');
         const input = document.getElementById('fuel_card_number');
-        const savedHint = document.getElementById('saved-card-hint');
         
         if (pm === 'OTHER_CARD') {
-            otherDiv.classList.remove('hidden');
+            otherCardDiv.classList.remove('hidden');
             input.value = ''; // let them type
-            if(savedHint) savedHint.classList.add('hidden');
+            input.name = 'fuel_card_number'; // Ensure name is set for submission
         } else if (pm === 'CASH') {
-            otherDiv.classList.add('hidden');
-            input.value = 'Наличные';
-            if(savedHint) savedHint.classList.add('hidden');
-        } else {
+            otherCardDiv.classList.add('hidden');
+            input.value = 'CASH'; // Set value for cash
+            input.name = 'fuel_card_number'; // Ensure name is set for submission
+        } else if (pm.startsWith('CARD_')) {
             // It's the saved card
-            otherDiv.classList.add('hidden');
-            input.value = pm;
-            if(savedHint) savedHint.classList.remove('hidden');
+            otherCardDiv.classList.add('hidden');
+            input.value = pm.substring(5); // Extract card number from "CARD_XXXX"
+            input.name = 'fuel_card_number'; // Ensure name is set for submission
+        } else {
+            // Default or unknown, hide and clear
+            otherCardDiv.classList.add('hidden');
+            input.value = '';
+            input.name = ''; // Prevent submission if not relevant
         }
     }
 

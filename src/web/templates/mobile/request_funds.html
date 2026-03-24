@@ -15,26 +15,26 @@
         </div>
     </div>
 
-    <h1 class="text-2xl font-black text-center mb-2 uppercase tracking-wide text-gray-800">Запрос диспетчеру</h1>
-    <p class="text-center text-gray-500 font-medium mb-6">Отправьте заявку, если вам нужно оплатить очередь или нужны суточные.</p>
+    <h1 class="text-2xl font-black text-center mb-2 uppercase tracking-wide text-gray-800" data-i18n="req_title">Запрос диспетчеру</h1>
+    <p class="text-center text-gray-500 font-medium mb-6" data-i18n="req_subtitle">Отправьте заявку, если вам нужно оплатить очередь или нужны суточные.</p>
 
     <form method="POST" action="/app/create-request" class="space-y-6 ajax-compress-form">
         
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">Выберите тип запроса:</label>
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="req_type_label">Выберите тип запроса:</label>
             <select name="request_type" required id="req-type-sel" onchange="toggleAmount()"
                 class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500 bg-gray-50 focus:bg-white outline-none">
-                <option value="">— Выбрать —</option>
-                <option value="BORDER_QUEUE">Отметиться (Граница / СВХ / Очередь)</option>
-                <option value="PER_DIEM">Выдать суточные</option>
-                <option value="FOREIGN_EXPENSE">Расходы в другой стране (ПЛАТОН/Прочее)</option>
-                <option value="REPAIR">Сообщить о поломке авто</option>
-                <option value="OTHER">Другое сообщение (ЧП / Задержка)</option>
+                <option value="" data-i18n="req_type_placeholder">— Выбрать —</option>
+                <option value="BORDER_QUEUE" data-i18n="req_type_border">Отметиться (Граница / СВХ / Очередь)</option>
+                <option value="PER_DIEM" data-i18n="req_type_per_diem">Выдать суточные</option>
+                <option value="FOREIGN_EXPENSE" data-i18n="req_type_foreign">Расходы в другой стране (ПЛАТОН/Прочее)</option>
+                <option value="REPAIR" data-i18n="req_type_repair">Сообщить о поломке авто</option>
+                <option value="OTHER" data-i18n="req_type_other">Другое сообщение (ЧП / Задержка)</option>
             </select>
         </div>
 
         <div id="amount-div" style="display:none;">
-            <label class="block text-gray-700 text-lg font-bold mb-2">Сумма и валюта (если применимо)</label>
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="req_amount_label">Сумма и валюта (если применимо)</label>
             <div class="flex gap-2">
                 <input type="number" step="0.01" name="amount" placeholder="Например: 5000" 
                     oninput="this.value = this.value.replace(/[^0-9.]/g, '')"
@@ -50,14 +50,14 @@
         </div>
 
         <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2">Комментарий (обязательно)</label>
-            <textarea name="description" rows="3" required placeholder="Для чего нужны средства или какую очередь бронировать..." 
+            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="req_comment_label">Комментарий (обязательно)</label>
+            <textarea name="description" rows="3" required placeholder="Для чего нужны средства или какую очередь бронировать..." data-i18n="req_comment_placeholder"
                 class="w-full text-lg p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500 bg-gray-50 focus:bg-white outline-none"></textarea>
         </div>
 
         <button type="submit"
             class="w-full text-white text-2xl font-black py-6 rounded-2xl shadow-[0_6px_0_#4338ca] active:shadow-none active:translate-y-2 transition-all mt-8 bg-gradient-to-b from-indigo-500 to-indigo-600 flex justify-center items-center space-x-3">
-            <span>ОТПРАВИТЬ</span>
+            <span data-i18n="req_send">ОТПРАВИТЬ</span>
         </button>
     </form>
 </div>
@@ -65,17 +65,17 @@
 <!-- History -->
 {% if requests %}
 <div class="mt-8 bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
-    <h3 class="text-xl font-black text-gray-800 border-b pb-2 mb-4">💬 Мои заявки:</h3>
+    <h3 class="text-xl font-black text-gray-800 border-b pb-2 mb-4" data-i18n="req_history">💬 Мои заявки/сообщения:</h3>
     <ul class="space-y-4">
         {% for req in requests %}
         <li class="p-3 bg-gray-50 border rounded-xl relative">
             <div class="flex justify-between items-start mb-2">
                 <div class="font-bold text-gray-800 text-sm">
-                    {% if req.request_type == 'BORDER_QUEUE' %}Отметка на границе
-                    {% elif req.request_type == 'PER_DIEM' %}Суточные
-                    {% elif req.request_type == 'FOREIGN_EXPENSE' %}Расходы (ин. валюта)
-                    {% elif req.request_type == 'REPAIR' %}Поломка
-                    {% else %}Прочее сообщениe{% endif %}
+                    {% if req.request_type == 'BORDER_QUEUE' %}<span data-i18n="hist_border">Отметка на границе</span>
+                    {% elif req.request_type == 'PER_DIEM' %}<span data-i18n="hist_per_diem">Суточные</span>
+                    {% elif req.request_type == 'FOREIGN_EXPENSE' %}<span data-i18n="hist_foreign">Расходы (ин. валюта)</span>
+                    {% elif req.request_type == 'REPAIR' %}<span data-i18n="hist_repair">Поломка</span>
+                    {% else %}<span data-i18n="hist_other">Прочее сообщениe</span>{% endif %}
                 </div>
                 <div class="text-xs font-bold px-2 py-1 rounded 
                     {% if req.status == 'PENDING' %}bg-yellow-100 text-yellow-800
