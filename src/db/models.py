@@ -63,6 +63,10 @@ class Vehicle(Base):
     year = Column(Integer, nullable=True)
     fuel_norm_per_100km = Column(Float, nullable=True)
 
+    # Predictive Maintenance
+    maintenance_interval_km = Column(Integer, nullable=True, default=60000)
+    last_maintenance_odometer = Column(Integer, nullable=True, default=0)
+
     trips = relationship("Trip", back_populates="vehicle", cascade="all, delete-orphan")
     drivers = relationship("Driver", back_populates="vehicle")
     repairs = relationship("VehicleRepair", back_populates="vehicle", cascade="all, delete-orphan", order_by="VehicleRepair.created_at.desc()")

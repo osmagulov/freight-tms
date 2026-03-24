@@ -40,6 +40,16 @@
                     <input type="number" name="fuel_norm_per_100km" step="0.1" min="0" placeholder="28.5">
                 </div>
             </div>
+            <div class="form-grid-2">
+                <div class="form-row">
+                    <label data-i18n="maintenance_interval">Интервал ТО (км)</label>
+                    <input type="number" name="maintenance_interval_km" min="0" value="60000">
+                </div>
+                <div class="form-row">
+                    <label data-i18n="last_maintenance_odometer">Одометр последнего ТО</label>
+                    <input type="number" name="last_maintenance_odometer" min="0" value="0">
+                </div>
+            </div>
             <div class="action-group" style="margin-top:8px;">
                 <button type="submit" class="btn" data-i18n="add_btn">Добавить</button>
                 <a href="/panel/fleet" class="btn btn-ghost" data-i18n="cancel">Отмена</a>

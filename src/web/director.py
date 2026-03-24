@@ -419,3 +419,96 @@ async def director_driver_history(
         },
     )
 
+
+@router.get("/rating", response_class=HTMLResponse)
+async def director_rating(
+    request: Request,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from_dt, to_dt = _parse_date_range(from_date, to_date)
+    fd_str = from_dt.strftime("%Y-%m-%d")
+    td_str = to_dt.strftime("%Y-%m-%d")
+
+    async with async_session() as session:
+        trips_result = await session.execute(
+            select(Trip)
+            .options(selectinload(Trip.driver), selectinload(Trip.expenses))
+            .where(Trip.created_at >= from_dt, Trip.created_at <= to_dt)
+            .where(Trip.status == "COMPLETED")
+        )
+        trips = trips_result.scalars().all()
+
+        anomalies_result = await session.execute(
+            select(FuelAnomaly).where(FuelAnomaly.created_at >= from_dt, FuelAnomaly.created_at <= to_dt)
+        )
+        anomalies = anomalies_result.scalars().all()
+
+    # Aggregate by driver
+    from collections import defaultdict
+    driver_stats = defaultdict(lambda: {
+        "name": "Unknown",
+        "trips_count": 0,
+        "total_km": 0,
+        "total_fines_kzt": 0,
+        "total_repairs_kzt": 0,
+        "total_fuel_kzt": 0,
+        "anomalies_count": 0,
+        "expenses": 0
+    })
+
+    # Map anomalies to trip for easy lookup (or just use driver_id if anomaly had it, but anomaly has trip_id)
+    anomaly_counts = defaultdict(int)
+    for a in anomalies:
+        anomaly_counts[a.trip_id] += 1
+
+    for t in trips:
+        if not t.driver:
+            continue
+        d_id = t.driver_id
+        stats = driver_stats[d_id]
+        stats["name"] = t.driver.name or str(t.driver.tg_id)
+        stats["trips_count"] += 1
+        
+        km = (t.end_odometer - t.start_odometer) if t.end_odometer and t.start_odometer and t.end_odometer >= t.start_odometer else 0
+        stats["total_km"] += km
+        stats["anomalies_count"] += anomaly_counts.get(t.id, 0)
+
+        for e in t.expenses:
+            amt = e.amount_kzt if e.amount_kzt is not None else e.amount
+            stats["expenses"] += amt
+            if e.expense_type == "FINE":
+                stats["total_fines_kzt"] += amt
+            elif e.expense_type == "REPAIR":
+                stats["total_repairs_kzt"] += amt
+            elif e.expense_type == "FUEL":
+                stats["total_fuel_kzt"] += amt
+
+    # Calculate scores
+    leaderboard = []
+    for d_id, st in driver_stats.items():
+        km = st["total_km"] or 1 # avoid div zero
+        st["fines_per_10k"] = (st["total_fines_kzt"] / km) * 10000 if km > 1 else 0
+        st["repairs_per_10k"] = (st["total_repairs_kzt"] / km) * 10000 if km > 1 else 0
+        
+        # Base score 100. Deduct points for anomalies, high fines.
+        score = 100
+        score -= st["anomalies_count"] * 10
+        score -= (st["total_fines_kzt"] / max(st["trips_count"], 1)) / 5000  # -1 pt per 5000 KZT fine per trip
+        score = max(min(int(score), 100), 0)
+        st["score"] = score
+        
+        leaderboard.append((d_id, st))
+
+    # Sort descending by score
+    leaderboard.sort(key=lambda x: x[1]["score"], reverse=True)
+
+    return templates.TemplateResponse(request, "director_rating.html", {
+        "request": request,
+        "user": current_user,
+        "from_date": fd_str,
+        "to_date": td_str,
+        "leaderboard": leaderboard
+    })
+

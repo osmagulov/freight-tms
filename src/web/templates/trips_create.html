@@ -11,6 +11,9 @@
 <div class="card" style="max-width:680px;">
     <div class="card-hdr"><span class="card-title" data-i18n="trip_data">Данные рейса</span></div>
     <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger mb-3" style="color:red; font-weight:bold;">{{ error }}</div>
+        {% endif %}
         <form action="/panel/trips/create" method="post">
 
             <div class="form-grid-2">

@@ -30,6 +30,14 @@
                 <input type="number" name="fuel_norm_per_100km" step="0.1" min="0"
                        value="{{ vehicle.fuel_norm_per_100km or '' }}" placeholder="28.5">
             </div>
+            <div class="form-row">
+                <label>Интервал ТО (км)</label>
+                <input type="number" name="maintenance_interval_km" min="0" value="{{ vehicle.maintenance_interval_km or '60000' }}">
+            </div>
+            <div class="form-row">
+                <label>Одометр последнего ТО (км)</label>
+                <input type="number" name="last_maintenance_odometer" min="0" value="{{ vehicle.last_maintenance_odometer or '0' }}">
+            </div>
             <div class="action-group" style="margin-top:8px;">
                 <button type="submit" class="btn">Сохранить</button>
                 <a href="/panel/drivers" class="btn btn-ghost">Отмена</a>

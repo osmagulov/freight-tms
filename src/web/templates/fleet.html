@@ -39,6 +39,7 @@
                 <th data-i18n="make_model_year">Марка / Модель / Год</th>
                 <th data-i18n="status">Статус</th>
                 <th data-i18n="maintenance">Ремонты</th>
+                <th>Одометр (ТО)</th>
                 <th data-i18n="driver">Водитель</th>
                 <th data-i18n="trip">Рейс</th>
                 <th data-i18n="actions">Действия</th>
@@ -67,6 +68,16 @@
                     <a href="/panel/repairs?vehicle_id={{ vehicle.id }}&status=OPEN" class="badge badge-cancelled" style="text-decoration:none;">⚠️ {{ open_repairs }}</a>
                     {% else %}
                     <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="font-size:14px;">{{ "{:,.0f}".format(row.current_odometer) }} км</div>
+                    {% if row.km_to_maint < 1000 and row.km_to_maint > 0 %}
+                    <span class="badge bg-warning text-dark mt-1" style="font-size:11px;">ТО через {{ row.km_to_maint }} км</span>
+                    {% elif row.km_to_maint <= 0 %}
+                    <span class="badge bg-danger mt-1" style="font-size:11px;">ТО просрочено ({{ row.km_to_maint|abs }} км)</span>
+                    {% else %}
+                    <span class="text-muted" style="font-size:11px;">ТО через {{ "{:,.0f}".format(row.km_to_maint) }} км</span>
                     {% endif %}
                 </td>
                 <td>{{ active_trip.driver.name if active_trip and active_trip.driver else '—' }}</td>

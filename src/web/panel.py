@@ -198,6 +198,8 @@ async def vehicle_edit_submit(
     model: str = Form(default=""),
     year: str = Form(default=""),
     fuel_norm_per_100km: str = Form(default=""),
+    maintenance_interval_km: str = Form(default=""),
+    last_maintenance_odometer: str = Form(default=""),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
     async with async_session() as session:
@@ -208,6 +210,8 @@ async def vehicle_edit_submit(
             vehicle.model = model.strip() or None
             vehicle.year = int(year) if year.strip() else None
             vehicle.fuel_norm_per_100km = float(fuel_norm_per_100km) if fuel_norm_per_100km.strip() else None
+            vehicle.maintenance_interval_km = int(maintenance_interval_km) if maintenance_interval_km.strip() else 60000
+            vehicle.last_maintenance_odometer = int(last_maintenance_odometer) if last_maintenance_odometer.strip() else 0
             session.add(vehicle)
             await session.commit()
     return RedirectResponse(url="/panel/drivers", status_code=302)
@@ -423,6 +427,23 @@ async def create_trip_submit(
             return None
 
     async with async_session() as session:
+        # Check maintenance
+        vehicle = (await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id).options(selectinload(Vehicle.trips)))).scalars().first()
+        if vehicle:
+            max_trip_odometer = max((t.end_odometer for t in vehicle.trips if t.end_odometer), default=0)
+            current_odometer = max(max_trip_odometer, vehicle.last_maintenance_odometer or 0)
+            km_since_maint = current_odometer - (vehicle.last_maintenance_odometer or 0)
+            interval = vehicle.maintenance_interval_km or 60000
+            
+            if km_since_maint >= interval:
+                drivers = (await session.execute(select(Driver).where(Driver.status == "ACTIVE").order_by(Driver.name))).scalars().all()
+                vehicles = (await session.execute(select(Vehicle).order_by(Vehicle.license_plate))).scalars().all()
+                return templates.TemplateResponse(request, "trips_create.html", {
+                    "request": request, "user": current_user, "TripStatus": TripStatus,
+                    "drivers": drivers, "vehicles": vehicles,
+                    "error": f"Внимание! У выбранного борта ({vehicle.license_plate}) пройдено ТО или перепробег. Обновите ТО перед отправкой в рейс."
+                }, status_code=400)
+
         trip = Trip(
             driver_id=driver_id,
             vehicle_id=vehicle_id,
@@ -773,7 +794,6 @@ async def fleet_dashboard(
         )
         vehicles = vehicles_result.scalars().all()
 
-    # For each vehicle, find active trip and open repair count — Python-side filter
     vehicle_data = []
     for vehicle in vehicles:
         active_trip = next(
@@ -784,7 +804,23 @@ async def fleet_dashboard(
             1 for r in vehicle.repairs
             if r.status in (RepairStatus.OPEN, RepairStatus.IN_PROGRESS)
         )
-        vehicle_data.append({"vehicle": vehicle, "active_trip": active_trip, "open_repairs": open_repairs})
+        
+        # Odometer calculation
+        max_trip_odometer = max((t.end_odometer for t in vehicle.trips if t.end_odometer), default=0)
+        current_odometer = max(max_trip_odometer, vehicle.last_maintenance_odometer or 0)
+        
+        interval = vehicle.maintenance_interval_km or 60000
+        last_maint = vehicle.last_maintenance_odometer or 0
+        km_since_maint = current_odometer - last_maint
+        km_to_maint = interval - km_since_maint
+        
+        vehicle_data.append({
+            "vehicle": vehicle, 
+            "active_trip": active_trip, 
+            "open_repairs": open_repairs,
+            "km_to_maint": km_to_maint,
+            "current_odometer": current_odometer
+        })
 
     return templates.TemplateResponse(request, "fleet.html",
         {
@@ -888,6 +924,8 @@ async def vehicle_add_submit(
     model: str = Form(default=""),
     year: str = Form(default=""),
     fuel_norm_per_100km: str = Form(default=""),
+    maintenance_interval_km: str = Form(default="60000"),
+    last_maintenance_odometer: str = Form(default="0"),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
     plate = license_plate.upper().strip()
@@ -904,6 +942,8 @@ async def vehicle_add_submit(
             model=model.strip() or None,
             year=int(year) if year.strip() else None,
             fuel_norm_per_100km=float(fuel_norm_per_100km) if fuel_norm_per_100km.strip() else None,
+            maintenance_interval_km=int(maintenance_interval_km) if maintenance_interval_km.strip() else 60000,
+            last_maintenance_odometer=int(last_maintenance_odometer) if last_maintenance_odometer.strip() else 0,
         )
         session.add(vehicle)
         await session.commit()
