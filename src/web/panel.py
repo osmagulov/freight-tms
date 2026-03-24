@@ -241,6 +241,120 @@ async def list_expenses(
     )
 
 
+# --- EXCEL DOCUMENT GENERATOR ---
+@router.get("/documents/generator", response_class=HTMLResponse)
+async def docs_generator_get(request: Request, current_user: dict = Depends(get_current_user_from_cookie)):
+    """Render the Excel Generator page for dispatchers."""
+    async with async_session() as session:
+        # Load trips to attach data to doc
+        result = await session.execute(
+            select(Trip).options(selectinload(Trip.driver), selectinload(Trip.vehicle)).order_by(Trip.id.desc())
+        )
+        trips = result.scalars().all()
+    
+    return templates.TemplateResponse(
+        "documents_generator.html",
+        {"request": request, "user": current_user, "trips": trips}
+    )
+
+import io
+import re
+from fastapi.responses import Response
+
+@router.post("/documents/generate_excel")
+async def docs_generate_excel_post(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """Generates an Excel file by replacing {{tags}} in the template with user payload."""
+    form_data = await request.form()
+    trip_id = form_data.get("trip_id")
+    template_name = form_data.get("template_name", "cmr_template.xlsx")
+    
+    # Secure template path
+    import os
+    safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '', template_name)
+    template_path = os.path.join("src", "assets", "docs_templates", safe_name)
+    
+    if not os.path.exists(template_path):
+        return templates.TemplateResponse(
+            "documents_generator.html",
+            {"request": request, "user": current_user, "trips": [], "error": f"Шаблон {safe_name} не найден. Обратитесь к админу."}
+        )
+        
+    context_data = {}
+    
+    # 1. Autofill from Trip if selected
+    if trip_id and str(trip_id).isdigit():
+        async with async_session() as session:
+            result = await session.execute(
+                select(Trip).options(selectinload(Trip.driver), selectinload(Trip.vehicle)).where(Trip.id == int(trip_id))
+            )
+            trip = result.scalars().first()
+            if trip:
+                context_data = {
+                    "route_from": trip.route_from,
+                    "route_to": trip.route_to,
+                    "driver_name": trip.driver.name if trip.driver else "",
+                    "truck_plate": trip.vehicle.plate_number if trip.vehicle else "",
+                    "trailer_plate": trip.vehicle.trailer_plate if trip.vehicle else "",
+                    "client_name": trip.client_name,
+                    "cargo_name": trip.cargo_name,
+                    "cargo_weight": str(trip.cargo_weight) if trip.cargo_weight else "",
+                    "price": str(trip.price) if trip.price else "",
+                }
+                
+    # 2. Override with manual form variables (data[xxx])
+    for key, value in form_data.items():
+        if key.startswith("data[") and key.endswith("]"):
+            var_name = key[5:-1]
+            if value and value.strip(): # if user explicitly typed something
+                context_data[var_name] = value.strip()
+                
+    # 3. Process openpyxl
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(template_path)
+        
+        # We loop through all cells in all sheets and replace {{var_name}}
+        pattern = re.compile(r'\{\{(.*?)\}\}')
+        
+        def replace_text(text, ctx):
+            if not text: return text
+            matches = pattern.finditer(text)
+            for m in matches:
+                tag = m.group(0)
+                var = m.group(1).strip()
+                val = ctx.get(var, "")
+                text = text.replace(tag, val)
+            return text
+
+        for ws in wb.worksheets:
+            for row in ws.iter_rows():
+                for cell in row:
+                    if cell.value and isinstance(cell.value, str):
+                        original = cell.value
+                        new_val = replace_text(original, context_data)
+                        if new_val != original:
+                            cell.value = new_val
+
+        # Save to memory
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        headers = {
+            "Content-Disposition": f'attachment; filename="Generated_{safe_name}"'
+        }
+        return Response(output.read(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
+        
+    except Exception as e:
+        return templates.TemplateResponse(
+            "documents_generator.html",
+            {"request": request, "user": current_user, "trips": [], "error": f"Ошибка сборки Excel: {str(e)}"}
+        )
+
+
 @router.post("/expenses/{expense_id}/approve", response_class=HTMLResponse)
 async def approve_expense(
     request: Request,

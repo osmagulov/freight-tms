@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Генератор документов | Freight TMS{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="fw-black mb-0"><i class="bi bi-file-earmark-spreadsheet text-success"></i> Генератор Документов</h2>
+        <p class="text-muted">Формирование СМР, Актов и Договоров в Excel (.xlsx) по шаблонам</p>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+        <form action="/panel/documents/generate_excel" method="POST">
+            <div class="row">
+                <!-- Trip Selection -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Привязать к рейсу (Автозаполнение):</label>
+                    <select name="trip_id" class="form-select select2-basic" id="trip-select">
+                        <option value="">— Создать пустой без привязки —</option>
+                        {% for trip in trips %}
+                        <option value="{{ trip.id }}">
+                            Рейс #{{ trip.id }} | {{ trip.route_from }} → {{ trip.route_to }} 
+                            (Водитель: {{ trip.driver.name if trip.driver else 'Нет' }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Выберите рейс, чтобы система автоматически подставила водителя, машину, маршрут.</div>
+                </div>
+
+                <!-- Template Selection -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Шаблон (Форма Excel):</label>
+                    <select name="template_name" class="form-select" required>
+                        <option value="cmr_template.xlsx">CMR (Международная накладная)</option>
+                        <!-- Add more here internally like invoice.xlsx later if they put files in the folder -->
+                    </select>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <h5 class="fw-bold mb-3">Ручное заполнение атрибутов:</h5>
+            <p class="text-muted small">Оставьте поля пустыми, если выбрали рейс — они подтянутся из базы. Если вы впишете текст здесь, он перебьет автозаполнение.</p>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Отправитель <code>{{"{{sender_name}}"}}</code></label>
+                    <input type="text" name="data[sender_name]" class="form-control" placeholder="Рога и Копыта ООО">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Получатель <code>{{"{{receiver_name}}"}}</code></label>
+                    <input type="text" name="data[receiver_name]" class="form-control" placeholder="Зарубеж Импорт ТОО">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Груз <code>{{"{{cargo_name}}"}}</code></label>
+                    <input type="text" name="data[cargo_name]" class="form-control" placeholder="ТНП, коробки, паллеты...">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Вес груза <code>{{"{{cargo_weight}}"}}</code></label>
+                    <input type="text" name="data[cargo_weight]" class="form-control" placeholder="20000">
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+                <div class="col-md-4">
+                    <label class="form-label">Маршрут Откуда <code>{{"{{route_from}}"}}</code></label>
+                    <input type="text" name="data[route_from]" class="form-control" placeholder="Алматы">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Маршрут Куда <code>{{"{{route_to}}"}}</code></label>
+                    <input type="text" name="data[route_to]" class="form-control" placeholder="Москва">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Водитель ФИО <code>{{"{{driver_name}}"}}</code></label>
+                    <input type="text" name="data[driver_name]" class="form-control">
+                </div>
+            </div>
+
+            <div class="mt-4 border-top pt-4">
+                <button type="submit" class="btn btn-success btn-lg px-5 fw-bold shadow-sm">
+                    <i class="bi bi-file-excel"></i> Сгенерировать .xlsx
+                </button>
+                <div class="mt-2 text-muted small"><i class="bi bi-info-circle"></i> Загрузите ваши собственные шаблоны в папку <code>src/assets/docs_templates/</code> для расширения списка.</div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (typeof jQuery !== 'undefined') {
+            $('.select2-basic').select2({ theme: 'bootstrap-5' });
+        }
+    });
+</script>
+{% endblock %}
