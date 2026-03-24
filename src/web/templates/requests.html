@@ -37,10 +37,11 @@
                         {% else %}—{% endif %}
                     </td>
                     <td>
-                        {% if req.request_type == 'BORDER_QUEUE' %}<span class="badge" style="background:#e0e7ff; color:#3730a3;">Очередь на границу</span>
+                        {% if req.request_type == 'BORDER_QUEUE' %}<span class="badge" style="background:#e0e7ff; color:#3730a3;">Отметка (Граница/СВХ)</span>
                         {% elif req.request_type == 'PER_DIEM' %}<span class="badge" style="background:#dcfce7; color:#166534;">Суточные</span>
                         {% elif req.request_type == 'FOREIGN_EXPENSE' %}<span class="badge" style="background:#fef9c3; color:#854d0e;">Ин. расходы</span>
-                        {% else %}<span class="badge">Другое</span>{% endif %}
+                        {% elif req.request_type == 'REPAIR' %}<span class="badge" style="background:#fee2e2; color:#b91c1c;">Поломка</span>
+                        {% else %}<span class="badge">Сообщение / ЧП</span>{% endif %}
                     </td>
                     <td>{{ req.description }}</td>
                     <td class="fw-bold">{% if req.amount %}{{ req.amount }} {{ req.currency }}{% else %}—{% endif %}</td>
@@ -87,10 +88,11 @@
                     <td class="text-muted">{{ req.resolved_at.strftime('%d.%m %H:%M') if req.resolved_at else '—' }}</td>
                     <td class="fw-bold">{{ req.driver.name }}</td>
                     <td>
-                        {% if req.request_type == 'BORDER_QUEUE' %}<span class="text-muted">Очередь</span>
+                        {% if req.request_type == 'BORDER_QUEUE' %}<span class="text-muted">Граница/СВХ</span>
                         {% elif req.request_type == 'PER_DIEM' %}<span class="text-muted">Суточные</span>
                         {% elif req.request_type == 'FOREIGN_EXPENSE' %}<span class="text-muted">Ин. расходы</span>
-                        {% else %}<span class="text-muted">Другое</span>{% endif %}
+                        {% elif req.request_type == 'REPAIR' %}<span class="text-muted" style="color:#b91c1c;">Поломка</span>
+                        {% else %}<span class="text-muted">Сообщение/ЧП</span>{% endif %}
                     </td>
                     <td>{{ req.description }} {% if req.amount %}(<b>{{ req.amount }} {{ req.currency }}</b>){% endif %}</td>
                     <td>

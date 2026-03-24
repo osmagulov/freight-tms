@@ -25,10 +25,11 @@
             <select name="request_type" required id="req-type-sel" onchange="toggleAmount()"
                 class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500 bg-gray-50 focus:bg-white outline-none">
                 <option value="">— Выбрать —</option>
-                <option value="BORDER_QUEUE">Постановка в очередь (Граница)</option>
+                <option value="BORDER_QUEUE">Отметиться (Граница / СВХ / Очередь)</option>
                 <option value="PER_DIEM">Выдать суточные</option>
                 <option value="FOREIGN_EXPENSE">Расходы в другой стране (ПЛАТОН/Прочее)</option>
-                <option value="OTHER">Другой запрос</option>
+                <option value="REPAIR">Сообщить о поломке авто</option>
+                <option value="OTHER">Другое сообщение (ЧП / Задержка)</option>
             </select>
         </div>
 
@@ -70,10 +71,11 @@
         <li class="p-3 bg-gray-50 border rounded-xl relative">
             <div class="flex justify-between items-start mb-2">
                 <div class="font-bold text-gray-800 text-sm">
-                    {% if req.request_type == 'BORDER_QUEUE' %}Очередь на границу
+                    {% if req.request_type == 'BORDER_QUEUE' %}Отметка на границе
                     {% elif req.request_type == 'PER_DIEM' %}Суточные
                     {% elif req.request_type == 'FOREIGN_EXPENSE' %}Расходы (ин. валюта)
-                    {% else %}Прочее{% endif %}
+                    {% elif req.request_type == 'REPAIR' %}Поломка
+                    {% else %}Прочее сообщениe{% endif %}
                 </div>
                 <div class="text-xs font-bold px-2 py-1 rounded 
                     {% if req.status == 'PENDING' %}bg-yellow-100 text-yellow-800

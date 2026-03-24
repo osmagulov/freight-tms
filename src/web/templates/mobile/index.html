@@ -35,12 +35,6 @@
         </div>
     </div>
 
-    <!-- loc button (manual) -->
-    <button onclick="sendLocation()" id="loc-btn"
-        class="block w-full bg-indigo-500 text-white text-center text-base font-black h-16 rounded-2xl shadow-[0_6px_0_#3730a3] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-3 mt-3 px-4 bg-gradient-to-b from-indigo-400 to-indigo-600">
-        <span class="text-3xl drop-shadow-md" id="loc-icon">📍</span>
-        <span id="loc-text" class="tracking-wide" data-i18n="send_now">ОТПРАВИТЬ СЕЙЧАС</span>
-    </button>
 
     <!-- open repairs warning -->
     {% if open_repairs %}
@@ -56,12 +50,7 @@
     </div>
     {% endif %}
 
-    <!-- report repair button -->
-    <a href="/app/report-repair"
-        class="block w-full bg-orange-500 text-white text-center text-xl sm:text-2xl font-black h-24 rounded-2xl shadow-[0_8px_0_#c2410c] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center space-x-4 mt-4 px-4 bg-gradient-to-b from-orange-400 to-orange-600">
-        <span class="text-5xl drop-shadow-md">🔧</span>
-        <span class="tracking-wide" data-i18n="report_repair">СООБЩИТЬ О ПОЛОМКЕ</span>
-    </a>
+
 
     <!-- request funds / queue button -->
     <a href="/app/request-funds"
