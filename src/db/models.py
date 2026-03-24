@@ -32,6 +32,14 @@ class RepairStatus(str, enum.Enum):
     IN_PROGRESS = "IN_PROGRESS"  # В ремонте
     RESOLVED = "RESOLVED"   # Отремонтировано
 
+class TripEventType(str, enum.Enum):
+    BORDER_QUEUE_START = "BORDER_QUEUE_START" 
+    BORDER_QUEUE_END = "BORDER_QUEUE_END"
+    UNLOADING_START = "UNLOADING_START"
+    UNLOADING_END = "UNLOADING_END"
+    CUSTOMS_START = "CUSTOMS_START"
+    CUSTOMS_END = "CUSTOMS_END"
+
 class Driver(Base):
     __tablename__ = "drivers"
 
@@ -126,6 +134,18 @@ class Trip(Base):
     vehicle = relationship("Vehicle", back_populates="trips")
     expenses = relationship("Expense", back_populates="trip", cascade="all, delete-orphan")
     documents = relationship("TripDocument", back_populates="trip", cascade="all, delete-orphan")
+    events = relationship("TripEvent", back_populates="trip", cascade="all, delete-orphan", order_by="TripEvent.created_at")
+
+class TripEvent(Base):
+    __tablename__ = "trip_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=False)
+    event_type = Column(String, nullable=False)
+    location_name = Column(String, nullable=True) # e.g. "Хоргос"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    trip = relationship("Trip", back_populates="events")
 
 class Expense(Base):
     __tablename__ = "expenses"

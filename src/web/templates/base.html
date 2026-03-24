@@ -159,7 +159,8 @@
         .card-body  { padding: 20px; }
 
         /* ── Tables ── */
-        .table-wrap { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; border: 1px solid rgba(0,0,0,.04); }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-wrap { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow-x: auto; border: 1px solid rgba(0,0,0,.04); -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; }
         thead th {
             background: #f8fafc; font-size: 11px; font-weight: 700;
@@ -302,6 +303,28 @@
         }
         .lang-btn:hover { background: rgba(255,255,255,0.15); }
         .lang-btn.active { background: var(--accent); border-color: var(--accent); }
+
+        /* ── Mobile responsiveness ── */
+        @media (max-width: 800px) {
+            .sidebar { position: static; height: auto; width: 100%; border-right: none; border-bottom: 2px solid var(--accent); }
+            .sb-nav { display: flex; overflow-x: auto; padding: 0; white-space: nowrap; -webkit-overflow-scrolling: touch; background: #07090c; }
+            .sb-section { display: none; }
+            .sb-link { padding: 12px 14px; flex-shrink: 0; border-radius: 0; flex-direction: column; gap: 4px; font-size: 11px; }
+            .sb-link.active::before { top: auto; bottom: 0; left: 0; right: 0; height: 3px; width: auto; border-radius: 2px 2px 0 0; }
+            .sb-icon { margin: 0 auto; width: 24px; height: 24px; font-size: 12px; }
+            .sb-brand { display: none; } /* Or keep it smaller */
+            
+            .main-wrap { margin-left: 0; }
+            .container { padding: 16px; }
+            
+            .page-hdr { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+            .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+            .kpi { padding: 14px; }
+            .kpi-value { font-size: 24px; }
+            
+            .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; gap: 0; }
+            .filter-bar { padding: 10px; gap: 10px; }
+        }
     </style>
 </head>
 <body>
