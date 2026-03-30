@@ -299,14 +299,28 @@ async def docs_generate_excel_post(
             )
             trip = result.scalars().first()
             if trip:
+                # Heuristic for route parsing "A -> B"
+                r_from, r_to = "", ""
+                if trip.route_details and "→" in trip.route_details:
+                    parts = trip.route_details.split("→")
+                    r_from, r_to = parts[0].strip(), parts[1].strip()
+                elif trip.route_details and "->" in trip.route_details:
+                    parts = trip.route_details.split("->")
+                    r_from, r_to = parts[0].strip(), parts[1].strip()
+                elif trip.route_details and "-" in trip.route_details:
+                    parts = trip.route_details.split("-")
+                    r_from, r_to = parts[0].strip(), parts[1].strip()
+                else:
+                    r_from = trip.route_details or ""
+
                 context_data = {
-                    "route_from": trip.route_from,
-                    "route_to": trip.route_to,
+                    "route_from": r_from,
+                    "route_to": r_to,
                     "driver_name": trip.driver.name if trip.driver else "",
-                    "truck_plate": trip.vehicle.plate_number if trip.vehicle else "",
-                    "trailer_plate": trip.vehicle.trailer_plate if trip.vehicle else "",
-                    "client_name": trip.client_name,
-                    "cargo_name": trip.cargo_name,
+                    "truck_plate": trip.vehicle.license_plate if trip.vehicle else "",
+                    "trailer_plate": trip.vehicle.license_plate if trip.vehicle else "", # Fallback to tractor plate
+                    "client_name": trip.client_name or "",
+                    "cargo_name": trip.cargo_name or "",
                     "cargo_weight": str(trip.cargo_weight) if trip.cargo_weight else "",
                     "price": str(trip.price) if trip.price else "",
                 }
