@@ -27,7 +27,8 @@ class Settings(BaseSettings):
 
     # Admin credentials (env-based for Phase 1, no DB table needed)
     ADMIN_USERNAME: str = "dispatcher"
-    ADMIN_PASSWORD_HASH: str = ""  # Generate with: python -c "from pwdlib import PasswordHash; print(PasswordHash.recommended().hash('yourpassword'))"
+    ADMIN_PASSWORD: str = ""          # Plaintext — auto-hashed at startup if ADMIN_PASSWORD_HASH not set
+    ADMIN_PASSWORD_HASH: str = ""     # Preferred: pre-computed bcrypt hash
 
     # Director Telegram ID for anomaly digest notifications (ALERT-04)
     DIRECTOR_TG_ID: int = 0  # Set to actual director's Telegram user ID in env
@@ -51,11 +52,14 @@ class Settings(BaseSettings):
                 "Set a strong random secret via the JWT_SECRET_KEY env var before going to production. "
                 "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
-        if not self.ADMIN_PASSWORD_HASH:
+        if not self.ADMIN_PASSWORD_HASH and self.ADMIN_PASSWORD:
+            from pwdlib import PasswordHash
+            self.ADMIN_PASSWORD_HASH = PasswordHash.recommended().hash(self.ADMIN_PASSWORD)
+            logger.info("ADMIN_PASSWORD_HASH auto-generated from ADMIN_PASSWORD.")
+        elif not self.ADMIN_PASSWORD_HASH and not self.ADMIN_PASSWORD:
             logger.warning(
-                "SECURITY: ADMIN_PASSWORD_HASH is empty — admin panel login will be disabled. "
-                "Generate a hash with: python -c \"from pwdlib import PasswordHash; "
-                "print(PasswordHash.recommended().hash('yourpassword'))\""
+                "SECURITY: Neither ADMIN_PASSWORD nor ADMIN_PASSWORD_HASH is set — "
+                "admin panel login will be disabled. Set ADMIN_PASSWORD=yourpassword in env vars."
             )
         return self
 
