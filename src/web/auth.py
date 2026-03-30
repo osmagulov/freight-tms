@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import Cookie, HTTPException, Request
+from fastapi import Cookie, HTTPException
 from fastapi.responses import RedirectResponse
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
@@ -33,4 +33,13 @@ def hash_password(plain_password: str) -> str:
 
 
 def get_current_user_from_cookie(access_token: str = Cookie(default=None)) -> dict:
-    return {"username": "admin", "role": "dispatcher"}
+    if not access_token:
+        raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
+    try:
+        payload = jwt.decode(access_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        username: str = payload.get("sub")
+        if not username:
+            raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
+        return {"username": username, "sub": username, "role": payload.get("role", "dispatcher")}
+    except JWTError:
+        raise HTTPException(status_code=302, headers={"Location": "/panel/login"})

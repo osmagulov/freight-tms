@@ -35,7 +35,9 @@ from src.services.r2 import PHOTO_DIR
 @router.get("/photos/{path:path}")
 async def serve_photo(path: str):
     """Serve locally stored photos and documents."""
-    file_path = PHOTO_DIR / path
+    file_path = (PHOTO_DIR / path).resolve()
+    if not str(file_path).startswith(str(PHOTO_DIR.resolve())):
+        raise HTTPException(status_code=404, detail="File not found")
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
     ext = file_path.suffix.lower()

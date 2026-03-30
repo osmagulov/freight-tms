@@ -262,11 +262,13 @@ async def director_export(
 
     # UTF-8 BOM for Excel compatibility
     content = "\ufeff" + output.getvalue()
-    filename = f"expenses_{from_date or 'all'}_{to_date or 'all'}.csv"
+    safe_from = from_dt.strftime("%Y-%m-%d")
+    safe_to = to_dt.strftime("%Y-%m-%d")
+    filename = f"expenses_{safe_from}_{safe_to}.csv"
     return StreamingResponse(
         iter([content.encode("utf-8")]),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

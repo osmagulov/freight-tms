@@ -336,13 +336,13 @@
     </header>
 
     <div class="content-container">
-        {% block content %}{% endblock %}
-    </div>
-</main>
 {% else %}
     <div class="content-container" style="max-width: 480px; width: 100%;">
+{% endif %}
         {% block content %}{% endblock %}
     </div>
+{% if user %}
+</main>
 {% endif %}
 
 <script>

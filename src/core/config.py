@@ -1,4 +1,9 @@
+import logging
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -37,6 +42,22 @@ class Settings(BaseSettings):
         if url.startswith("postgresql://"):
             return url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return url
+
+    @model_validator(mode="after")
+    def _warn_insecure_defaults(self) -> "Settings":
+        if self.JWT_SECRET_KEY == "change-in-production":
+            logger.warning(
+                "SECURITY: JWT_SECRET_KEY is set to the default value. "
+                "Set a strong random secret via the JWT_SECRET_KEY env var before going to production. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        if not self.ADMIN_PASSWORD_HASH:
+            logger.warning(
+                "SECURITY: ADMIN_PASSWORD_HASH is empty — admin panel login will be disabled. "
+                "Generate a hash with: python -c \"from pwdlib import PasswordHash; "
+                "print(PasswordHash.recommended().hash('yourpassword'))\""
+            )
+        return self
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

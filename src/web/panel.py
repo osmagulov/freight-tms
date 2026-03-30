@@ -84,21 +84,43 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return RedirectResponse(url="/panel/drivers", status_code=302)
+    return templates.TemplateResponse(request, "login.html", {"request": request})
 
 
 @router.post("/login")
 async def login_submit(
     request: Request,
-    username: str = Form(default="admin"),
-    password: str = Form(default="admin"),
+    username: str = Form(...),
+    password: str = Form(...),
 ):
-    return RedirectResponse(url="/panel/drivers", status_code=302)
+    if username != settings.ADMIN_USERNAME:
+        return templates.TemplateResponse(
+            request, "login.html",
+            {"request": request, "error": "Неверный логин или пароль"},
+            status_code=401,
+        )
+    if not settings.ADMIN_PASSWORD_HASH or not verify_password(password, settings.ADMIN_PASSWORD_HASH):
+        return templates.TemplateResponse(
+            request, "login.html",
+            {"request": request, "error": "Неверный логин или пароль"},
+            status_code=401,
+        )
+    token = create_access_token({"sub": username, "role": "dispatcher"})
+    response = RedirectResponse(url="/panel/drivers", status_code=302)
+    response.set_cookie(
+        "access_token", token,
+        httponly=True,
+        max_age=settings.JWT_EXPIRE_MINUTES * 60,
+        samesite="lax",
+    )
+    return response
 
 
 @router.get("/logout")
 async def logout():
-    return RedirectResponse(url="/panel/drivers", status_code=302)
+    response = RedirectResponse(url="/panel/login", status_code=302)
+    response.delete_cookie("access_token")
+    return response
 
 
 @router.get("/drivers", response_class=HTMLResponse)
@@ -259,8 +281,7 @@ async def docs_generator_get(request: Request, current_user: dict = Depends(get_
         )
         trips = result.scalars().all()
     
-    return templates.TemplateResponse(
-        "documents_generator.html",
+    return templates.TemplateResponse(request, "documents_generator.html",
         {"request": request, "user": current_user, "trips": trips}
     )
 
@@ -284,8 +305,7 @@ async def docs_generate_excel_post(
     template_path = os.path.join("src", "assets", "docs_templates", safe_name)
     
     if not os.path.exists(template_path):
-        return templates.TemplateResponse(
-            "documents_generator.html",
+        return templates.TemplateResponse(request, "documents_generator.html",
             {"request": request, "user": current_user, "trips": [], "error": f"Шаблон {safe_name} не найден. Обратитесь к админу."}
         )
         
@@ -370,8 +390,7 @@ async def docs_generate_excel_post(
         return Response(output.read(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers=headers)
         
     except Exception as e:
-        return templates.TemplateResponse(
-            "documents_generator.html",
+        return templates.TemplateResponse(request, "documents_generator.html",
             {"request": request, "user": current_user, "trips": [], "error": f"Ошибка сборки Excel: {str(e)}"}
         )
 
@@ -389,13 +408,15 @@ async def approve_expense(
             .options(selectinload(Expense.trip).selectinload(Trip.driver))
         )
         expense = result.scalars().first()
-        if expense:
-            expense.status = "APPROVED"
-            expense.approved_by = current_user.get("sub", "dispatcher")
-            expense.approved_at = datetime.utcnow()
-            session.add(expense)
-            await session.commit()
-            await session.refresh(expense)
+        if not expense:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Expense not found")
+        expense.status = "APPROVED"
+        expense.approved_by = current_user.get("sub", "dispatcher")
+        expense.approved_at = datetime.utcnow()
+        session.add(expense)
+        await session.commit()
+        await session.refresh(expense)
     await notify_driver_expense_decision(expense, approved=True)
     return templates.TemplateResponse(request, "expense_row.html",
         {"request": request, "expense": expense},
@@ -416,14 +437,16 @@ async def reject_expense(
             .options(selectinload(Expense.trip).selectinload(Trip.driver))
         )
         expense = result.scalars().first()
-        if expense:
-            expense.status = "REJECTED"
-            expense.rejection_comment = comment or None
-            expense.approved_by = current_user.get("sub", "dispatcher")
-            expense.approved_at = datetime.utcnow()
-            session.add(expense)
-            await session.commit()
-            await session.refresh(expense)
+        if not expense:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Expense not found")
+        expense.status = "REJECTED"
+        expense.rejection_comment = comment or None
+        expense.approved_by = current_user.get("sub", "dispatcher")
+        expense.approved_at = datetime.utcnow()
+        session.add(expense)
+        await session.commit()
+        await session.refresh(expense)
     await notify_driver_expense_decision(expense, approved=False, rejection_comment=comment)
     return templates.TemplateResponse(request, "expense_row.html",
         {"request": request, "expense": expense},
