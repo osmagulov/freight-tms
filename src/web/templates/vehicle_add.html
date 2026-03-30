@@ -1,60 +1,93 @@
 {% extends "base.html" %}
 {% block title %}Добавить борт — Freight TMS{% endblock %}
+{% block header %}🚛 Масштабирование автопарка{% endblock %}
+
 {% block content %}
 
-<a href="/panel/fleet" class="back-link" data-i18n="fleet_title">← Транспорт</a>
-
-<div class="page-hdr" style="margin-bottom:20px;">
-    <h1 data-i18n="new_vehicle">Новый борт</h1>
+<div class="page-hdr">
+    <div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+            <a href="/panel/fleet" class="btn btn-xs btn-ghost" style="padding: 0; width: 32px; height: 32px; justify-content: center; border-radius: 50%;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">arrow_back</span>
+            </a>
+            <h1 data-i18n="new_vehicle">Новая единица техники</h1>
+        </div>
+        <p class="text-muted small ml-5">Регистрация транспортного средства в системе и настройка лимитов расхода</p>
+    </div>
 </div>
 
 {% if error %}
-<div class="error">{{ error }}</div>
+<div class="alert mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; max-width: 540px;">
+    <span class="material-symbols-outlined">warning</span>
+    <div class="fw-bold">{{ error }}</div>
+</div>
 {% endif %}
 
-<div class="card" style="max-width:520px;">
-    <div class="card-hdr"><span class="card-title" data-i18n="vehicle_data_card">Данные транспортного средства</span></div>
-    <div class="card-body">
+<div class="card" style="max-width: 540px; border: 1px solid var(--border);">
+    <div class="card-hdr" style="background: var(--surface-low);">
+        <span class="card-title">
+            <span class="material-symbols-outlined text-primary">local_shipping</span>
+            Техническая спецификация
+        </span>
+    </div>
+    <div class="card-body p-5">
         <form method="post" action="/panel/vehicles/add">
-            <div class="form-row">
-                <label data-i18n="license_plate">Гос. номер *</label>
-                <input type="text" name="license_plate" placeholder="018 АВ 01" required autofocus>
+            <div class="form-row mb-4">
+                <label class="text-muted small fw-bold mb-2 d-block" data-i18n="license_plate">ГОСУДАРСТВЕННЫЙ НОМЕР *</label>
+                <input type="text" name="license_plate" placeholder="018 АВ 01" required autofocus style="width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 800; letter-spacing: 0.05em;">
             </div>
-            <div class="form-grid-2">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
                 <div class="form-row">
-                    <label data-i18n="make">Марка</label>
-                    <input type="text" name="make" placeholder="КАМАЗ">
+                    <label class="text-muted small fw-bold mb-2 d-block" data-i18n="make">МАРКА</label>
+                    <input type="text" name="make" placeholder="Напр: VOLVO" style="width: 100%;">
                 </div>
                 <div class="form-row">
-                    <label data-i18n="model">Модель</label>
-                    <input type="text" name="model" placeholder="65117">
-                </div>
-            </div>
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label data-i18n="year_of_issue">Год выпуска</label>
-                    <input type="number" name="year" placeholder="2018" min="1990" max="2030">
-                </div>
-                <div class="form-row">
-                    <label data-i18n="fuel_norm">Норма расхода (л/100км)</label>
-                    <input type="number" name="fuel_norm_per_100km" step="0.1" min="0" placeholder="28.5">
+                    <label class="text-muted small fw-bold mb-2 d-block" data-i18n="model">МОДЕЛЬ</label>
+                    <input type="text" name="model" placeholder="Напр: FH16" style="width: 100%;">
                 </div>
             </div>
-            <div class="form-grid-2">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
                 <div class="form-row">
-                    <label data-i18n="maintenance_interval">Интервал ТО (км)</label>
-                    <input type="number" name="maintenance_interval_km" min="0" value="60000">
+                    <label class="text-muted small fw-bold mb-2 d-block" data-i18n="year_of_issue">ГОД ВЫПУСКА</label>
+                    <input type="number" name="year" placeholder="2022" min="1990" max="2030" style="width: 100%;">
                 </div>
                 <div class="form-row">
-                    <label data-i18n="last_maintenance_odometer">Одометр последнего ТО</label>
-                    <input type="number" name="last_maintenance_odometer" min="0" value="0">
+                    <label class="text-muted small fw-bold mb-2 d-block" data-i18n="fuel_norm">ЛИМИТ РАСХОДА (Л/100КМ)</label>
+                    <input type="number" name="fuel_norm_per_100km" step="0.1" min="0" placeholder="28.5" style="width: 100%;">
                 </div>
             </div>
-            <div class="action-group" style="margin-top:8px;">
-                <button type="submit" class="btn" data-i18n="add_btn">Добавить</button>
-                <a href="/panel/fleet" class="btn btn-ghost" data-i18n="cancel">Отмена</a>
+
+            <div style="border-top: 1px solid var(--border); padding-top: 24px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block" data-i18n="maintenance_interval">ИНТЕРВАЛ ТО (КМ)</label>
+                        <input type="number" name="maintenance_interval_km" min="0" value="60000" style="width: 100%;">
+                    </div>
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block" data-i18n="last_maintenance_odometer">ПОСЛЕДНЕЕ ТО (КМ)</label>
+                        <input type="number" name="last_maintenance_odometer" min="0" value="0" style="width: 100%; font-family: 'JetBrains Mono', monospace;">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 32px; border-top: 1px solid var(--border); padding-top: 24px;">
+                <button type="submit" class="btn" style="flex: 2; height: 48px; font-weight: 700;" data-i18n="add_btn">
+                    <span class="material-symbols-outlined" style="margin-right: 8px;">add_task</span>
+                    Зарегистрировать борт
+                </button>
+                <a href="/panel/fleet" class="btn btn-ghost" style="flex: 1; height: 48px; font-weight: 700;" data-i18n="cancel">Отмена</a>
             </div>
         </form>
     </div>
 </div>
+
+<div class="card p-3 mt-4" style="background: rgba(59, 130, 246, 0.05); border: 1px dashed var(--border); max-width: 540px;">
+     <div style="display: flex; gap: 12px; align-items: start;">
+         <span class="material-symbols-outlined text-primary" style="font-size: 20px;">info</span>
+         <p class="topbar-meta small mb-0" style="font-size: 10px; line-height: 1.5;">После регистрации борт станет доступен для назначения водителям и создания рейсов. Одометр последнего ТО можно будет обнулить вручную в карточке ТО.</p>
+     </div>
+</div>
+
 {% endblock %}

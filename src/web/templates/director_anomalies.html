@@ -1,12 +1,23 @@
 {% extends "base.html" %}
 {% block title %}История аномалий — Freight TMS{% endblock %}
+{% block header %}📜 История аномалий расхода{% endblock %}
+
 {% block content %}
 
 <div class="page-hdr">
-    <h1 data-i18n="fuel_anomalies_history">История аномалий топлива</h1>
-    <div class="action-group">
-        <a href="/panel/director" class="btn btn-ghost" data-i18n="summary_btn">← Сводка</a>
-        <a href="/panel/anomalies" class="btn btn-danger" data-i18n="dispatcher_queue">Очередь диспетчера</a>
+    <div>
+        <h1 data-i18n="fuel_anomalies_history">История аномалий топлива</h1>
+        <p class="text-muted small">Полный архив зафиксированных отклонений и принятых решений</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="/panel/director" class="btn btn-ghost">
+            <span class="material-symbols-outlined">dashboard</span>
+            Сводка
+        </a>
+        <a href="/panel/anomalies" class="btn btn-ghost" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">
+            <span class="material-symbols-outlined">warning</span>
+            Диспетчерская
+        </a>
     </div>
 </div>
 
@@ -15,35 +26,44 @@
     <table>
         <thead>
             <tr>
-                <th data-i18n="date">Дата</th>
-                <th data-i18n="vehicle">Борт</th>
-                <th data-i18n="driver">Водитель</th>
-                <th data-i18n="fact_l_100km">Факт (л/100км)</th>
-                <th data-i18n="norm">Норма</th>
-                <th data-i18n="excess">Превышение</th>
-                <th data-i18n="status">Статус</th>
+                <th style="width: 120px;">ДАТА</th>
+                <th>ТРАНСПОРТ / ВОДИТЕЛЬ</th>
+                <th>БОРТ</th>
+                <th>ФАКТ (л/100)</th>
+                <th>НОРМА</th>
+                <th>ОТКЛОНЕНИЕ</th>
+                <th style="width: 140px; text-align: right;">СТАТУС</th>
             </tr>
         </thead>
         <tbody>
             {% for a in anomalies %}
             <tr>
-                <td class="text-muted">{{ a.created_at.strftime("%d.%m.%Y") if a.created_at else "—" }}</td>
+                <td class="text-muted small">{{ a.created_at.strftime("%d.%m.%Y") if a.created_at else "—" }}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);">
+                            {{ a.trip.driver.name[:1] if a.trip and a.trip.driver else 'D' }}
+                        </div>
+                        <span class="fw-bold text-white">{{ a.trip.driver.name if a.trip and a.trip.driver else "—" }}</span>
+                    </div>
+                </td>
                 <td>{{ a.vehicle.license_plate if a.vehicle else "—" }}</td>
-                <td>{{ a.trip.driver.name if a.trip and a.trip.driver else "—" }}</td>
-                <td>{{ "%.1f"|format(a.actual_per_100km) }}</td>
+                <td class="fw-bold text-white">{{ "%.1f"|format(a.actual_per_100km) }}</td>
                 <td class="text-muted">{{ "%.1f"|format(a.norm_per_100km) }}</td>
                 <td>
-                    {% if not a.is_false_alarm %}
-                    <span class="badge badge-cancelled">+{{ "%.0f"|format(a.excess_percent) }}%</span>
-                    {% else %}
-                    <span class="text-muted">+{{ "%.0f"|format(a.excess_percent) }}%</span>
-                    {% endif %}
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        {% if not a.is_false_alarm %}
+                        <span class="badge badge-cancelled" style="font-weight: 800;">+{{ "%.0f"|format(a.excess_percent) }}%</span>
+                        {% else %}
+                        <span class="badge badge-ghost">+{{ "%.0f"|format(a.excess_percent) }}%</span>
+                        {% endif %}
+                    </div>
                 </td>
-                <td>
+                <td style="text-align: right;">
                     {% if a.is_false_alarm %}
-                    <span class="badge badge-pending" data-i18n="false_alarm">Ложная тревога</span>
+                    <span class="badge badge-pending">Ложная тревога</span>
                     {% else %}
-                    <span class="badge badge-cancelled" data-i18n="status_active_trip">Активна</span>
+                    <span class="badge badge-cancelled">Активна</span>
                     {% endif %}
                 </td>
             </tr>
@@ -52,8 +72,10 @@
     </table>
 </div>
 {% else %}
-<div class="table-wrap">
-    <div class="empty"><div class="empty-icon">✅</div><p data-i18n="no_anomalies">Аномалий нет.</p></div>
+<div class="card py-5 text-center" style="border: 1px solid var(--border);">
+    <div class="empty-icon mb-3"><span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.1;">history</span></div>
+    <p class="text-muted" data-i18n="no_anomalies">История аномалий пуста.</p>
 </div>
 {% endif %}
+
 {% endblock %}

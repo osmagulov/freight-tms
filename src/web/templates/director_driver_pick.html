@@ -1,32 +1,78 @@
 {% extends "base.html" %}
+
 {% block title %}Выбор водителя — Freight TMS{% endblock %}
+{% block header %}👤 Аналитика по личному составу{% endblock %}
+
 {% block content %}
 
 <div class="page-hdr">
-    <h1>История расходов по водителю</h1>
-    <a href="/panel/director" class="btn btn-ghost">← Сводка</a>
+    <div>
+        <h1 data-i18n="driver_analytics_title">История расходов по водителю</h1>
+        <p class="text-muted small">Выберите сотрудника для просмотра финансовых транзакций и операционной эффективности</p>
+    </div>
+    <a href="/panel/director" class="btn btn-xs btn-ghost" style="padding: 0 16px; height: 36px;">
+        <span class="material-symbols-outlined" style="margin-right: 8px;">analytics</span>
+        ОБЩАЯ СВОДКА
+    </a>
 </div>
 
-{% if drivers %}
-<div class="table-wrap">
-    <table>
-        <thead>
-            <tr><th>ФИО</th><th>Телефон</th><th></th></tr>
-        </thead>
-        <tbody>
-            {% for d in drivers %}
-            <tr onclick="location='/panel/director/drivers/{{ d.id }}'" style="cursor:pointer;">
-                <td class="fw-bold">{{ d.name or "—" }}</td>
-                <td class="text-muted">{{ d.phone or "—" }}</td>
-                <td><a href="/panel/director/drivers/{{ d.id }}" class="btn btn-sm">Открыть →</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="card" style="border: 1px solid var(--border);">
+    <div class="card-hdr" style="background: var(--surface-low);">
+        <span class="card-title">
+            <span class="material-symbols-outlined text-primary">group</span>
+            Реестр водителей
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-wrap" style="border: none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 320px;">ФИО ВОДИТЕЛЯ</th>
+                        <th>ТЕЛЕФОН / ЛОГИН</th>
+                        <th style="width: 140px; text-align: right;">ДЕЙСТВИЕ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if drivers %}
+                    {% for d in drivers %}
+                    <tr onclick="location='/panel/director/drivers/{{ d.id }}'" style="cursor:pointer;" class="hover-row">
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-low); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary); font-size: 14px;">
+                                    {{ (d.name or 'A')[0] }}
+                                </div>
+                                <div class="text-white fw-bold small">{{ d.name or "ИМЯ НЕ УКАЗАНО" }}</div>
+                            </div>
+                        </td>
+                        <td><span class="topbar-meta fw-bold" style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">{{ d.phone or "—" }}</span></td>
+                        <td class="text-end">
+                            <a href="/panel/director/drivers/{{ d.id }}" class="btn btn-xs btn-ghost" style="height: 32px; padding: 0 16px;">
+                                <span class="material-symbols-outlined" style="margin-right: 8px; font-size: 18px;">analytics</span>
+                                АНАЛИЗ
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="py-5 text-center">
+                            <div class="empty-icon text-muted mb-3"><span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.1;">person_off</span></div>
+                            <p class="text-muted small">Нет активных водителей в базе данных.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-{% else %}
-<div class="table-wrap">
-    <div class="empty"><div class="empty-icon">👤</div><p>Нет активных водителей.</p></div>
+
+<div class="card p-3 mt-4" style="background: rgba(59, 130, 246, 0.05); border: 1px dashed var(--border); max-width: 480px;">
+     <div style="display: flex; gap: 12px; align-items: center;">
+         <span class="material-symbols-outlined text-primary" style="font-size: 20px;">info</span>
+         <p class="topbar-meta small mb-0" style="font-size: 10px; line-height: 1.5;">Нажмите на строку любого водителя, чтобы просмотреть его полную финансовую историю за выбранный период.</p>
+     </div>
 </div>
-{% endif %}
+
 {% endblock %}

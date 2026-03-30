@@ -1,66 +1,96 @@
 {% extends "base.html" %}
 {% block title %}Расходы по бортам — Freight TMS{% endblock %}
+{% block header %}🚛 Анализ по бортам{% endblock %}
+
 {% block content %}
 
 <div class="page-hdr">
-    <h1 data-i18n="expenses_by_trucks">Расходы по бортам</h1>
-    <a href="/panel/director?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-ghost" data-i18n="summary_btn">← Сводка</a>
-</div>
-
-<div class="filter-bar" style="margin-bottom:22px;">
-    <form method="get" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-        <label><span data-i18n="from">С</span> <input type="date" name="from_date" value="{{ from_date }}" style="width:145px;"></label>
-        <label><span data-i18n="to">По</span> <input type="date" name="to_date" value="{{ to_date }}" style="width:145px;"></label>
-        <button type="submit" class="btn btn-sm" data-i18n="apply">Применить</button>
-    </form>
+    <div>
+        <h1 data-i18n="expenses_by_trucks">Расходы по бортам</h1>
+        <p class="text-muted small">Детализация затрат и эффективности каждого транспортного средства</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <form method="get" style="display: flex; align-items: center; gap: 12px; background: var(--surface); padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border);">
+            <span class="text-muted small fw-bold">ПЕРИОД:</span>
+            <input type="date" name="from_date" value="{{ from_date }}" style="width: 130px; border: none; background: transparent; font-size: 13px;">
+            <span class="text-muted">—</span>
+            <input type="date" name="to_date" value="{{ to_date }}" style="width: 130px; border: none; background: transparent; font-size: 13px;">
+            <button type="submit" class="btn btn-xs">
+                <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
+            </button>
+        </form>
+        <a href="/panel/director?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-ghost">
+            <span class="material-symbols-outlined">dashboard</span>
+            Сводка
+        </a>
+    </div>
 </div>
 
 {% if vehicle_trips %}
   {% for plate, rows in vehicle_trips %}
-  <div style="margin-bottom:28px;">
-      <div style="font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Борт {{ plate }}</div>
-      <div class="table-wrap">
+  <div class="card mb-4" style="border: 1px solid var(--border);">
+      <div class="card-hdr" style="background: var(--surface-low); padding: 16px 24px;">
+          <div class="card-title">
+              <span class="material-symbols-outlined text-primary">local_shipping</span>
+              Борт: <span class="text-white ml-2">{{ plate }}</span>
+          </div>
+          <div class="topbar-meta fw-bold text-white">
+              ИТОГО: {{ "{:,.0f}".format(rows | sum(attribute='total_kzt')) }} ₸
+          </div>
+      </div>
+      <div class="table-wrap" style="border: none; border-radius: 0;">
           <table>
               <thead>
                   <tr>
-                      <th data-i18n="trip">Рейс</th>
-                      <th data-i18n="route">Маршрут</th>
-                      <th data-i18n="driver">Водитель</th>
-                      <th data-i18n="status">Статус</th>
-                      <th data-i18n="km_short">Км</th>
-                      <th data-i18n="expenses">Расходы (₸)</th>
+                      <th data-i18n="trip">ID РЕЙСА</th>
+                      <th data-i18n="route">МАРШРУТ</th>
+                      <th data-i18n="driver">ВОДИТЕЛЬ</th>
+                      <th data-i18n="status">СТАТУС</th>
+                      <th data-i18n="km_short">КМ</th>
+                      <th data-i18n="expenses">РАСХОДЫ (₸)</th>
                   </tr>
               </thead>
               <tbody>
                   {% for row in rows %}
                   <tr onclick="location='/panel/trips/{{ row.trip.id }}'" style="cursor:pointer;">
                       <td class="text-muted">#{{ row.trip.id }}</td>
-                      <td>{{ row.trip.route_details or '—' }}</td>
-                      <td>{{ row.trip.driver.name if row.trip.driver else '—' }}</td>
                       <td>
-                          {% if row.trip.status == 'PLANNED' %}<span class="badge badge-planned" data-i18n="status_planned">Запланирован</span>
-                          {% elif row.trip.status == 'ACTIVE' %}<span class="badge badge-active" data-i18n="status_active_trip">Активен</span>
-                          {% elif row.trip.status == 'COMPLETED' %}<span class="badge badge-completed" data-i18n="status_completed">Завершён</span>
+                          <div class="fw-bold text-white">{{ row.trip.route_details or '—' }}</div>
+                          <div class="topbar-meta" style="font-size: 11px;">{{ row.trip.start_date.strftime('%d.%m.%Y') if row.trip.start_date else '' }}</div>
+                      </td>
+                      <td>
+                          <div style="display: flex; align-items: center; gap: 8px;">
+                              <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);">
+                                  {{ row.trip.driver.name[:1] if row.trip.driver else 'D' }}
+                              </div>
+                              <span class="text-muted small">{{ row.trip.driver.name if row.trip.driver else '—' }}</span>
+                          </div>
+                      </td>
+                      <td>
+                          {% if row.trip.status == 'PLANNED' %}<span class="badge badge-ghost" data-i18n="status_planned">Запланирован</span>
+                          {% elif row.trip.status == 'ACTIVE' %}<span class="badge badge-active" data-i18n="status_active_trip">В пути</span>
+                          {% elif row.trip.status == 'COMPLETED' %}<span class="badge badge-pending" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;" data-i18n="status_completed">Завершён</span>
                           {% else %}<span class="badge">{{ row.trip.status }}</span>{% endif %}
                       </td>
-                      <td>{{ row.km if row.km is not none else '—' }}</td>
-                      <td class="fw-bold">{{ "{:,.0f}".format(row.total_kzt) }} ₸</td>
+                      <td>
+                          <div class="fw-bold text-white">{{ row.km if row.km is not none else '—' }}</div>
+                          <div class="topbar-meta" style="font-size: 10px;">километров</div>
+                      </td>
+                      <td>
+                          <div class="fw-bold text-primary">{{ "{:,.0f}".format(row.total_kzt) }} ₸</div>
+                      </td>
                   </tr>
                   {% endfor %}
               </tbody>
-              <tfoot>
-                  <tr>
-                      <td colspan="5"><span data-i18n="total_for">Итого по</span> {{ plate }}</td>
-                      <td>{{ "{:,.0f}".format(rows | sum(attribute='total_kzt')) }} ₸</td>
-                  </tr>
-              </tfoot>
           </table>
       </div>
   </div>
   {% endfor %}
 {% else %}
-<div class="table-wrap">
-    <div class="empty"><div class="empty-icon">🚚</div><p data-i18n="no_trips_period">Нет рейсов за выбранный период.</p></div>
+<div class="card py-5 text-center" style="border: 1px solid var(--border);">
+    <div class="empty-icon mb-3"><span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.2;">local_shipping</span></div>
+    <p class="text-muted" data-i18n="no_trips_period">Нет рейсов за выбранный период.</p>
 </div>
 {% endif %}
+
 {% endblock %}

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Парк — Freight TMS{% endblock %}
+{% block header %}🚛 Управление автопарком{% endblock %}
+
 {% block content %}
 
 {% set available_count   = vehicle_data | selectattr('vehicle.status', 'equalto', 'AVAILABLE')   | list | length %}
@@ -7,26 +9,36 @@
 {% set maintenance_count = vehicle_data | selectattr('vehicle.status', 'equalto', 'MAINTENANCE')  | list | length %}
 
 <div class="page-hdr">
-    <h1 data-i18n="fleet_title">Парк транспорта</h1>
-    <a href="/panel/vehicles/add" class="btn btn-sm" data-i18n="add_vehicle_btn">+ Добавить борт</a>
+    <div>
+        <h1 data-i18n="fleet_title">Состав автопарка</h1>
+        <p class="text-muted small">Мониторинг состояния, одометра и графиков техзадания ТО</p>
+    </div>
+    <a href="/panel/vehicles/add" class="btn">
+        <span class="material-symbols-outlined">add_box</span>
+        <span data-i18n="add_vehicle_btn">Добавить борт</span>
+    </a>
 </div>
 
 <div class="kpi-grid">
     <div class="kpi">
-        <div class="kpi-label" data-i18n="all_vehicles">Всего ТС</div>
+        <div class="kpi-label">ВСЕГО ТС</div>
         <div class="kpi-value">{{ vehicle_data | length }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined">inventory_2</span></div>
     </div>
     <div class="kpi green">
-        <div class="kpi-label" data-i18n="on_trip">В рейсе</div>
-        <div class="kpi-value">{{ on_trip_count }}</div>
+        <div class="kpi-label">В РЕЙСЕ</div>
+        <div class="kpi-value text-success">{{ on_trip_count }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined">local_shipping</span></div>
     </div>
-    <div class="kpi">
-        <div class="kpi-label" data-i18n="available">Свободно</div>
-        <div class="kpi-value">{{ available_count }}</div>
+    <div class="kpi blue">
+        <div class="kpi-label">СВОБОДНО</div>
+        <div class="kpi-value text-primary">{{ available_count }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined">event_available</span></div>
     </div>
     <div class="kpi amber">
-        <div class="kpi-label" data-i18n="on_maintenance">На ТО</div>
-        <div class="kpi-value">{{ maintenance_count }}</div>
+        <div class="kpi-label">НА ОБСЛУЖИВАНИИ</div>
+        <div class="kpi-value text-warning">{{ maintenance_count }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined">build</span></div>
     </div>
 </div>
 
@@ -35,14 +47,13 @@
     <table>
         <thead>
             <tr>
-                <th data-i18n="license_plate">Гос. номер</th>
-                <th data-i18n="make_model_year">Марка / Модель / Год</th>
-                <th data-i18n="status">Статус</th>
-                <th data-i18n="maintenance">Ремонты</th>
-                <th>Одометр (ТО)</th>
-                <th data-i18n="driver">Водитель</th>
-                <th data-i18n="trip">Рейс</th>
-                <th data-i18n="actions">Действия</th>
+                <th data-i18n="license_plate">ГОС. НОМЕР</th>
+                <th data-i18n="make_model_year">МАРКА / МОДЕЛЬ</th>
+                <th data-i18n="status">СТАТУС</th>
+                <th data-i18n="maintenance">РЕМОНТЫ</th>
+                <th>ОДОМЕТР / ТО</th>
+                <th data-i18n="driver">ЭКИПАЖ</th>
+                <th data-i18n="actions" style="width: 160px; text-align: right;">ДЕЙСТВИЯ</th>
             </tr>
         </thead>
         <tbody>
@@ -50,47 +61,63 @@
             {% set vehicle = row.vehicle %}
             {% set active_trip = row.active_trip %}
             {% set open_repairs = row.open_repairs %}
-            <tr>
-                <td class="fw-bold">{{ vehicle.license_plate }}</td>
-                <td class="text-muted">
-                    {% if vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}{% endif %}
-                    {% if vehicle.year %}<span style="color:var(--muted); font-size:12px;"> {{ vehicle.year }}</span>{% endif %}
-                    {% if not vehicle.make and not vehicle.year %}—{% endif %}
+            <tr style="cursor:pointer;" onclick="window.location='/panel/vehicles/{{ vehicle.id }}/edit'">
+                <td>
+                    <div class="badge badge-ghost text-white" style="background: var(--surface-low); border: 1px solid var(--border); font-size: 13px; font-weight: 700; padding: 6px 12px; font-family: 'JetBrains Mono', monospace;">
+                        {{ vehicle.license_plate }}
+                    </div>
                 </td>
                 <td>
-                    {% if vehicle.status == 'AVAILABLE' %}<span class="badge badge-available" data-i18n="status_available">Свободен</span>
-                    {% elif vehicle.status == 'ON_TRIP' %}<span class="badge badge-on-trip" data-i18n="status_on_trip">В рейсе</span>
-                    {% elif vehicle.status == 'MAINTENANCE' %}<span class="badge badge-maintenance" data-i18n="status_maintenance">На ТО</span>
+                    <div class="fw-bold text-white">
+                        {% if vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}{% endif %}
+                    </div>
+                    {% if vehicle.year %}<div class="topbar-meta" style="font-size: 11px;">Выпуск: {{ vehicle.year }}</div>{% endif %}
+                </td>
+                <td>
+                    {% if vehicle.status == 'AVAILABLE' %}<span class="badge badge-pending" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);" data-i18n="status_available">Свободен</span>
+                    {% elif vehicle.status == 'ON_TRIP' %}<span class="badge badge-active" data-i18n="status_on_trip">В рейсе</span>
+                    {% elif vehicle.status == 'MAINTENANCE' %}<span class="badge badge-cancelled" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);" data-i18n="status_maintenance">На ТО</span>
                     {% else %}<span class="badge">{{ vehicle.status }}</span>{% endif %}
                 </td>
                 <td>
                     {% if open_repairs > 0 %}
-                    <a href="/panel/repairs?vehicle_id={{ vehicle.id }}&status=OPEN" class="badge badge-cancelled" style="text-decoration:none;">⚠️ {{ open_repairs }}</a>
+                    <a href="/panel/repairs?vehicle_id={{ vehicle.id }}&status=OPEN" class="badge badge-cancelled" style="text-decoration:none;" onclick="event.stopPropagation()">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">warning</span>
+                        {{ open_repairs }}
+                    </a>
                     {% else %}
-                    <span class="text-muted">—</span>
+                    <span class="text-muted small">ок</span>
                     {% endif %}
                 </td>
                 <td>
-                    <div style="font-size:14px;">{{ "{:,.0f}".format(row.current_odometer) }} км</div>
+                    <div class="fw-bold text-white" style="font-size: 14px;">{{ "{:,.0f}".format(row.current_odometer or 0) }} км</div>
                     {% if row.km_to_maint < 1000 and row.km_to_maint > 0 %}
-                    <span class="badge bg-warning text-dark mt-1" style="font-size:11px;">ТО через {{ row.km_to_maint }} км</span>
+                        <div class="text-warning fw-bold" style="font-size: 10px;">ТО ЧЕРЕЗ {{ row.km_to_maint }} КМ</div>
                     {% elif row.km_to_maint <= 0 %}
-                    <span class="badge bg-danger mt-1" style="font-size:11px;">ТО просрочено ({{ row.km_to_maint|abs }} км)</span>
+                        <div class="text-danger fw-bold" style="font-size: 10px;">ТО ПРОСРОЧЕНО!</div>
                     {% else %}
-                    <span class="text-muted" style="font-size:11px;">ТО через {{ "{:,.0f}".format(row.km_to_maint) }} км</span>
+                        <div class="topbar-meta" style="font-size: 10px;">ДО ТО: {{ "{:,.0f}".format(row.km_to_maint) }} КМ</div>
                     {% endif %}
                 </td>
-                <td>{{ active_trip.driver.name if active_trip and active_trip.driver else '—' }}</td>
                 <td>
                     {% if active_trip %}
-                    <a href="/panel/trips/{{ active_trip.id }}" class="btn btn-xs btn-ghost"><span data-i18n="trip_number">Рейс</span> #{{ active_trip.id }}</a>
-                    {% else %}<span class="text-muted">—</span>{% endif %}
+                        <div class="fw-bold text-white small">{{ active_trip.driver.name }}</div>
+                        <a href="/panel/trips/{{ active_trip.id }}" class="topbar-meta" style="font-size: 10px; color: var(--primary);" onclick="event.stopPropagation()">Рейс #{{ active_trip.id }}</a>
+                    {% else %}
+                        <span class="text-muted small italic">на базе</span>
+                    {% endif %}
                 </td>
-                <td>
-                    <div class="action-group">
-                        <a href="/panel/vehicles/{{ vehicle.id }}/edit" class="btn btn-xs btn-ghost" data-i18n="edit">Изменить</a>
-                        <a href="/panel/repairs?vehicle_id={{ vehicle.id }}" class="btn btn-xs btn-ghost" data-i18n="repair">🔧 Ремонты</a>
-                        <a href="/panel/vehicles/{{ vehicle.id }}/documents" class="btn btn-xs btn-ghost" data-i18n="docs">📄 Документы</a>
+                <td style="text-align: right;" onclick="event.stopPropagation()">
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <a href="/panel/vehicles/{{ vehicle.id }}/documents" class="btn btn-xs btn-ghost" title="Документы">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">folder</span>
+                        </a>
+                        <a href="/panel/repairs?vehicle_id={{ vehicle.id }}" class="btn btn-xs btn-ghost" title="История ремонтов">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">construction</span>
+                        </a>
+                        <a href="/panel/vehicles/{{ vehicle.id }}/edit" class="btn btn-xs btn-ghost" title="Настройки">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">settings</span>
+                        </a>
                     </div>
                 </td>
             </tr>
@@ -99,11 +126,11 @@
     </table>
 </div>
 {% else %}
-<div class="table-wrap">
-    <div class="empty">
-        <div class="empty-icon">🚚</div>
-        <p><span data-i18n="no_vehicles">Транспортных средств пока нет.</span> <a href="/panel/vehicles/add" class="btn btn-sm" style="margin-top:8px;" data-i18n="add_vehicle_btn">+ Добавить борт</a></p>
-    </div>
+<div class="card py-5 text-center" style="border: 1px solid var(--border);">
+    <div class="empty-icon mb-3"><span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.1;">no_transport</span></div>
+    <p class="text-muted" data-i18n="no_vehicles">Транспортных средств пока нет.</p>
+    <a href="/panel/vehicles/add" class="btn btn-xs mt-3">+ Добавить борт</a>
 </div>
 {% endif %}
+
 {% endblock %}

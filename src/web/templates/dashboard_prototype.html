@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Freight TMS - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-fixed-variant": "#703700",
+                        "surface-tint": "#c0c1ff",
+                        "surface-container-highest": "#33343b",
+                        "on-secondary-fixed-variant": "#434659",
+                        "surface-variant": "#33343b",
+                        "on-primary-fixed": "#07006c",
+                        "inverse-primary": "#494bd6",
+                        "on-primary-container": "#0d0096",
+                        "primary-container": "#8083ff",
+                        "secondary-container": "#434659",
+                        "primary": "#c0c1ff",
+                        "on-background": "#e2e2eb",
+                        "on-surface": "#e2e2eb",
+                        "surface-container": "#1e1f26",
+                        "inverse-surface": "#e2e2eb",
+                        "surface-container-lowest": "#0c0e14",
+                        "surface": "#111319",
+                        "surface-container-high": "#282a30",
+                        "tertiary-container": "#d97721",
+                        "surface-container-low": "#191b22",
+                        "inverse-on-surface": "#2e3037",
+                        "secondary-fixed": "#dfe1f9",
+                        "error": "#ffb4ab",
+                        "surface-bright": "#373940",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "surface-dim": "#111319",
+                        "on-error-container": "#ffdad6",
+                        "error-container": "#93000a",
+                        "on-tertiary-container": "#452000",
+                        "on-primary": "#1000a9",
+                        "on-surface-variant": "#c7c4d7",
+                        "on-tertiary": "#4f2500",
+                        "on-secondary": "#2c2f41",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "outline": "#908fa0",
+                        "tertiary": "#ffb783",
+                        "on-secondary-container": "#b2b4ca",
+                        "secondary-fixed-dim": "#c3c5dc",
+                        "tertiary-fixed": "#ffdcc5",
+                        "primary-fixed": "#e1e0ff",
+                        "on-secondary-fixed": "#181b2b",
+                        "secondary": "#c3c5dc",
+                        "outline-variant": "#464554",
+                        "on-tertiary-fixed": "#301400",
+                        "on-error": "#690005",
+                        "background": "#111319"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #111319; color: #e2e2eb; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: rgba(30, 31, 38, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(70, 69, 84, 0.2); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #33343b; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex min-h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-[220px] h-full fixed left-0 top-0 bg-[#191b22] shadow-[1px_0_0_0_rgba(70,69,84,0.1)] flex flex-col py-6 z-50">
+<div class="px-6 mb-8 flex items-center gap-3">
+<span class="text-xl font-bold text-[#f1f5f9] tracking-tight">Freight TMS</span>
+</div>
+<nav class="flex-1 space-y-1 px-3 custom-scrollbar overflow-y-auto">
+<!-- Active Navigation -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#1e1f26] text-[#c0c1ff] border-r-2 border-[#6366f1] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="font-medium text-[0.875rem]">Дашборд</span>
+</a>
+<!-- Inactive Navigation Links -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">route</span>
+<span class="font-medium text-[0.875rem]">Рейсы</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+<span class="font-medium text-[0.875rem]">Расходы</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">person</span>
+<span class="font-medium text-[0.875rem]">Водители</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">local_shipping</span>
+<span class="font-medium text-[0.875rem]">Автопарк</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">build</span>
+<span class="font-medium text-[0.875rem]">ТО</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">explore</span>
+<span class="font-medium text-[0.875rem]">Геозоны</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">military_tech</span>
+<span class="font-medium text-[0.875rem]">Рейтинг водителей</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all group active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">gpp_bad</span>
+<span class="font-medium text-[0.875rem]">Антифрод</span>
+</a>
+</nav>
+<div class="px-3 pt-6 border-t border-outline-variant/10 mt-auto space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#1e1f26] transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+<div class="flex flex-col">
+<span class="font-medium text-[0.8125rem] text-[#f1f5f9]">Диспетчер</span>
+<span class="text-[0.6875rem] opacity-60">Профиль</span>
+</div>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#94a3b8] hover:text-error transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span class="font-medium text-[0.875rem]">Выход</span>
+</a>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="ml-[220px] flex-1 flex flex-col h-screen overflow-y-auto bg-[#111319] custom-scrollbar">
+<!-- TopAppBar -->
+<header class="h-16 flex items-center justify-between px-8 sticky top-0 bg-[#111319]/80 backdrop-blur-xl z-40">
+<h1 class="font-['Inter'] text-[1.375rem] font-semibold tracking-[-0.01em] text-[#f1f5f9]">Дашборд</h1>
+<div class="flex items-center gap-6">
+<span class="text-[#94a3b8] text-sm font-medium">27 марта 2026</span>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center text-[#94a3b8] hover:bg-[#33343b]/40 rounded-full transition-all">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-[#94a3b8] hover:bg-[#33343b]/40 rounded-full transition-all relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-[#111319]"></span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-[#94a3b8] hover:bg-[#33343b]/40 rounded-full transition-all">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+<img alt="Dispatcher" class="w-8 h-8 rounded-full ring-2 ring-primary/20" data-alt="professional portrait of a logistics manager in a dark office environment with blue ambient lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZW6zfLnT3FKvuSwzFrpEngSjMHiIwcWtH6ezHJzTBku-TBdPmbKXUnW1NupMXDOUKsq_D0AhtxOLrw7IToh_pSVDYKN8u5IoAq0n09pgrY1bTld4xnIgojXodeQQttJ9SF32XA6K0UrKG2zU-REGFprKYta4MQ8Z456AJIAF50NgzcQpUxUFQllTJweozxUpqqnbSeShIibdUZ2W5Y55FnQMfSfPJxLWb8D8BKo81c-Eqb5d6opbpWSK1y-hAKx4xGwVZ6SpIkB2G"/>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-8 space-y-8">
+<!-- KPI Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="surface-container rounded-xl p-5 relative overflow-hidden group hover:bg-surface-container-high transition-colors">
+<div class="absolute top-0 left-0 w-full h-1 bg-[#22c55e]"></div>
+<p class="text-[0.75rem] font-semibold uppercase tracking-wider text-[#94a3b8] mb-1">Активные рейсы</p>
+<div class="flex items-baseline justify-between">
+<h3 class="text-[2.25rem] font-bold text-[#f1f5f9] tracking-tight leading-none">18</h3>
+<span class="text-[0.6875rem] text-[#22c55e] bg-[#22c55e]/10 px-2 py-0.5 rounded-full font-medium">+2 сегодня</span>
+</div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-[#22c55e] w-[65%]"></div>
+</div>
+</div>
+<div class="surface-container rounded-xl p-5 relative overflow-hidden group hover:bg-surface-container-high transition-colors">
+<div class="absolute top-0 left-0 w-full h-1 bg-[#6366f1]"></div>
+<p class="text-[0.75rem] font-semibold uppercase tracking-wider text-[#94a3b8] mb-1">ТС в парке</p>
+<div class="flex items-baseline justify-between">
+<h3 class="text-[2.25rem] font-bold text-[#f1f5f9] tracking-tight leading-none">47</h3>
+<span class="text-[0.6875rem] text-[#94a3b8] font-medium">из 50 всего</span>
+</div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-[#6366f1] w-[94%]"></div>
+</div>
+</div>
+<div class="surface-container rounded-xl p-5 relative overflow-hidden group hover:bg-surface-container-high transition-colors">
+<div class="absolute top-0 left-0 w-full h-1 bg-[#f59e0b]"></div>
+<p class="text-[0.75rem] font-semibold uppercase tracking-wider text-[#94a3b8] mb-1">Расходы за месяц</p>
+<div class="flex items-baseline justify-between">
+<h3 class="text-[2rem] font-bold text-[#f1f5f9] tracking-tight leading-none">₸ 12.4M</h3>
+</div>
+<p class="mt-4 text-[0.6875rem] text-[#94a3b8]"><span class="text-error">↑ 4.2%</span> vs прошлый месяц</p>
+</div>
+<div class="surface-container rounded-xl p-5 relative overflow-hidden group hover:bg-surface-container-high transition-colors">
+<div class="absolute top-0 left-0 w-full h-1 bg-[#ef4444]"></div>
+<p class="text-[0.75rem] font-semibold uppercase tracking-wider text-[#94a3b8] mb-1">Аномалии топлива</p>
+<div class="flex items-baseline justify-between">
+<h3 class="text-[2.25rem] font-bold text-[#f1f5f9] tracking-tight leading-none">3</h3>
+<span class="material-symbols-outlined text-error" data-weight="fill">warning</span>
+</div>
+<p class="mt-4 text-[0.6875rem] text-error font-medium">Требует внимания</p>
+</div>
+</section>
+<!-- Charts Section -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Area Chart: Fleet Expenses -->
+<div class="lg:col-span-2 surface-container rounded-xl p-6 flex flex-col">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h4 class="text-lg font-semibold text-[#f1f5f9]">Расходы по дням (за 30 дней)</h4>
+<p class="text-sm text-[#94a3b8]">Операционные затраты автопарка в KZT</p>
+</div>
+<button class="text-xs text-[#94a3b8] bg-surface-container-highest px-3 py-1.5 rounded-lg border border-outline-variant/20 hover:text-[#f1f5f9] transition-all">Экспорт CSV</button>
+</div>
+<div class="flex-1 min-h-[220px] relative flex items-end gap-1">
+<!-- Simulated Area Chart using Dividers/Bars for Visual -->
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/40 h-[40%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/50 h-[55%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/30 h-[35%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/60 h-[70%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/45 h-[50%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/55 h-[58%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/75 h-[85%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/40 h-[45%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/35 h-[38%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/50 h-[55%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/65 h-[72%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/20 h-[25%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/45 h-[50%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/60 h-[68%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/5 to-primary/90 h-[95%] rounded-t-sm"></div>
+</div>
+<div class="mt-4 flex justify-between text-[0.6875rem] text-[#94a3b8] uppercase tracking-tighter">
+<span>01 Мар</span>
+<span>08 Мар</span>
+<span>15 Мар</span>
+<span>22 Мар</span>
+<span>Сегодня</span>
+</div>
+</div>
+<!-- Donut Chart: Expense Structure -->
+<div class="surface-container rounded-xl p-6 flex flex-col">
+<h4 class="text-lg font-semibold text-[#f1f5f9] mb-8">Структура расходов</h4>
+<div class="flex-1 flex flex-col items-center justify-center">
+<div class="relative w-40 h-40 rounded-full border-[12px] border-surface-container-highest flex items-center justify-center mb-8">
+<div class="absolute inset-0 rounded-full border-[12px] border-primary border-t-transparent border-r-transparent rotate-[30deg]"></div>
+<div class="flex flex-col items-center">
+<span class="text-2xl font-bold text-[#f1f5f9]">68%</span>
+<span class="text-[0.625rem] text-[#94a3b8] uppercase">Топливо</span>
+</div>
+</div>
+<div class="w-full space-y-3">
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+<span class="text-[#94a3b8]">Топливо</span>
+</div>
+<span class="text-[#f1f5f9] font-medium">68%</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#22c55e]"></span>
+<span class="text-[#94a3b8]">Суточные</span>
+</div>
+<span class="text-[#f1f5f9] font-medium">18%</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-error"></span>
+<span class="text-[#94a3b8]">Штрафы</span>
+</div>
+<span class="text-[#f1f5f9] font-medium">7%</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="text-[#94a3b8]">Прочее</span>
+</div>
+<span class="text-[#f1f5f9] font-medium">7%</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Active Flights Table -->
+<section class="surface-container rounded-xl overflow-hidden">
+<div class="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
+<h4 class="font-semibold text-[#f1f5f9]">Текущие рейсы (18)</h4>
+<div class="flex gap-2">
+<div class="relative">
+<input class="bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-xs px-3 py-1.5 w-64 focus:ring-1 focus:ring-primary/50 focus:outline-none placeholder-[#94a3b8]" placeholder="Поиск борта или водителя..." type="text"/>
+<span class="material-symbols-outlined absolute right-2 top-1.5 text-xs text-[#94a3b8]">search</span>
+</div>
+<button class="bg-primary-container text-on-primary-container text-xs font-semibold px-4 py-1.5 rounded-lg hover:brightness-110 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                            Новый рейс
+                        </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container-low/50">
+<th class="px-6 py-3 text-[0.7rem] font-bold uppercase tracking-wider text-[#94a3b8]">Водитель</th>
+<th class="px-6 py-3 text-[0.7rem] font-bold uppercase tracking-wider text-[#94a3b8]">Маршрут</th>
+<th class="px-6 py-3 text-[0.7rem] font-bold uppercase tracking-wider text-[#94a3b8]">Борт</th>
+<th class="px-6 py-3 text-[0.7rem] font-bold uppercase tracking-wider text-[#94a3b8]">Статус</th>
+<th class="px-6 py-3 text-[0.7rem] font-bold uppercase tracking-wider text-[#94a3b8]">Посл. локация</th>
+<th class="px-6 py-3 text-[0.7rem] font-bold uppercase tracking-wider text-[#94a3b8]">Расходы</th>
+<th class="px-6 py-3 text-right"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-high transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-xs font-bold text-primary">AK</div>
+<div>
+<p class="text-[0.875rem] font-medium text-[#f1f5f9]">Азиз Каримов</p>
+<p class="text-[0.6875rem] text-[#94a3b8]">ID: DR-4402</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="text-[0.8125rem] text-[#f1f5f9]">Алматы</span>
+<span class="material-symbols-outlined text-[14px] text-[#94a3b8]">east</span>
+<span class="text-[0.8125rem] text-[#f1f5f9]">Москва</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-[0.8125rem] font-mono bg-surface-container-lowest px-2 py-0.5 rounded border border-outline-variant/20 text-[#c7c4d7]">123 KZ</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-[#22c55e]/10 text-[#22c55e]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></span>
+                                        В пути
+                                    </span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1 text-[#94a3b8]">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span class="text-[0.8125rem]">Актобе</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[0.8125rem] font-medium text-[#f1f5f9]">₸ 85,000</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-[#94a3b8] hover:text-[#f1f5f9] opacity-0 group-hover:opacity-100 transition-all">more_vert</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-high transition-colors group border-t border-outline-variant/5">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-xs font-bold text-primary">DM</div>
+<div>
+<p class="text-[0.875rem] font-medium text-[#f1f5f9]">Дао Минь</p>
+<p class="text-[0.6875rem] text-[#94a3b8]">ID: DR-5109</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="text-[0.8125rem] text-[#f1f5f9]">Урумчи</span>
+<span class="material-symbols-outlined text-[14px] text-[#94a3b8]">east</span>
+<span class="text-[0.8125rem] text-[#f1f5f9]">Алматы</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-[0.8125rem] font-mono bg-surface-container-lowest px-2 py-0.5 rounded border border-outline-variant/20 text-[#c7c4d7]">456 KZ</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-[#f59e0b]/10 text-[#f59e0b]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></span>
+                                        Граница
+                                    </span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1 text-[#94a3b8]">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span class="text-[0.8125rem]">КПП Хоргос</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[0.8125rem] font-medium text-[#f1f5f9]">¥ 12,400</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-[#94a3b8] hover:text-[#f1f5f9] opacity-0 group-hover:opacity-100 transition-all">more_vert</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-high transition-colors group border-t border-outline-variant/5">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-xs font-bold text-primary">SI</div>
+<div>
+<p class="text-[0.875rem] font-medium text-[#f1f5f9]">Сергей Иванов</p>
+<p class="text-[0.6875rem] text-[#94a3b8]">ID: DR-3381</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="text-[0.8125rem] text-[#f1f5f9]">Алматы</span>
+<span class="material-symbols-outlined text-[14px] text-[#94a3b8]">east</span>
+<span class="text-[0.8125rem] text-[#f1f5f9]">Стамбул</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-[0.8125rem] font-mono bg-surface-container-lowest px-2 py-0.5 rounded border border-outline-variant/20 text-[#c7c4d7]">789 KZ</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-[#22c55e]/10 text-[#22c55e]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></span>
+                                        В пути
+                                    </span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1 text-[#94a3b8]">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span class="text-[0.8125rem]">Тбилиси</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[0.8125rem] font-medium text-[#f1f5f9]">₸ 156,000</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-[#94a3b8] hover:text-[#f1f5f9] opacity-0 group-hover:opacity-100 transition-all">more_vert</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-high transition-colors group border-t border-outline-variant/5">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-error-container/30 flex items-center justify-center text-xs font-bold text-error">NB</div>
+<div>
+<p class="text-[0.875rem] font-medium text-[#f1f5f9]">Нурлан Бек</p>
+<p class="text-[0.6875rem] text-[#94a3b8]">ID: DR-9920</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="text-[0.8125rem] text-[#f1f5f9]">Алматы</span>
+<span class="material-symbols-outlined text-[14px] text-[#94a3b8]">east</span>
+<span class="text-[0.8125rem] text-[#f1f5f9]">Новосиб.</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-[0.8125rem] font-mono bg-surface-container-lowest px-2 py-0.5 rounded border border-outline-variant/20 text-[#c7c4d7]">321 KZ</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-[#ef4444]/10 text-[#ef4444]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></span>
+                                        Внимание
+                                    </span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1 text-error">
+<span class="material-symbols-outlined text-[16px]">signal_wifi_off</span>
+<span class="text-[0.8125rem]">6 ч. без связи</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[0.8125rem] font-medium text-[#f1f5f9]">₸ 42,000</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-[#94a3b8] hover:text-[#f1f5f9] opacity-0 group-hover:opacity-100 transition-all">more_vert</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 bg-surface-container-low/30 border-t border-outline-variant/5 flex items-center justify-between">
+<span class="text-[0.75rem] text-[#94a3b8]">Показано 4 из 18 активных рейсов</span>
+<div class="flex gap-1">
+<button class="w-8 h-8 rounded-lg flex items-center justify-center border border-outline-variant/20 text-[#94a3b8] hover:bg-surface-container-highest"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary text-[#1000a9] text-xs font-bold">1</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center border border-outline-variant/20 text-[#94a3b8] hover:bg-surface-container-highest text-xs font-bold">2</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center border border-outline-variant/20 text-[#94a3b8] hover:bg-surface-container-highest text-xs font-bold">3</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center border border-outline-variant/20 text-[#94a3b8] hover:bg-surface-container-highest"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Map Context Widget (Floating) -->
+<div class="fixed bottom-6 right-6 w-80 h-48 rounded-xl overflow-hidden glass-card shadow-2xl z-50 group hover:h-96 transition-all duration-300">
+<div class="absolute inset-0 z-0">
+<img alt="Live Map" class="w-full h-full object-cover grayscale brightness-50 contrast-125" data-alt="dark themed satellite map view of central asia with glowing route lines connecting almaty and moscow" data-location="Kazakhstan" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3D3RxJ5LfGskTSeuurGDWLLtJBiudduJ5Fk7zKurNyAqUSWjk5t6sdeRAui2law3iHuzuW_KRA0EQo8LowC33-RfSG2Lq8yMh1IovdA8yujQade3enlv55xjkBYxqERcACtG9YZboh-n3NrGlktQawU24t8yOh9oRoGuOSW4YdAItiuUMQ8b1OBB_CY4LsB0DgDryF_YlXJcwZ2IaMl4WG7v5GqHnWGcrp1W9JCDpch1CKphRsnRLIOX8PCsxDSt2TPwy0dLKHp0M"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#111319] to-transparent"></div>
+</div>
+<div class="relative z-10 p-4 h-full flex flex-col">
+<div class="flex items-center justify-between mb-2">
+<span class="text-[0.6875rem] font-bold text-[#f1f5f9] uppercase tracking-widest flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse"></span>
+                    Live Tracking
+                </span>
+<span class="material-symbols-outlined text-[16px] text-[#94a3b8]">open_in_full</span>
+</div>
+<div class="mt-auto">
+<p class="text-[0.875rem] font-bold text-[#f1f5f9]">Активный коридор</p>
+<p class="text-[0.6875rem] text-[#94a3b8]">Алматы — Актобе (Трасса M32)</p>
+</div>
+</div>
+</div>
+</body></html>

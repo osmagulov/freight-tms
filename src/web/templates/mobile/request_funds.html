@@ -1,45 +1,80 @@
 {% extends "mobile/base_mobile.html" %}
+{% set active_tab = 'requests' %}
+
+{% block extra_css %}
+.request-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.03));
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.history-item {
+    background: var(--surface-low);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.currency-group {
+    display: grid;
+    grid-template-columns: 1fr 100px;
+    gap: 1px;
+    background: var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.currency-group input {
+    border-radius: 0;
+    border: none;
+}
+
+.currency-group select {
+    border-radius: 0;
+    border: none;
+    background: var(--surface-highest);
+    font-weight: 800;
+    text-align: center;
+}
+{% endblock %}
 
 {% block content %}
-<div class="mb-6">
-    <a href="/app/"
-        class="inline-flex items-center text-blue-600 font-black text-xl bg-blue-50 px-4 py-2 rounded-xl active:bg-blue-100">
-        <span class="text-3xl mr-2">←</span> <span>НАЗАД</span>
+<div style="margin-bottom: 20px;">
+    <a href="/app/" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-muted); font-weight: 700; font-size: 13px;">
+        <span class="material-symbols-outlined" style="font-size: 20px;">arrow_back</span>
+        <span data-i18n="back">НАЗАД</span>
     </a>
 </div>
 
-<div class="bg-white rounded-2xl shadow-xl p-6 border-t-[10px] border-indigo-500">
-    <div class="flex justify-center -mt-10 mb-4">
-        <div class="bg-indigo-100 p-4 rounded-full border-4 border-white shadow-md">
-            <span class="text-5xl">💬</span>
-        </div>
+<div class="page-hdr" style="margin-bottom: 24px;">
+    <div>
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em;" data-i18n="req_title">Связь с диспетчером</h1>
+        <p class="topbar-meta small" style="margin-top: 4px;" data-i18n="req_subtitle">Отправьте заявку на выплату или отчет о событии</p>
     </div>
+</div>
 
-    <h1 class="text-2xl font-black text-center mb-2 uppercase tracking-wide text-gray-800" data-i18n="req_title">Запрос диспетчеру</h1>
-    <p class="text-center text-gray-500 font-medium mb-6" data-i18n="req_subtitle">Отправьте заявку, если вам нужно оплатить очередь или нужны суточные.</p>
-
-    <form method="POST" action="/app/create-request" class="space-y-6 ajax-compress-form">
-        
-        <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="req_type_label">Выберите тип запроса:</label>
-            <select name="request_type" required id="req-type-sel" onchange="toggleAmount()"
-                class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500 bg-gray-50 focus:bg-white outline-none">
+<form method="POST" action="/app/create-request" class="ajax-compress-form">
+    <div class="request-card">
+        <div class="input-container">
+            <label class="form-label" data-i18n="req_type_label">ТИП ОБРАЩЕНИЯ</label>
+            <select name="request_type" required id="req-type-sel" onchange="toggleAmount()" style="height: 56px; background: var(--bg-body); font-weight: 700;">
                 <option value="" data-i18n="req_type_placeholder">— Выбрать —</option>
-                <option value="BORDER_QUEUE" data-i18n="req_type_border">Отметиться (Граница / СВХ / Очередь)</option>
-                <option value="PER_DIEM" data-i18n="req_type_per_diem">Выдать суточные</option>
-                <option value="FOREIGN_EXPENSE" data-i18n="req_type_foreign">Расходы в другой стране (ПЛАТОН/Прочее)</option>
-                <option value="REPAIR" data-i18n="req_type_repair">Сообщить о поломке авто</option>
-                <option value="OTHER" data-i18n="req_type_other">Другое сообщение (ЧП / Задержка)</option>
+                <option value="BORDER_QUEUE" data-i18n="req_type_border">🏁 ОТМЕТКА НА ГРАНИЦЕ / ОЧЕРЕДЬ</option>
+                <option value="PER_DIEM" data-i18n="req_type_per_diem">💵 ЗАПРОС СУТОЧНЫХ</option>
+                <option value="FOREIGN_EXPENSE" data-i18n="req_type_foreign">🌍 РАСХОДЫ ЗА РУБЕЖОМ</option>
+                <option value="REPAIR" data-i18n="req_type_repair">🔧 ПОЛОМКА / ТЕХНИЧЕСКАЯ ПРОБЛЕМА</option>
+                <option value="OTHER" data-i18n="req_type_other">💬 ПРОЧЕЕ СООБЩЕНИЕ / ЧП</option>
             </select>
         </div>
 
-        <div id="amount-div" style="display:none;">
-            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="req_amount_label">Сумма и валюта (если применимо)</label>
-            <div class="flex gap-2">
-                <input type="number" step="0.01" name="amount" placeholder="Например: 5000" 
-                    oninput="this.value = this.value.replace(/[^0-9.]/g, '')"
-                    class="w-full text-xl p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500 bg-gray-50 focus:bg-white outline-none">
-                <select name="currency" class="w-1/3 text-lg p-4 border border-gray-300 rounded-xl bg-gray-50 outline-none">
+        <div id="amount-div" class="input-container" style="display:none;">
+            <label class="form-label" data-i18n="req_amount_label">СУММА И ВАЛЮТА</label>
+            <div class="currency-group">
+                <input type="number" step="0.01" name="amount" placeholder="0.00" inputmode="decimal" style="height: 56px; background: var(--bg-body);">
+                <select name="currency" style="height: 56px;">
                     <option value="KZT">KZT</option>
                     <option value="RUB">RUB</option>
                     <option value="USD">USD</option>
@@ -49,72 +84,86 @@
             </div>
         </div>
 
-        <div>
-            <label class="block text-gray-700 text-lg font-bold mb-2" data-i18n="req_comment_label">Комментарий (обязательно)</label>
-            <textarea name="description" rows="3" required placeholder="Для чего нужны средства или какую очередь бронировать..." data-i18n="req_comment_placeholder"
-                class="w-full text-lg p-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500 bg-gray-50 focus:bg-white outline-none"></textarea>
+        <div class="input-container">
+            <label class="form-label" data-i18n="req_comment_label">ПОЯСНЕНИЕ (ОБЯЗАТЕЛЬНО)</label>
+            <textarea name="description" rows="3" required placeholder="Опишите ситуацию или причину запроса..." data-i18n="req_comment_placeholder" style="background: var(--bg-body); min-height: 100px;"></textarea>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="height: 64px; font-size: 18px; box-shadow: 0 10px 40px var(--primary-glow);">
+        <span class="material-symbols-outlined" style="font-size: 28px;">send</span>
+        <span data-i18n="req_send">ОТПРАВИТЬ ЗАПРОС</span>
+    </button>
+</form>
+
+<!-- History Section -->
+{% if requests %}
+<div style="margin-top: 48px; margin-bottom: 32px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+        <span class="material-symbols-outlined text-muted" style="font-size: 18px;">history</span>
+        <span class="fw-bold small" style="letter-spacing: 0.1em; color: var(--text-muted);" data-i18n="req_history">МОИ ПОСЛЕДНИЕ ЗАЯВКИ</span>
+    </div>
+
+    {% for req in requests %}
+    <div class="history-item">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="material-symbols-outlined text-primary" style="font-size: 20px;">
+                    {% if req.request_type == 'BORDER_QUEUE' %}flag
+                    {% elif req.request_type == 'PER_DIEM' %}request_quote
+                    {% elif req.request_type == 'FOREIGN_EXPENSE' %}public
+                    {% elif req.request_type == 'REPAIR' %}construction
+                    {% else %}chat_bubble{% endif %}
+                </span>
+                <span class="text-white fw-bold small">
+                    {% if req.request_type == 'BORDER_QUEUE' %}ГРАНИЦА
+                    {% elif req.request_type == 'PER_DIEM' %}СУТОЧНЫЕ
+                    {% elif req.request_type == 'FOREIGN_EXPENSE' %}ИН. ВАЛЮТА
+                    {% elif req.request_type == 'REPAIR' %}ПОЛОМКА
+                    {% else %}ПРОЧЕЕ{% endif %}
+                </span>
+            </div>
+            
+            <span class="badge {% if req.status == 'PENDING' %}badge-pending{% elif req.status == 'RESOLVED' %}badge-active{% else %}badge-cancelled{% endif %}" style="font-size: 8px;">
+                {% if req.status == 'PENDING' %}ОЖИДАНИЕ
+                {% elif req.status == 'RESOLVED' %}РЕШЕНО
+                {% else %}ОТКАЗ{% endif %}
+            </span>
         </div>
 
-        <button type="submit"
-            class="w-full text-white text-2xl font-black py-6 rounded-2xl shadow-[0_6px_0_#4338ca] active:shadow-none active:translate-y-2 transition-all mt-8 bg-gradient-to-b from-indigo-500 to-indigo-600 flex justify-center items-center space-x-3">
-            <span data-i18n="req_send">ОТПРАВИТЬ</span>
-        </button>
-    </form>
-</div>
+        {% if req.amount %}
+        <div class="text-white fw-bold" style="font-size: 18px; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px;">
+            {{ "{:,.0f}".format(req.amount) }} {{ req.currency }}
+        </div>
+        {% endif %}
 
-<!-- History -->
-{% if requests %}
-<div class="mt-8 bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
-    <h3 class="text-xl font-black text-gray-800 border-b pb-2 mb-4" data-i18n="req_history">💬 Мои заявки/сообщения:</h3>
-    <ul class="space-y-4">
-        {% for req in requests %}
-        <li class="p-3 bg-gray-50 border rounded-xl relative">
-            <div class="flex justify-between items-start mb-2">
-                <div class="font-bold text-gray-800 text-sm">
-                    {% if req.request_type == 'BORDER_QUEUE' %}<span data-i18n="hist_border">Отметка на границе</span>
-                    {% elif req.request_type == 'PER_DIEM' %}<span data-i18n="hist_per_diem">Суточные</span>
-                    {% elif req.request_type == 'FOREIGN_EXPENSE' %}<span data-i18n="hist_foreign">Расходы (ин. валюта)</span>
-                    {% elif req.request_type == 'REPAIR' %}<span data-i18n="hist_repair">Поломка</span>
-                    {% else %}<span data-i18n="hist_other">Прочее сообщениe</span>{% endif %}
-                </div>
-                <div class="text-xs font-bold px-2 py-1 rounded 
-                    {% if req.status == 'PENDING' %}bg-yellow-100 text-yellow-800
-                    {% elif req.status == 'RESOLVED' %}bg-green-100 text-green-800
-                    {% else %}bg-red-100 text-red-800{% endif %}">
-                    {% if req.status == 'PENDING' %}⏳ Ожидает
-                    {% elif req.status == 'RESOLVED' %}✓ Решено
-                    {% else %}✕ Отказ{% endif %}
-                </div>
-            </div>
-            {% if req.amount %}
-            <div class="text-lg font-black text-indigo-700">{{ req.amount }} {{ req.currency }}</div>
-            {% endif %}
-            <div class="text-gray-600 text-sm italic mb-2">«{{ req.description }}»</div>
-            
-            {% if req.status != 'PENDING' and req.resolution_comment %}
-            <div class="text-xs bg-white p-2 border border-gray-200 rounded text-gray-700 font-bold mt-2">
-                Ответ: {{ req.resolution_comment }}
-            </div>
-            {% endif %}
-            <div class="text-gray-400 text-xs mt-2 text-right">
-                {{ req.created_at.strftime('%d.%m %H:%M') }}
-            </div>
-        </li>
-        {% endfor %}
-    </ul>
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4; font-style: italic;">«{{ req.description }}»</div>
+        
+        {% if req.status != 'PENDING' and req.resolution_comment %}
+        <div style="margin-top: 12px; padding: 12px; background: var(--bg-body); border-radius: 8px; border-left: 3px solid var(--primary);">
+            <div class="topbar-meta" style="font-size: 9px; margin-bottom: 4px;">ОТВЕТ ДИСПЕТЧЕРА:</div>
+            <div style="font-size: 12px; color: white;">{{ req.resolution_comment }}</div>
+        </div>
+        {% endif %}
+
+        <div class="topbar-meta mt-3" style="font-size: 9px; text-align: right; opacity: 0.5;">
+            {{ req.created_at.strftime('%d.%m %H:%M') }}
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endif %}
 
 <script>
 function toggleAmount() {
     var sel = document.getElementById('req-type-sel').value;
+    var el = document.getElementById('amount-div');
     if (sel === 'PER_DIEM' || sel === 'FOREIGN_EXPENSE' || sel === 'OTHER') {
-        document.getElementById('amount-div').style.display = 'block';
+        el.style.display = 'block';
     } else {
-        document.getElementById('amount-div').style.display = 'none';
-        document.getElementsByName('amount')[0].value = '';
+        el.style.display = 'none';
     }
 }
+toggleAmount();
 </script>
-
 {% endblock %}

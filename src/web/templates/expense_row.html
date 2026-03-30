@@ -1,54 +1,100 @@
-<tr id="expense-{{ expense.id }}">
-  <td class="fw-bold"><span class="auto-translate">{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</span></td>
-  <td>
-    {% if expense.expense_type == 'FUEL' %}<span data-i18n="expense_type_fuel">Топливо</span>
-    {% elif expense.expense_type == 'PER_DIEM' %}<span data-i18n="expense_type_per_diem">Суточные</span>
-    {% elif expense.expense_type == 'FINE' %}<span data-i18n="expense_type_fine">Штраф</span>
-    {% elif expense.expense_type == 'REPAIR' %}<span data-i18n="expense_type_repair">Ремонт</span>
-    {% elif expense.expense_type == 'OTHER' %}<span data-i18n="expense_type_other">Прочее</span>
-    {% else %}{{ expense.expense_type }}{% endif %}
-  </td>
-  <td>
-    {{ expense.amount }} {{ expense.currency }}
-    {% if expense.amount_kzt and expense.currency != 'KZT' %}
-    <br><small class="text-muted">{{ expense.amount_kzt | int }} ₸</small>
-    {% endif %}
-  </td>
-  <td>
-    {% set receipt_url = expense.photo_r2_url or expense.photo_file_id %}
-    {% if receipt_url %}
-    <a href="{{ receipt_url }}" target="_blank" class="btn btn-xs btn-ghost" data-i18n="receipt">📎 Чек</a>
-    {% endif %}
-    {% if expense.card_photo_file_id %}
-    <a href="{{ expense.card_photo_file_id }}" target="_blank" class="btn btn-xs btn-ghost">💳</a>
-    {% endif %}
-    {% if not receipt_url and not expense.card_photo_file_id %}<span class="text-muted">—</span>{% endif %}
-  </td>
-  <td class="text-muted">{{ expense.created_at.strftime('%d.%m %H:%M') if expense.created_at else "—" }}</td>
-  <td>
-    {% if expense.status == "PENDING" %}
-    <div class="action-group">
-      <form hx-post="/panel/expenses/{{ expense.id }}/approve"
-            hx-target="#expense-{{ expense.id }}"
-            hx-swap="outerHTML"
-            style="display:inline">
-        <button type="submit" class="btn btn-sm btn-success" data-i18n="approve">✓ Одобрить</button>
-      </form>
-      <form hx-post="/panel/expenses/{{ expense.id }}/reject"
-            hx-target="#expense-{{ expense.id }}"
-            hx-swap="outerHTML"
-            style="display:inline; display:flex; gap:6px; align-items:center;">
-        <input name="comment" placeholder="Причина (необяз.)" data-i18n="reject_reason_placeholder"
-               style="width:140px; padding:5px 9px; border:1px solid var(--border); border-radius:5px; font-size:13px;">
-        <button type="submit" class="btn btn-sm btn-danger" data-i18n="reject">✕ Отклонить</button>
-      </form>
-    </div>
-    {% else %}
-    {% if expense.status == 'APPROVED' %}<span class="badge badge-approved" data-i18n="status_approved">Одобрен</span>
-    {% else %}<span class="badge badge-rejected" data-i18n="status_rejected">Отклонён</span>{% endif %}
-    {% if expense.rejection_comment %}
-    <div style="font-size:12px; color:var(--muted); margin-top:3px;"><span class="auto-translate">{{ expense.rejection_comment }}</span></div>
-    {% endif %}
-    {% endif %}
-  </td>
+<tr id="expense-{{ expense.id }}" class="hover-row">
+    <td>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 6px; background: var(--surface-low); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary); font-size: 12px;">
+                {{ (expense.trip.driver.name or 'A')[0] }}
+            </div>
+            <div>
+                <div class="fw-bold text-white small"><span class="auto-translate">{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</span></div>
+                <div class="topbar-meta" style="font-size: 9px; font-family: 'JetBrains Mono', monospace;">ID: {{ expense.trip.driver.id if expense.trip and expense.trip.driver else "N/A" }}</div>
+            </div>
+        </div>
+    </td>
+    <td>
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined text-muted" style="font-size: 16px;">
+                {% if expense.expense_type == 'FUEL' %}local_gas_station
+                {% elif expense.expense_type == 'PER_DIEM' %}restaurant
+                {% elif expense.expense_type == 'FINE' %}report_problem
+                {% elif expense.expense_type == 'REPAIR' %}construction
+                {% elif expense.expense_type == 'OTHER' %}inventory_2
+                {% else %}payments{% endif %}
+            </span>
+            <span class="topbar-meta small fw-bold" style="letter-spacing: 0.02em;">
+                {% if expense.expense_type == 'FUEL' %}<span data-i18n="expense_type_fuel">ТОПЛИВО</span>
+                {% elif expense.expense_type == 'PER_DIEM' %}<span data-i18n="expense_type_per_diem">СУТОЧНЫЕ</span>
+                {% elif expense.expense_type == 'FINE' %}<span data-i18n="expense_type_fine">ШТРАФ</span>
+                {% elif expense.expense_type == 'REPAIR' %}<span data-i18n="expense_type_repair">РЕМОНТ</span>
+                {% elif expense.expense_type == 'OTHER' %}<span data-i18n="expense_type_other">ПРОЧЕЕ</span>
+                {% else %}{{ expense.expense_type }}{% endif %}
+            </span>
+        </div>
+    </td>
+    <td>
+        <div class="fw-bold text-white small" style="font-family: 'JetBrains Mono', monospace;">{{ expense.amount }} {{ expense.currency }}</div>
+        {% if expense.amount_kzt and expense.currency != 'KZT' %}
+        <div class="topbar-meta" style="font-size: 10px; opacity: 0.6;">≈ {{ expense.amount_kzt | int }} ₸</div>
+        {% endif %}
+    </td>
+    <td>
+        <div style="display: flex; gap: 4px;">
+            {% set receipt_url = expense.photo_r2_url or expense.photo_file_id %}
+            {% if receipt_url %}
+            <a href="{{ receipt_url }}" target="_blank" class="btn btn-xs btn-ghost" title="Посмотреть чек" style="padding: 0; width: 28px; height: 28px; justify-content: center;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">receipt_long</span>
+            </a>
+            {% endif %}
+            {% if expense.card_photo_file_id %}
+            <a href="{{ expense.card_photo_file_id }}" target="_blank" class="btn btn-xs btn-ghost" title="Посмотреть карту" style="padding: 0; width: 28px; height: 28px; justify-content: center;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">credit_card</span>
+            </a>
+            {% endif %}
+            {% if not receipt_url and not expense.card_photo_file_id %}
+            <span class="material-symbols-outlined text-muted" style="font-size: 16px; opacity: 0.2;" title="Нет вложений">no_photography</span>
+            {% endif %}
+        </div>
+    </td>
+    <td>
+        <div class="topbar-meta" style="font-size: 10px; font-family: 'JetBrains Mono', monospace;">
+            {{ expense.created_at.strftime('%d.%m %H:%M') if expense.created_at else "—" }}
+        </div>
+    </td>
+    <td style="text-align: right;">
+        {% if expense.status == "PENDING" %}
+        <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+            <form hx-post="/panel/expenses/{{ expense.id }}/reject"
+                  hx-target="#expense-{{ expense.id }}"
+                  hx-swap="outerHTML"
+                  style="display:flex; gap:6px; align-items:center;">
+                <input name="comment" placeholder="ПРИЧИНА..." data-i18n="reject_reason_placeholder"
+                       style="width:100px; padding:4px 8px; height: 28px; font-size:10px; border-radius: 4px; background: var(--surface-low); border: 1px solid var(--border); color: var(--text);">
+                <button type="submit" class="btn btn-xs btn-ghost text-danger" data-i18n="reject" title="Отклонить" style="padding: 0; width: 28px; height: 28px; justify-content: center;">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                </button>
+            </form>
+            <form hx-post="/panel/expenses/{{ expense.id }}/approve"
+                  hx-target="#expense-{{ expense.id }}"
+                  hx-swap="outerHTML">
+                <button type="submit" class="btn btn-xs btn-ghost text-success" data-i18n="approve" title="Одобрить" style="padding: 0; width: 28px; height: 28px; justify-content: center; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">check</span>
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+            {% if expense.status == 'APPROVED' %}
+                <span class="badge badge-active" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 2px 8px; font-size: 10px; letter-spacing: 0.05em;" data-i18n="status_approved">
+                    ОДОБРЕНО
+                </span>
+            {% else %}
+                <span class="badge badge-cancelled" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 2px 8px; font-size: 10px; letter-spacing: 0.05em;" data-i18n="status_rejected">
+                    ОТКЛОНЕНО
+                </span>
+                {% if expense.rejection_comment %}
+                <div class="topbar-meta mt-1 italic" style="font-size: 9px; opacity: 0.8; color: var(--danger);">{{ expense.rejection_comment }}</div>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </td>
 </tr>

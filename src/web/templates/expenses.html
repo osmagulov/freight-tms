@@ -1,37 +1,150 @@
 {% extends "base.html" %}
-{% block title %}Расходы — Freight TMS{% endblock %}
-{% block content %}
+{% block title %}Контроль расходов — Freight TMS{% endblock %}
 
+{% block extra_css %}
+.expense-type-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 12px; font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.tag-fuel { background: rgba(59, 130, 246, 0.1); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.2); }
+.tag-fine { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+.tag-repair { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+.tag-other { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+.receipt-btn {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-highest); border: 1px solid var(--border);
+    transition: all 0.2s; color: var(--text-muted);
+}
+.receipt-btn:hover { border-color: var(--primary); color: white; transform: translateY(-2px); }
+
+.approve-btn {
+    height: 40px; padding: 0 20px; border-radius: 12px;
+    background: var(--success); color: white; font-weight: 800; font-size: 13px;
+    display: flex; align-items: center; gap: 8px; border: none; cursor: pointer;
+    transition: all 0.3s;
+}
+.approve-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+
+.reject-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(239, 68, 68, 0.1); color: var(--danger);
+    display: flex; align-items: center; justify-content: center; border: 1px solid rgba(239, 68, 68, 0.2);
+    cursor: pointer; transition: all 0.3s;
+}
+.reject-btn:hover { background: var(--danger); color: white; transform: translateY(-2px); }
+
+.reject-input {
+    background: var(--surface-low) !important; border: 1px solid var(--border) !important;
+    border-radius: 12px !important; height: 40px !important; padding: 0 16px !important;
+    font-size: 13px !important; color: white !important; width: 220px !important;
+}
+{% endblock %}
+
+{% block content %}
 <div class="page-hdr">
-    <h1 data-i18n="expenses_title">Расходы на одобрение</h1>
+    <div>
+        <h1 class="page-title">Авторизация расходов</h1>
+        <p class="text-muted small">Валидация чеков и подтверждение финансовых операций экипажей</p>
+    </div>
+    
     {% if expenses %}
-    <span class="badge badge-pending">{{ expenses | length }} <span data-i18n="expenses_awaiting">ожидают</span></span>
+    <div class="card" style="padding: 8px 20px; background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2); display: flex; align-items: center; gap: 16px;">
+        <div class="mono" style="font-size: 20px; color: var(--warning);">{{ expenses | length }}</div>
+        <div class="topbar-meta small fw-bold" style="letter-spacing: 0.1em; color: var(--warning);">ОЖИДАЮТ ПРОВЕРКИ</div>
+    </div>
     {% endif %}
 </div>
 
 {% if not expenses %}
-<div class="table-wrap">
-    <div class="empty">
-        <div class="empty-icon">✅</div>
-        <p data-i18n="no_pending_expenses">Нет расходов, ожидающих одобрения.</p>
+<div class="card" style="padding: 100px 40px; text-align: center; background: rgba(255,255,255,0.01);">
+    <div class="inline-flex items-center justify-center w-20 h-20 bg-success/10 rounded-full mb-6">
+        <span class="material-symbols-outlined text-success" style="font-size: 48px; opacity: 0.3;">done_all</span>
     </div>
+    <h3 class="text-white font-black" style="font-size: 20px;">Очередь пуста</h3>
+    <p class="text-muted small mt-2">Все заявки на расходы были обработаны диспетчером.</p>
 </div>
 {% else %}
-<div class="table-wrap">
+<div class="table-container">
     <table>
         <thead>
             <tr>
-                <th data-i18n="driver">Водитель</th>
-                <th data-i18n="expense_type">Тип</th>
-                <th data-i18n="amount">Сумма</th>
-                <th data-i18n="receipt">Фото</th>
-                <th data-i18n="date">Дата</th>
-                <th data-i18n="actions">Действие</th>
+                <th style="width: 260px;">ВОДИТЕЛЬ / РЕЙС</th>
+                <th style="width: 200px;">КАТЕГОРИЯ</th>
+                <th style="width: 200px;">СУММА ТРАНЗАКЦИИ</th>
+                <th>ДОКУМЕНТАЦИЯ</th>
+                <th style="text-align: right;">РЕШЕНИЕ ДИСПЕТЧЕРА</th>
             </tr>
         </thead>
         <tbody>
             {% for expense in expenses %}
-            {% include "expense_row.html" %}
+            <tr id="expense-{{ expense.id }}" class="hover:bg-white/[0.01]">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--surface-highest); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--primary);">
+                            {{ expense.trip.driver.name[:1] if expense.trip and expense.trip.driver else 'D' }}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white small">{{ expense.trip.driver.name if expense.trip and expense.trip.driver else "—" }}</div>
+                            <div class="mono" style="font-size: 11px; opacity: 0.6;">Рейс #{{ expense.trip.id if expense.trip else "—" }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    {% if expense.expense_type == 'FUEL' %}<div class="expense-type-tag tag-fuel"><span class="material-symbols-outlined" style="font-size: 16px;">local_gas_station</span> Топливо</div>
+                    {% elif expense.expense_type == 'REPAIR' %}<div class="expense-type-tag tag-repair"><span class="material-symbols-outlined" style="font-size: 16px;">build</span> Ремонт</div>
+                    {% elif expense.expense_type == 'FINE' %}<div class="expense-type-tag tag-fine"><span class="material-symbols-outlined" style="font-size: 16px;">policy</span> Штраф</div>
+                    {% elif expense.expense_type == 'PER_DIEM' %}<div class="expense-type-tag tag-other" style="color: var(--warning);"><span class="material-symbols-outlined" style="font-size: 16px;">restaurant</span> Суточные</div>
+                    {% else %}<div class="expense-type-tag tag-other"><span class="material-symbols-outlined" style="font-size: 16px;">payments</span> {{ expense.expense_type }}</div>{% endif %}
+                </td>
+                <td>
+                    <div class="mono text-white" style="font-size: 16px;">{{ "{:,.2f}".format(expense.amount) }} <span class="small opacity-50">{{ expense.currency }}</span></div>
+                    {% if expense.amount_kzt and expense.currency != 'KZT' %}
+                    <div class="topbar-meta mt-1" style="font-size: 10px;">{{ "{:,.0f}".format(expense.amount_kzt) }} ₸ <span style="opacity: 0.5;">(конвертация)</span></div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 8px;">
+                        {% set receipt_url = expense.photo_r2_url or expense.photo_file_id %}
+                        {% if receipt_url %}
+                        <a href="{{ receipt_url }}" target="_blank" class="receipt-btn" title="Посмотреть фото чека">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">receipt_long</span>
+                        </a>
+                        {% endif %}
+                        {% if expense.card_photo_file_id %}
+                        <a href="{{ expense.card_photo_file_id }}" target="_blank" class="receipt-btn" title="Посмотреть фото карты">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">credit_card</span>
+                        </a>
+                        {% endif %}
+                        {% if not receipt_url and not expense.card_photo_file_id %}
+                        <span class="text-muted italic small opacity-30">Нет вложений</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td style="text-align: right;">
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center;">
+                        <form hx-post="/panel/expenses/{{ expense.id }}/reject"
+                              hx-target="#expense-{{ expense.id }}"
+                              hx-swap="outerHTML"
+                              style="display: flex; gap: 8px;">
+                            <input name="comment" class="reject-input" placeholder="Укажите причину для водителя...">
+                            <button type="submit" class="reject-btn" title="Отказать в выплате">
+                                <span class="material-symbols-outlined" style="font-size: 22px;">close</span>
+                            </button>
+                        </form>
+                        <form hx-post="/panel/expenses/{{ expense.id }}/approve"
+                              hx-target="#expense-{{ expense.id }}"
+                              hx-swap="outerHTML">
+                            <button type="submit" class="approve-btn" title="Одобрить расход">
+                                <span class="material-symbols-outlined" style="font-size: 22px;">check</span>
+                                ОДОБРИТЬ
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>

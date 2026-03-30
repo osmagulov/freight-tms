@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Eco-Driving — Freight TMS{% endblock %}
+{% block header %}🌱 Рейтинг Eco-Driving{% endblock %}
+
+{% block content %}
+
+<div class="page-hdr">
+    <div>
+        <h1 data-i18n="eco_driving_title">Эффективность вождения</h1>
+        <p class="text-muted small">Интегральный показатель на основе расхода топлива, аномалий и дисциплины</p>
+    </div>
+</div>
+
+<div class="card mb-4" style="border: 1px solid var(--border); background: rgba(59, 130, 246, 0.05);">
+    <div class="card-body p-3 d-flex align-items-center gap-3">
+        <span class="material-symbols-outlined text-primary" style="font-size: 24px;">info</span>
+        <div class="topbar-meta small" style="font-size: 11px; line-height: 1.4;">
+            Рейтинг рассчитывается автоматически: 
+            <strong class="text-white">расход топлива vs норма</strong>, 
+            <strong class="text-white">отклоненные расходы</strong>, 
+            <strong class="text-white">критические аномалии</strong> и 
+            <strong class="text-white">дистанция рейсов</strong>.
+        </div>
+    </div>
+</div>
+
+<div class="kpi-grid mb-4">
+    <div class="kpi" style="border-top: 3px solid #10b981;">
+        <div class="kpi-label">GRADE A — ОТЛИЧНО</div>
+        <div class="kpi-value text-success">90-100</div>
+    </div>
+    <div class="kpi" style="border-top: 3px solid #3b82f6;">
+        <div class="kpi-label">GRADE B — ХОРОШО</div>
+        <div class="kpi-value text-primary">75-89</div>
+    </div>
+    <div class="kpi" style="border-top: 3px solid #f59e0b;">
+        <div class="kpi-label">GRADE C — НОРМА</div>
+        <div class="kpi-value text-warning">60-74</div>
+    </div>
+    <div class="kpi" style="border-top: 3px solid #f97316;">
+        <div class="kpi-label">GRADE D — СЛАБО</div>
+        <div class="kpi-value" style="color: #f97316;">40-59</div>
+    </div>
+    <div class="kpi" style="border-top: 3px solid #ef4444;">
+        <div class="kpi-label">GRADE F — РИСК</div>
+        <div class="kpi-value text-danger">0-39</div>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50px;">#</th>
+                <th data-i18n="driver">ВОДИТЕЛЬ</th>
+                <th style="width: 200px;">ЭФФЕКТИВНОСТЬ</th>
+                <th>ОЦЕНКА</th>
+                <th>РЕЙСОВ</th>
+                <th>ПРОБЕГ</th>
+                <th>АНОМАЛИИ</th>
+                <th>ОТКАЗЫ</th>
+                <th class="text-end">ДЕТАЛИ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for driver in leaderboard %}
+            <tr class="{% if loop.first and driver.score %}highlight-row{% endif %}" style="{% if loop.first and driver.score %}background: rgba(16, 185, 129, 0.05);{% endif %}">
+                <td>
+                    {% if loop.index == 1 and driver.score %}<span class="material-symbols-outlined text-warning" style="font-size: 20px;">military_tech</span>
+                    {% elif loop.index == 2 and driver.score %}<span class="material-symbols-outlined text-muted" style="font-size: 20px;">military_tech</span>
+                    {% elif loop.index == 3 and driver.score %}<span class="material-symbols-outlined" style="font-size: 20px; color: #cd7f32;">military_tech</span>
+                    {% else %}<span class="topbar-meta">{{ loop.index }}</span>{% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);">
+                            {{ driver.driver_name[:1] }}
+                        </div>
+                        <a href="/panel/drivers/{{ driver.driver_id }}" class="fw-bold text-white small" style="text-decoration: none;">{{ driver.driver_name }}</a>
+                    </div>
+                </td>
+                <td>
+                    {% if driver.score is not none %}
+                    <div class="score-container" style="width: 100%;">
+                        <div class="progress-bg" style="height: 6px; background: var(--surface-low); border-radius: 3px; overflow: hidden; margin-bottom: 4px;">
+                            {% set bar_color = '#ef4444' %}
+                            {% if driver.grade_color == 'success' %}{% set bar_color = '#10b981' %}
+                            {% elif driver.grade_color == 'info' %}{% set bar_color = '#3b82f6' %}
+                            {% elif driver.grade_color == 'warning' %}{% set bar_color = '#f59e0b' %}
+                            {% elif driver.grade_color == 'orange' %}{% set bar_color = '#f97316' %}
+                            {% endif %}
+                            <div class="progress-fill" style="width: {{ driver.score }}%; height: 100%; background: {{ bar_color }}; box-shadow: 0 0 10px {{ bar_color }}44;"></div>
+                        </div>
+                        <div class="topbar-meta fw-bold" style="font-size: 9px;">{{ driver.score }}/100</div>
+                    </div>
+                    {% else %}
+                    <span class="topbar-meta small italic">нет данных</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="grade-pill grade-{{ driver.grade_color }}">{{ driver.grade }}</span>
+                </td>
+                <td><span class="text-white small">{{ driver.trips_analyzed }}</span></td>
+                <td>
+                    <span class="text-white small">
+                    {% if driver.total_km %}{{ "{:,.0f}".format(driver.total_km) }} км{% else %}—{% endif %}
+                    </span>
+                </td>
+                <td>
+                    {% if driver.anomaly_count > 0 %}
+                    <span class="badge badge-cancelled" style="min-width: 24px; text-align: center;">{{ driver.anomaly_count }}</span>
+                    {% else %}
+                    <span class="material-symbols-outlined text-success" style="font-size: 18px;">check_circle</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if driver.rejections > 0 %}
+                    <span class="badge badge-pending" style="min-width: 24px; text-align: center;">{{ driver.rejections }}</span>
+                    {% else %}
+                    <span class="material-symbols-outlined text-success" style="font-size: 18px;">verified_user</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    {% if driver.breakdown %}
+                    <button class="btn btn-xs btn-ghost" onclick="toggleBreakdown('bd-{{ driver.driver_id }}')">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">expand_more</span>
+                    </button>
+                    {% else %}
+                    <span class="topbar-meta">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if driver.breakdown %}
+            <tr id="bd-{{ driver.driver_id }}" style="display:none; background: rgba(239, 68, 68, 0.02);">
+                <td colspan="9" class="p-4">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;">
+                        {% for note in driver.breakdown %}
+                        <div class="topbar-meta" style="font-size: 11px; display: flex; gap: 8px; align-items: flex-start;">
+                            <span class="material-symbols-outlined text-danger" style="font-size: 14px;">error_outline</span>
+                            {{ note }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+            {% else %}
+            <tr>
+                <td colspan="9" class="py-5 text-center">
+                    <div class="empty-icon mb-3"><span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.1;">safety_divider</span></div>
+                    <p class="text-muted" data-i18n="no_eco_data">Нет активных водителей с завершёнными рейсами.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .grade-pill {
+        display: inline-block;
+        font-weight: 800;
+        font-size: 14px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .grade-success { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+    .grade-info    { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
+    .grade-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+    .grade-orange  { background: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.2); }
+    .grade-danger  { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .grade-secondary { background: var(--surface-low); color: var(--muted); border: 1px solid var(--border); }
+</style>
+
+<script>
+function toggleBreakdown(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (el.style.display === 'none') ? 'table-row' : 'none';
+}
+</script>
+{% endblock %}

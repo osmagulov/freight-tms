@@ -1,13 +1,22 @@
 {% extends "base.html" %}
+
 {% block title %}Карта парка — Freight TMS{% endblock %}
+{% block header %}🛰️ Спутниковый мониторинг{% endblock %}
+
 {% block content %}
-<h2 data-i18n="map_title">Карта парка</h2>
-<p style="color:#666; font-size:14px;" data-i18n="map_desc">Показаны последние позиции машин с активными рейсами. Обновление каждые 30 сек.</p>
+<div class="page-hdr">
+    <div>
+        <h1 data-i18n="map_title">Локация автопарка</h1>
+        <p class="text-muted small">Показаны последние позиции машин с активными рейсами. Обновление каждые 30 сек.</p>
+    </div>
+</div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
-<div id="map" style="height:600px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.15);"></div>
+<div class="card" style="border: 1px solid var(--border); overflow: hidden; padding: 0;">
+    <div id="map" style="height: calc(100vh - 240px); min-height: 600px; background: #000;"></div>
+</div>
 
 <!-- HTMX polling: every 30s fetch /panel/map/markers and update Leaflet markers -->
 <div id="map-poller"
@@ -16,17 +25,40 @@
      hx-swap="none"
      style="display:none;"></div>
 
-<script>
-  const map = L.map('map').setView([48.0, 68.0], 4);
+<style>
+    /* Leaflet Dark Theme Overrides */
+    .leaflet-container { background: #0c0c0c !important; }
+    .leaflet-bar a { background-color: var(--surface-low) !important; color: white !important; border-color: var(--border) !important; }
+    .leaflet-popup-content-wrapper { background: var(--surface-low) !important; color: white !important; border-radius: 8px !important; border: 1px solid var(--border) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important; }
+    .leaflet-popup-tip { background: var(--surface-low) !important; border: 1px solid var(--border) !important; }
+    
+    .map-truck-popup { padding: 4px; }
+    .map-truck-title { font-weight: 800; color: white; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 8px; }
+    .map-truck-body { font-size: 13px; color: var(--muted); }
+    .map-truck-driver { color: var(--primary); font-weight: 600; }
+</style>
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+<script>
+  // Initialize map with CartoDB Dark Matter tiles for Obsidian look
+  const map = L.map('map', { zoomControl: false }).setView([48.0, 68.0], 4);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20
   }).addTo(map);
 
   let leafMarkers = {};
 
+  const truckIcon = L.divIcon({
+    html: `<div style="background: var(--primary); width: 14px; height: 14px; border-radius: 50%; border: 3px solid rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px var(--primary);"></div>`,
+    className: 'custom-div-icon',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+  });
+
   function updateMarkers(data) {
-    // Remove markers no longer in data
     const newPlates = new Set(data.map(d => d.plate));
     for (const plate in leafMarkers) {
       if (!newPlates.has(plate)) {
@@ -34,38 +66,58 @@
         delete leafMarkers[plate];
       }
     }
-    // Add or update markers
+    
     data.forEach(function(truck) {
-      const popupHtml = '<b>' + truck.plate + '</b><br>' + (truck.driver_name || '—') + '<br><small>' + truck.updated_at + '</small>';
+      const popupHtml = `
+        <div class="map-truck-popup">
+            <div class="map-truck-title">
+                <span class="material-symbols-outlined" style="font-size: 18px; color: var(--primary);">local_shipping</span>
+                ${truck.plate}
+            </div>
+            <div class="map-truck-body">
+                Водитель: <span class="map-truck-driver">${truck.driver_name || '—'}</span><br>
+                <div class="topbar-meta small mt-1" style="font-size: 9px; opacity: 0.6;">ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ: ${truck.updated_at}</div>
+            </div>
+        </div>
+      `;
+      
       if (leafMarkers[truck.plate]) {
         leafMarkers[truck.plate].setLatLng([truck.lat, truck.lng]);
-        leafMarkers[truck.plate].setPopupContent(popupHtml);
+        leafMarkers[truck.plate].getPopup().setContent(popupHtml);
       } else {
-        leafMarkers[truck.plate] = L.marker([truck.lat, truck.lng])
+        leafMarkers[truck.plate] = L.marker([truck.lat, truck.lng], { icon: truckIcon })
           .bindPopup(popupHtml)
           .addTo(map);
       }
     });
   }
 
-  // Render initial markers from server
+  // Render initial markers
   const initialMarkers = {{ markers | tojson }};
-  updateMarkers(initialMarkers);
+  if (initialMarkers && initialMarkers.length > 0) {
+      updateMarkers(initialMarkers);
+      // Auto zoom to pins if first time
+      const group = new L.featureGroup(Object.values(leafMarkers));
+      map.fitBounds(group.getBounds().pad(0.1));
+  }
 
-  // HTMX: after each poll, parse JSON response and update markers
+  // HTMX update
   document.getElementById('map-poller').addEventListener('htmx:afterRequest', function(evt) {
     if (evt.detail.successful) {
       try {
         const data = JSON.parse(evt.detail.xhr.responseText);
         updateMarkers(data);
-      } catch (e) {
-        console.error('Failed to parse marker data:', e);
-      }
+      } catch (e) { console.error('Marker update failed:', e); }
     }
   });
 </script>
 
 {% if not markers %}
-<p style="margin-top:16px; color:#888;" data-i18n="no_active_trucks">Нет машин с активными рейсами и геопозицией.</p>
+<div class="mt-4 card p-4" style="background: rgba(45, 45, 45, 0.4); border: 1px dashed var(--border);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="material-symbols-outlined text-muted">gps_off</span>
+        <span class="text-muted small" data-i18n="no_active_trucks">В данный момент нет машин с активными рейсами и доступной геопозицией.</span>
+    </div>
+</div>
 {% endif %}
 {% endblock %}

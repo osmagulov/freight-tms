@@ -1,117 +1,144 @@
 {% extends "base.html" %}
 {% block title %}Редактирование рейса #{{ trip.id }} — Freight TMS{% endblock %}
+{% block header %}✏️ Редактор рейса{% endblock %}
+
 {% block content %}
 
-<a href="/panel/trips/{{ trip.id }}" class="back-link" data-i18n="back_to_trip">← Вернуться к рейсу</a>
-
-<div class="page-hdr" style="margin-bottom:20px;">
-    <h1 data-i18n="edit_trip">Редактор рейса</h1> <h1>#{{ trip.id }}</h1>
-</div>
-
-<div class="card" style="max-width:680px;">
-    <div class="card-hdr"><span class="card-title" data-i18n="trip_data">Данные рейса</span></div>
-    <div class="card-body">
-        <form action="/panel/trips/{{ trip.id }}/edit" method="post">
-
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label for="driver_id" data-i18n="driver_required">Водитель *</label>
-                    <select name="driver_id" id="driver_id" required>
-                        <option value="" data-i18n="select_driver">— выберите водителя —</option>
-                        {% for d in drivers %}
-                        <option value="{{ d.id }}" {% if trip.driver_id == d.id %}selected{% endif %}>{{ d.name or d.tg_id }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="vehicle_id" data-i18n="vehicle_required">Транспорт *</label>
-                    <select name="vehicle_id" id="vehicle_id" required>
-                        <option value="" data-i18n="select_vehicle">— выберите борт —</option>
-                        {% for v in vehicles %}
-                        <option value="{{ v.id }}" {% if trip.vehicle_id == v.id %}selected{% endif %}>{{ v.license_plate }}{% if v.make %} — {{ v.make }} {{ v.model or '' }}{% endif %}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label for="status" data-i18n="trip_status_required">Статус рейса *</label>
-                    <select name="status" id="status" required>
-                        {% for st in TripStatus %}
-                        <option value="{{ st.value }}" {% if trip.status == st.value %}selected{% endif %}>
-                            {% if st.value == 'PLANNED' %}<span data-i18n="status_planned">Запланирован</span>
-                            {% elif st.value == 'ACTIVE' %}<span data-i18n="status_active_trip">Активен</span>
-                            {% elif st.value == 'COMPLETED' %}<span data-i18n="status_completed">Завершён</span>
-                            {% elif st.value == 'CANCELLED' %}<span data-i18n="status_cancelled">Отменён</span>
-                            {% else %}{{ st.value }}{% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="delivery_status" data-i18n="delivery_status">Статус доставки</label>
-                    <input type="text" name="delivery_status" id="delivery_status" value="{{ trip.delivery_status or '' }}" placeholder="Например: Доставлено">
-                </div>
-            </div>
-
-            <div class="form-row">
-                <label for="route_details" data-i18n="route">Маршрут</label>
-                <input type="text" name="route_details" id="route_details" value="{{ trip.route_details or '' }}" placeholder="Например: Алматы — Астана" maxlength="500">
-            </div>
-
-            <div class="form-row">
-                <label for="load_info" data-i18n="load_info">Груз</label>
-                <input type="text" name="load_info" id="load_info" value="{{ trip.load_info or '' }}" placeholder="Тип и объём груза" maxlength="500">
-            </div>
-
-            <div class="form-row">
-                <label for="client_name" data-i18n="client_name">Клиент</label>
-                <input type="text" name="client_name" id="client_name" value="{{ trip.client_name or '' }}" placeholder="Наименование клиента" maxlength="255">
-            </div>
-
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label for="price" data-i18n="freight_price">Стоимость (Фрахт)</label>
-                    <input type="number" step="0.01" name="price" id="price" value="{{ trip.price or '' }}" placeholder="Сумма оплаты от клиента">
-                </div>
-                <div class="form-row">
-                    <label for="price_currency" data-i18n="freight_currency">Валюта фрахта</label>
-                    <select name="price_currency" id="price_currency">
-                        <option value="KZT" {% if trip.price_currency == 'KZT' %}selected{% endif %}>KZT</option>
-                        <option value="USD" {% if trip.price_currency == 'USD' %}selected{% endif %}>USD</option>
-                        <option value="RUB" {% if trip.price_currency == 'RUB' %}selected{% endif %}>RUB</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label for="planned_departure" data-i18n="planned_departure_label">Планируемое отправление</label>
-                    <input type="datetime-local" name="planned_departure" id="planned_departure" value="{{ trip.planned_departure.strftime('%Y-%m-%dT%H:%M') if trip.planned_departure else '' }}">
-                </div>
-                <div class="form-row">
-                    <label for="planned_arrival" data-i18n="planned_arrival_label">Планируемое прибытие</label>
-                    <input type="datetime-local" name="planned_arrival" id="planned_arrival" value="{{ trip.planned_arrival.strftime('%Y-%m-%dT%H:%M') if trip.planned_arrival else '' }}">
-                </div>
-            </div>
-
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label for="start_odometer" data-i18n="start_odometer">Одометр (начало)</label>
-                    <input type="number" name="start_odometer" id="start_odometer" value="{{ trip.start_odometer if trip.start_odometer is not none else '' }}">
-                </div>
-                <div class="form-row">
-                    <label for="end_odometer" data-i18n="end_odometer">Одометр (конец)</label>
-                    <input type="number" name="end_odometer" id="end_odometer" value="{{ trip.end_odometer if trip.end_odometer is not none else '' }}">
-                </div>
-            </div>
-
-            <div class="action-group" style="margin-top:8px;">
-                <button type="submit" class="btn" data-i18n="save_btn">Сохранить</button>
-                <a href="/panel/trips/{{ trip.id }}" class="btn btn-ghost" data-i18n="cancel">Отмена</a>
-            </div>
-        </form>
+<div class="page-hdr">
+    <div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+            <a href="/panel/trips/{{ trip.id }}" class="btn btn-xs btn-ghost" style="padding: 0; width: 32px; height: 32px; justify-content: center; border-radius: 50%;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">arrow_back</span>
+            </a>
+            <h1 data-i18n="edit_trip">Рейс #{{ trip.id }}</h1>
+        </div>
+        <p class="text-muted small ml-5">Изменение параметров активного или запланированного рейса</p>
     </div>
 </div>
+
+<div class="row" style="display: flex; justify-content: center;">
+    <div style="width: 100%; max-width: 800px;">
+        <div class="card" style="border: 1px solid var(--border);">
+            <div class="card-hdr" style="background: var(--surface-low);">
+                <span class="card-title">
+                    <span class="material-symbols-outlined text-primary">edit_square</span>
+                    Редактирование данных
+                </span>
+            </div>
+            <div class="card-body p-5">
+                <form action="/panel/trips/{{ trip.id }}/edit" method="post">
+                    
+                    <!-- Driver & Vehicle Section -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">ВОДИТЕЛЬ *</label>
+                            <select name="driver_id" required style="width: 100%;">
+                                {% for d in drivers %}
+                                <option value="{{ d.id }}" {% if trip.driver_id == d.id %}selected{% endif %}>{{ d.name or d.tg_id }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">ТРАНСПОРТ *</label>
+                            <select name="vehicle_id" required style="width: 100%;">
+                                {% for v in vehicles %}
+                                <option value="{{ v.id }}" {% if trip.vehicle_id == v.id %}selected{% endif %}>{{ v.license_plate }} {% if v.make %}({{ v.make }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Status & Delivery Section -->
+                    <div style="display: grid; grid-template-columns: 200px 1fr; gap: 24px; margin-bottom: 32px;">
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">СТАТУС РЕЙСА *</label>
+                            <select name="status" required style="width: 100%;">
+                                {% for st in TripStatus %}
+                                <option value="{{ st.value }}" {% if trip.status == st.value %}selected{% endif %}>
+                                    {% if st.value == 'PLANNED' %}Запланирован
+                                    {% elif st.value == 'ACTIVE' %}Активен
+                                    {% elif st.value == 'COMPLETED' %}Завершён
+                                    {% elif st.value == 'CANCELLED' %}Отменён
+                                    {% else %}{{ st.value }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">СТАТУС ДОСТАВКИ</label>
+                            <input type="text" name="delivery_status" value="{{ trip.delivery_status or '' }}" placeholder="Напр: Ожидает разгрузки" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <!-- Route Section -->
+                    <div class="form-row mb-4">
+                        <label class="text-muted small fw-bold mb-2 d-block">МАРШРУТ (ДЕТАЛИ)</label>
+                        <input type="text" name="route_details" value="{{ trip.route_details or '' }}" style="width: 100%;">
+                    </div>
+
+                    <!-- Cargo & Client Section -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">ГРУЗ</label>
+                            <input type="text" name="load_info" value="{{ trip.load_info or '' }}" style="width: 100%;">
+                        </div>
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">НАИМЕНОВАНИЕ КЛИЕНТА</label>
+                            <input type="text" name="client_name" value="{{ trip.client_name or '' }}" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <!-- Price Section -->
+                    <div style="display: grid; grid-template-columns: 1fr 140px; gap: 24px; margin-bottom: 32px; background: var(--surface-low); padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">СТОИМОСТЬ ФРАХТА (ДОХОД)</label>
+                            <input type="number" step="0.01" name="price" value="{{ trip.price or '' }}" style="width: 100%; font-size: 16px; font-weight: 700;">
+                        </div>
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">ВАЛЮТА</label>
+                            <select name="price_currency" style="width: 100%; font-weight: 700;">
+                                <option value="KZT" {% if trip.price_currency == 'KZT' %}selected{% endif %}>KZT</option>
+                                <option value="USD" {% if trip.price_currency == 'USD' %}selected{% endif %}>USD</option>
+                                <option value="RUB" {% if trip.price_currency == 'RUB' %}selected{% endif %}>RUB</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Dates Section -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">ПЛАН: ВЫЕЗД</label>
+                            <input type="datetime-local" name="planned_departure" value="{{ trip.planned_departure.strftime('%Y-%m-%dT%H:%M') if trip.planned_departure else '' }}" style="width: 100%;">
+                        </div>
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">ПЛАН: ПРИБЫТИЕ</label>
+                            <input type="datetime-local" name="planned_arrival" value="{{ trip.planned_arrival.strftime('%Y-%m-%dT%H:%M') if trip.planned_arrival else '' }}" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <!-- Odometer Section -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px;">
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">ОДОМЕТР: СТАРТ</label>
+                            <input type="number" name="start_odometer" value="{{ trip.start_odometer if trip.start_odometer is not none else '' }}" style="width: 100%;">
+                        </div>
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">ОДОМЕТР: ФИНИШ</label>
+                            <input type="number" name="end_odometer" value="{{ trip.end_odometer if trip.end_odometer is not none else '' }}" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 16px; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 32px;">
+                        <a href="/panel/trips/{{ trip.id }}" class="btn btn-ghost" style="padding: 10px 24px;">Отмена</a>
+                        <button type="submit" class="btn" style="padding: 10px 40px; font-weight: 700;">
+                             <span class="material-symbols-outlined" style="margin-right: 8px;">save</span>
+                             Сохранить изменения
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

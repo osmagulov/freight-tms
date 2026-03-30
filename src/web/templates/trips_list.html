@@ -1,78 +1,123 @@
 {% extends "base.html" %}
 {% block title %}Рейсы — Freight TMS{% endblock %}
+
+{% block extra_css %}
+.trip-id { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--primary); letter-spacing: -0.05em; font-size: 14px; }
+.route-tag { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: white; }
+.trip-status-planned { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
+.trip-status-active { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+.trip-status-completed { background: rgba(161, 161, 170, 0.1); color: #a1a1aa; border: 1px solid rgba(161, 161, 170, 0.2); }
+{% endblock %}
+
 {% block content %}
-
 <div class="page-hdr">
-    <h1 data-i18n="trips">Рейсы</h1>
-    <a href="/panel/trips/create" class="btn" data-i18n="add_trip">+ Новый рейс</a>
-</div>
-
-<form method="get" action="/panel/trips" class="filter-bar">
-    <label><span data-i18n="driver">Водитель</span>
-        <select name="driver_id">
-            <option value="" data-i18n="all_drivers">Все водители</option>
-            {% for d in drivers %}
-            <option value="{{ d.id }}" {% if filter_driver_id == d.id %}selected{% endif %}>{{ d.name or d.tg_id }}</option>
-            {% endfor %}
-        </select>
-    </label>
-    <label><span data-i18n="vehicle">Транспорт</span>
-        <select name="vehicle_id">
-            <option value="" data-i18n="all_vehicles">Все борты</option>
-            {% for v in vehicles %}
-            <option value="{{ v.id }}" {% if filter_vehicle_id == v.id %}selected{% endif %}>{{ v.license_plate }}</option>
-            {% endfor %}
-        </select>
-    </label>
-    <button type="submit" class="btn btn-sm" data-i18n="apply">Применить</button>
-    <a href="/panel/trips" class="btn btn-sm btn-ghost" data-i18n="reset">Сбросить</a>
-</form>
-
-{% if not trips %}
-<div class="table-wrap">
-    <div class="empty">
-        <div class="empty-icon">📋</div>
-        <p data-i18n="no_trips">Рейсов пока нет.</p>
-        <a href="/panel/trips/create" data-i18n="create_first_trip">Создайте первый рейс →</a>
+    <div>
+        <h1 class="page-title">Диспетчерская рейсов</h1>
+        <p class="text-muted small">Управление маршрутами, грузами и операционным статусом флота</p>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+        <a href="/panel/trips/create" class="btn">
+            <span class="material-symbols-outlined">add_circle</span>
+            ОТКРЫТЬ НОВЫЙ РЕЙС
+        </a>
     </div>
 </div>
+
+<div class="card mb-4" style="background: var(--surface-low);">
+    <div class="card-body" style="padding: 16px 24px;">
+        <form method="get" action="/panel/trips" style="display: flex; gap: 20px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="material-symbols-outlined text-muted" style="font-size: 20px;">filter_list</span>
+                <span class="fw-bold small text-muted">ФИЛЬТРЫ:</span>
+            </div>
+            
+            <select name="driver_id" class="small" style="width: 180px; height: 36px; border-radius: 8px;">
+                <option value="" data-i18n="all_drivers">Все водители</option>
+                {% for d in drivers %}
+                <option value="{{ d.id }}" {% if filter_driver_id == d.id %}selected{% endif %}>{{ d.name or d.tg_id }}</option>
+                {% endfor %}
+            </select>
+            
+            <select name="vehicle_id" class="small" style="width: 180px; height: 36px; border-radius: 8px;">
+                <option value="" data-i18n="all_vehicles">Весь транспорт</option>
+                {% for v in vehicles %}
+                <option value="{{ v.id }}" {% if filter_vehicle_id == v.id %}selected{% endif %}>{{ v.license_plate }}</option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit" class="btn btn-xs">Применить</button>
+            <a href="/panel/trips" class="btn btn-xs btn-ghost">Сбросить</a>
+        </form>
+    </div>
+</div>
+
+{% if not trips %}
+<div class="card" style="padding: 100px 40px; text-align: center; background: rgba(255,255,255,0.01);">
+    <span class="material-symbols-outlined text-muted" style="font-size: 64px; opacity: 0.1;">route</span>
+    <h3 class="mt-4 text-muted">Нет активных рейсов</h3>
+    <p class="text-muted small">Воспользуйтесь кнопкой выше для создания нового маршрута</p>
+</div>
 {% else %}
-<div class="table-wrap">
+<div class="table-container">
     <table>
         <thead>
             <tr>
-                <th>#</th>
-                <th data-i18n="driver">Водитель</th>
-                <th data-i18n="vehicle">Борт</th>
-                <th data-i18n="route">Маршрут</th>
-                <th data-i18n="cargo">Груз</th>
-                <th data-i18n="client">Клиент</th>
-                <th data-i18n="status">Статус</th>
-                <th data-i18n="date">Создан</th>
-                <th></th>
+                <th style="width: 80px;">ID</th>
+                <th>ЭКИПАЖ / БОРТ</th>
+                <th>МАРШРУТ И ГРУЗ</th>
+                <th>СТАТУС</th>
+                <th>ДАТА / ВРЕМЯ</th>
+                <th style="width: 60px;"></th>
             </tr>
         </thead>
         <tbody>
             {% for trip in trips %}
-            <tr style="cursor:pointer;" onclick="window.location='/panel/trips/{{ trip.id }}'">
-                <td class="text-muted">#{{ trip.id }}</td>
-                <td class="fw-bold"><span class="auto-translate">{{ trip.driver.name or trip.driver.tg_id }}</span></td>
-                <td>{{ trip.vehicle.license_plate }}</td>
-                <td><span class="auto-translate">{{ trip.route_details or '—' }}</span></td>
-                <td><span class="auto-translate">{{ trip.load_info or '—' }}</span></td>
-                <td><span class="auto-translate">{{ trip.client_name or '—' }}</span></td>
+            <tr style="cursor: pointer;" onclick="window.location='/panel/trips/{{ trip.id }}'">
+                <td><span class="trip-id">#{{ trip.id }}</span></td>
                 <td>
-                    {% if trip.status == 'PLANNED' %}<span class="badge badge-planned" data-i18n="status_planned">Запланирован</span>
-                    {% elif trip.status == 'ACTIVE' %}<span class="badge badge-active" data-i18n="status_active_trip">Активен</span>
-                    {% elif trip.status == 'COMPLETED' %}<span class="badge badge-completed" data-i18n="status_completed">Завершён</span>
-                    {% elif trip.status == 'CANCELLED' %}<span class="badge badge-cancelled" data-i18n="status_cancelled">Отменён</span>
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <div style="width: 32px; height: 32px; border-radius: 10px; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: var(--primary);">
+                            {{ trip.driver.name[:1] if trip.driver else 'D' }}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white small">{{ trip.driver.name or 'Unnamed' }}</div>
+                            <div class="mono" style="font-size: 11px; opacity: 0.7;">{{ trip.vehicle.license_plate if trip.vehicle else '—' }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="route-tag">
+                        <span class="material-symbols-outlined" style="font-size: 16px; color: var(--primary);">near_me</span>
+                        {{ trip.route_details or '—' }}
+                    </div>
+                    <div class="topbar-meta small mt-1" style="display: flex; align-items: center; gap: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 12px;">inventory_2</span>
+                        {{ trip.load_info or 'Нет данных о грузе' }}
+                    </div>
+                </td>
+                <td>
+                    {% if trip.status == 'PLANNED' %}<span class="badge trip-status-planned">ЗАПЛАНИРОВАН</span>
+                    {% elif trip.status == 'ACTIVE' %}<span class="badge trip-status-active">В ПУТИ</span>
+                    {% elif trip.status == 'COMPLETED' %}<span class="badge trip-status-completed">АРХИВ</span>
+                    {% elif trip.status == 'CANCELLED' %}<span class="badge badge-danger">ОТМЕНЕН</span>
                     {% else %}<span class="badge">{{ trip.status }}</span>{% endif %}
                 </td>
-                <td class="text-muted">{{ trip.created_at.strftime('%d.%m.%Y %H:%M') if trip.created_at else '—' }}</td>
-                <td onclick="event.stopPropagation()">
-                    <form method="post" action="/panel/trips/{{ trip.id }}/delete" onsubmit="return confirm('Удалить рейс #{{ trip.id }} и все связанные с ним расходы и документы?')" style="display:inline;">
-                        <button type="submit" class="btn btn-xs btn-ghost" style="color:#ef4444; border:none; opacity:0.6;">🗑️</button>
-                    </form>
+                <td>
+                    <div class="mono fw-bold text-white small">{{ trip.created_at.strftime('%d.%m.%Y') if trip.created_at else '—' }}</div>
+                    <div class="topbar-meta small" style="font-size: 10px;">{{ trip.created_at.strftime('%H:%M') if trip.created_at else '' }}</div>
+                </td>
+                <td style="text-align: right;" onclick="event.stopPropagation()">
+                    <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                        <a href="/panel/trips/{{ trip.id }}" class="btn btn-xs btn-ghost" style="width: 32px; height: 32px; padding: 0;">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">visibility</span>
+                        </a>
+                        <form method="post" action="/panel/trips/{{ trip.id }}/delete" onsubmit="return confirm('Удалить рейс #{{ trip.id }}?')" style="display:inline;">
+                            <button type="submit" class="btn btn-xs btn-ghost" style="width: 32px; height: 32px; padding: 0; color:var(--danger); opacity: 0.3;">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}

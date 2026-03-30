@@ -1,184 +1,185 @@
 {% extends "base.html" %}
 {% block title %}Ремонты — Freight TMS{% endblock %}
+{% block header %}🔧 Ремонты и обслуживание{% endblock %}
+
 {% block content %}
 
 <div class="page-hdr">
-    <h1 data-i18n="repairs">Ремонты и техобслуживание</h1>
+    <div>
+        <h1 data-i18n="repairs">Журнал ремонтов</h1>
+        <p class="text-muted small">Учёт неисправностей, сервисных работ и актов приёма-передачи</p>
+    </div>
 </div>
 
-<div class="kpi-grid" style="margin-bottom:22px;">
+<div class="kpi-grid">
     <div class="kpi red">
         <div class="kpi-label" data-i18n="kpi_needs_repair">Требует ремонта</div>
-        <div class="kpi-value">{{ open_count }}</div>
+        <div class="kpi-value text-danger">{{ open_count }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined">report_problem</span></div>
     </div>
     <div class="kpi amber">
         <div class="kpi-label" data-i18n="kpi_in_progress">В работе</div>
-        <div class="kpi-value">{{ in_progress_count }}</div>
+        <div class="kpi-value text-warning">{{ in_progress_count }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined">engineering</span></div>
     </div>
     <div class="kpi green">
-        <div class="kpi-label" data-i18n="kpi_resolved">Отремонтировано</div>
-        <div class="kpi-value">{{ repairs | selectattr("status", "eq", "RESOLVED") | list | length }}</div>
+        <div class="kpi-label" data-i18n="kpi_resolved">Завершено</div>
+        <div class="kpi-value text-success">{{ repairs | selectattr("status", "eq", "RESOLVED") | list | length }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined">check_circle</span></div>
     </div>
 </div>
 
-<!-- Quick add form -->
-<div class="card" style="margin-bottom:22px;">
-    <div class="card-hdr"><span class="card-title" data-i18n="register_issue">Зарегистрировать неисправность</span></div>
-    <div class="card-body">
-        <form method="post" action="/panel/repairs">
-            <div class="form-grid-2" style="margin-bottom:12px;">
-                <div>
-                    <label data-i18n="vehicle">Борт *</label>
-                    <select name="vehicle_id" required>
-                        <option value="" data-i18n="select_vehicle">— Выберите борт —</option>
+<div class="row" style="display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start;">
+    <!-- Quick Add -->
+    <div class="card" style="border: 1px solid var(--border);">
+        <div class="card-hdr">
+            <span class="card-title">Новая поломка</span>
+        </div>
+        <div class="card-body">
+            <form method="post" action="/panel/repairs">
+                <div class="form-row mb-3">
+                    <label class="text-muted small mb-1">БОРТ *</label>
+                    <select name="vehicle_id" required style="width: 100%;">
+                        <option value="">— Выберите —</option>
                         {% for v in vehicles %}
-                        <option value="{{ v.id }}">{{ v.license_plate }}{% if v.make %} — {{ v.make }}{% if v.model %} {{ v.model }}{% endif %}{% endif %}</option>
+                        <option value="{{ v.id }}">{{ v.license_plate }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div>
-                    <label data-i18n="priority">Приоритет</label>
-                    <select name="priority">
-                        <option value="LOW" data-i18n="priority_low">Низкий</option>
-                        <option value="NORMAL" data-i18n="priority_normal" selected>Нормальный</option>
-                        <option value="HIGH" data-i18n="priority_high">Высокий</option>
-                        <option value="CRITICAL" data-i18n="priority_critical">Критический</option>
+                <div class="form-row mb-3">
+                    <label class="text-muted small mb-1">ПРИОРИТЕТ</label>
+                    <select name="priority" style="width: 100%;">
+                        <option value="LOW">Низкий (Косметика)</option>
+                        <option value="NORMAL" selected>Нормальный</option>
+                        <option value="HIGH">Высокий (Влияет на рейс)</option>
+                        <option value="CRITICAL">Критический (СТОП)</option>
                     </select>
                 </div>
+                <div class="form-row mb-4">
+                    <label class="text-muted small mb-1">ОПИСАНИЕ *</label>
+                    <textarea name="description" rows="3" placeholder="Что нужно починить..." required style="width: 100%; resize: none;"></textarea>
+                </div>
+                <button type="submit" class="btn w-100">
+                    <span class="material-symbols-outlined">add_task</span>
+                    Зарегистрировать
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Repair List -->
+    <div>
+        <div class="card mb-4" style="border: 1px solid var(--border);">
+            <div class="card-body py-3 px-4 d-flex align-items-center justify-content-between">
+                <form method="get" action="/panel/repairs" style="display: flex; gap: 12px; align-items: center;">
+                    <select name="vehicle_id" onchange="this.form.submit()" style="width: 140px; height: 32px; font-size: 13px;">
+                        <option value="">Все борта</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}" {% if filter_vehicle_id == v.id %}selected{% endif %}>{{ v.license_plate }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="status" onchange="this.form.submit()" style="width: 140px; height: 32px; font-size: 13px;">
+                        <option value="">Все статусы</option>
+                        <option value="OPEN" {% if filter_status == "OPEN" %}selected{% endif %}>Требует ремонта</option>
+                        <option value="IN_PROGRESS" {% if filter_status == "IN_PROGRESS" %}selected{% endif %}>В работе</option>
+                        <option value="RESOLVED" {% if filter_status == "RESOLVED" %}selected{% endif %}>Завершено</option>
+                    </select>
+                    <button type="submit" class="btn btn-xs btn-ghost">Фильтр</button>
+                    {% if filter_vehicle_id or filter_status %}
+                    <a href="/panel/repairs" class="btn btn-xs btn-ghost" style="color: var(--danger);">✖ Сброс</a>
+                    {% endif %}
+                </form>
             </div>
-            <div style="margin-bottom:12px;">
-                <label data-i18n="issue_desc_label">Описание неисправности *</label>
-                <textarea name="description" rows="2" placeholder="Что сломано / что нужно починить..." data-i18n="issue_desc_placeholder" required style="resize:vertical;"></textarea>
+        </div>
+
+        <div class="table-wrap">
+            {% if repairs %}
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">ДАТА</th>
+                        <th>БОРТ</th>
+                        <th>ОПИСАНИЕ ИСПРАВЛЕНИЙ</th>
+                        <th>ПРИОРИТЕТ</th>
+                        <th>СТАТУС</th>
+                        <th style="text-align: right;">ДЕЙСТВИЯ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in repairs %}
+                    <tr>
+                        <td class="text-muted small">{{ r.created_at.strftime("%d.%m.%Y") if r.created_at else "—" }}</td>
+                        <td>
+                            <div class="fw-bold text-white">{{ r.vehicle.license_plate if r.vehicle else "—" }}</div>
+                            <div class="topbar-meta" style="font-size: 10px;">{{ r.reported_by or "Диспетчер" }}</div>
+                        </td>
+                        <td style="max-width: 300px;">
+                            <div class="text-white small fw-bold">{{ r.description }}</div>
+                            {% if r.resolution_notes %}
+                            <div style="margin-top: 4px; padding: 4px 8px; background: rgba(16, 185, 129, 0.05); border-left: 2px solid var(--success); font-size: 11px; color: var(--success); font-style: italic;">
+                                {{ r.resolution_notes }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.priority == "CRITICAL" %}<span class="badge badge-cancelled" style="font-weight: 800;">КРИТИЧНО</span>
+                            {% elif r.priority == "HIGH" %}<span class="badge badge-pending">ВЫСОКИЙ</span>
+                            {% elif r.priority == "LOW" %}<span class="badge badge-ghost">НИЗКИЙ</span>
+                            {% else %}<span class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">НОРМА</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if r.status == "OPEN" %}<span class="badge badge-cancelled" style="background: none; border: 1px solid var(--danger);">Открыт</span>
+                            {% elif r.status == "IN_PROGRESS" %}<span class="badge badge-pending" style="background: none; border: 1px solid var(--warning);">В работе</span>
+                            {% else %}<span class="badge badge-active">Закрыт</span>{% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                                {% if r.status == "OPEN" %}
+                                    <form method="post" action="/panel/repairs/{{ r.id }}/start">
+                                        <button class="btn btn-xs btn-ghost" title="В работу">
+                                            <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                
+                                {% if r.status != "RESOLVED" %}
+                                    <details style="position: relative; display: inline-block;">
+                                        <summary class="btn btn-xs" style="list-style: none; cursor: pointer;">
+                                            <span class="material-symbols-outlined" style="font-size: 18px;">task_alt</span>
+                                        </summary>
+                                        <div style="position: absolute; right: 0; top: 100%; margin-top: 8px; background: var(--surface-low); border: 1px solid var(--border); border-radius: 8px; padding: 16px; width: 280px; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                                            <form method="post" action="/panel/repairs/{{ r.id }}/resolve">
+                                                <label class="text-muted small mb-2 d-block">ЧТО СДЕЛАНО:</label>
+                                                <textarea name="resolution_notes" rows="2" placeholder="Краткий отчет..." required style="width: 100%; margin-bottom: 12px;"></textarea>
+                                                <button type="submit" class="btn btn-xs w-100" style="background: var(--success);">Закрыть ремонт</button>
+                                            </form>
+                                        </div>
+                                    </details>
+                                {% endif %}
+                                
+                                <a href="/panel/repairs/{{ r.id }}/act" target="_blank" class="btn btn-xs btn-ghost" title="Акт">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+                                </a>
+                                
+                                <form method="post" action="/panel/repairs/{{ r.id }}/delete" onsubmit="return confirm('Удалить запись?')">
+                                    <button class="btn btn-xs btn-ghost" style="color: var(--danger); opacity: 0.5;">
+                                        <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="py-5 text-center">
+                <span class="material-symbols-outlined text-muted" style="font-size: 48px; opacity: 0.1;">construction</span>
+                <p class="text-muted mt-2">Нет записей о ремонтах</p>
             </div>
-            <button type="submit" class="btn btn-sm btn-danger" data-i18n="register_issue">+ Зарегистрировать</button>
-        </form>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<!-- Filters -->
-<div class="filter-bar">
-    <form method="get" action="/panel/repairs" style="display:contents;">
-        <label>
-            <span data-i18n="vehicle">Борт</span>
-            <select name="vehicle_id" onchange="this.form.submit()">
-                <option value="" data-i18n="all_vehicles">Все борта</option>
-                {% for v in vehicles %}
-                <option value="{{ v.id }}" {% if filter_vehicle_id == v.id %}selected{% endif %}>{{ v.license_plate }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span data-i18n="status">Статус</span>
-            <select name="status" onchange="this.form.submit()">
-                <option value="" data-i18n="all_statuses">Все</option>
-                <option value="OPEN"        {% if filter_status == "OPEN" %}selected{% endif %} data-i18n="repair_status_open">Требует ремонта</option>
-                <option value="IN_PROGRESS" {% if filter_status == "IN_PROGRESS" %}selected{% endif %} data-i18n="repair_status_progress">В работе</option>
-                <option value="RESOLVED"    {% if filter_status == "RESOLVED" %}selected{% endif %} data-i18n="repair_status_closed">Отремонтировано</option>
-            </select>
-        </label>
-        <button type="submit" class="btn btn-sm" data-i18n="apply">Применить</button>
-        {% if filter_vehicle_id or filter_status %}
-        <a href="/panel/repairs" class="btn btn-sm btn-ghost" data-i18n="reset">Сбросить</a>
-        {% endif %}
-    </form>
-</div>
-
-{% if repairs %}
-<div class="table-wrap">
-    <table>
-        <thead>
-            <tr>
-                <th data-i18n="date">Дата</th>
-                <th data-i18n="vehicle">Борт</th>
-                <th data-i18n="description">Описание</th>
-                <th data-i18n="priority">Приоритет</th>
-                <th data-i18n="status">Статус</th>
-                <th data-i18n="reported_by">Зарегистрировал</th>
-                <th data-i18n="actions">Действие</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in repairs %}
-            <tr>
-                <td class="text-muted" style="white-space:nowrap;">{{ r.created_at.strftime("%d.%m.%Y") if r.created_at else "—" }}</td>
-                <td class="fw-bold">{{ r.vehicle.license_plate if r.vehicle else "—" }}</td>
-                <td style="max-width:320px;">
-                    <span class="auto-translate">{{ r.description }}</span>
-                    {% if r.resolution_notes %}
-                    <div class="text-muted" style="font-size:12px; margin-top:3px;">✓ <span class="auto-translate">{{ r.resolution_notes }}</span></div>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if r.priority == "CRITICAL" %}<span class="badge" style="background:#fee2e2;color:#b91c1c;" data-i18n="priority_critical">Критический</span>
-                    {% elif r.priority == "HIGH" %}<span class="badge badge-pending" data-i18n="priority_high">Высокий</span>
-                    {% elif r.priority == "LOW" %}<span class="badge" style="background:#f1f5f9;color:#64748b;" data-i18n="priority_low">Низкий</span>
-                    {% else %}<span class="badge" style="background:#e0f2fe;color:#0369a1;" data-i18n="priority_normal">Нормальный</span>{% endif %}
-                </td>
-                <td>
-                    {% if r.status == "OPEN" %}<span class="badge badge-cancelled" data-i18n="repair_status_open">Открыт</span>
-                    {% elif r.status == "IN_PROGRESS" %}<span class="badge badge-pending" data-i18n="repair_status_progress">🔧 В работе</span>
-                    {% else %}<span class="badge badge-active" data-i18n="repair_status_closed">✅ Закрыт</span>{% endif %}
-                </td>
-                <td class="text-muted">{{ r.reported_by or "—" }}</td>
-                <td>
-                    {% if r.status == "OPEN" %}
-                    <div class="action-group">
-                        <form method="post" action="/panel/repairs/{{ r.id }}/start" style="display:inline;">
-                            <button class="btn btn-xs btn-amber" data-i18n="start_work">В работу</button>
-                        </form>
-                        <a href="/panel/repairs/{{ r.id }}/act" target="_blank" class="btn btn-xs btn-ghost" data-i18n="act">📄 Акт</a>
-                        <details style="display:inline-block; position:relative;">
-                            <summary class="btn btn-xs btn-success" style="cursor:pointer; list-style:none;" data-i18n="close">Закрыть</summary>
-                            <div style="position:absolute; right:0; top:100%; margin-top:4px; background:white; border:1px solid var(--border); border-radius:var(--r); padding:12px; width:280px; box-shadow:var(--shadow); z-index:10;">
-                                <form method="post" action="/panel/repairs/{{ r.id }}/resolve">
-                                    <label style="font-size:12px; margin-bottom:6px;" data-i18n="resolution">Что было сделано</label>
-                                    <textarea name="resolution_notes" rows="2" placeholder="Описание выполненных работ..." data-i18n="resolution_placeholder" style="margin-bottom:8px; resize:vertical;"></textarea>
-                                    <button type="submit" class="btn btn-sm btn-success" style="width:100%;" data-i18n="confirm">Подтвердить закрытие</button>
-                                </form>
-                            </div>
-                        </details>
-                    </div>
-                    {% elif r.status == "IN_PROGRESS" %}
-                    <div class="action-group">
-                        <a href="/panel/repairs/{{ r.id }}/act" target="_blank" class="btn btn-xs btn-dark" data-i18n="download_act">📄 Скачать акт</a>
-                        <details style="display:inline-block; position:relative;">
-                            <summary class="btn btn-xs btn-success" style="cursor:pointer; list-style:none;" data-i18n="close">Закрыть</summary>
-                            <div style="position:absolute; right:0; top:100%; margin-top:4px; background:white; border:1px solid var(--border); border-radius:var(--r); padding:12px; width:280px; box-shadow:var(--shadow); z-index:10;">
-                                <form method="post" action="/panel/repairs/{{ r.id }}/resolve">
-                                    <label style="font-size:12px; margin-bottom:6px;" data-i18n="resolution">Что было сделано</label>
-                                    <textarea name="resolution_notes" rows="2" placeholder="Описание выполненных работ..." data-i18n="resolution_placeholder" style="margin-bottom:8px; resize:vertical;"></textarea>
-                                    <button type="submit" class="btn btn-sm btn-success" style="width:100%;" data-i18n="confirm">Подтвердить закрытие</button>
-                                </form>
-                            </div>
-                        </details>
-                    </div>
-                    {% else %}
-                    <div class="action-group">
-                        <a href="/panel/repairs/{{ r.id }}/act" target="_blank" class="btn btn-xs btn-ghost">📄 Акт</a>
-                        <span class="text-muted" style="font-size:12px;">
-                            {% if r.resolved_at %}{{ r.resolved_at.strftime("%d.%m.%Y") }}{% endif %}
-                            {% if r.resolved_by %} · {{ r.resolved_by }}{% endif %}
-                        </span>
-                    </div>
-                    {% endif %}
-
-                    <div style="margin-top: 8px; border-top: 1px dotted #e5e7eb; padding-top: 6px;">
-                        <form method="post" action="/panel/repairs/{{ r.id }}/delete" onsubmit="return confirm('Удалить эту запись о ремонте?')" style="display:inline;">
-                            <button class="btn btn-xs btn-ghost" title="Удалить" style="color: #ef4444; border: none; opacity: 0.6;" data-i18n="delete_btn">🗑️ Удалить</button>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<div class="table-wrap">
-    <div class="empty">
-        <div class="empty-icon">🔧</div>
-        <p data-i18n="no_repairs">Нет записей о ремонтах.</p>
-    </div>
-</div>
-{% endif %}
 {% endblock %}

@@ -1,58 +1,83 @@
 {% extends "base.html" %}
 {% block title %}Добавить водителя — Freight TMS{% endblock %}
+{% block header %}👤 Регистрация нового водителя{% endblock %}
+
 {% block content %}
 
-<a href="/panel/drivers" class="back-link" data-i18n="drivers">← Водители</a>
-
-<div class="page-hdr" style="margin-bottom:20px;">
-    <h1 data-i18n="new_driver">Новый водитель</h1>
+<div class="page-hdr">
+    <div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+            <a href="/panel/drivers" class="btn btn-xs btn-ghost" style="padding: 0; width: 32px; height: 32px; justify-content: center; border-radius: 50%;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">arrow_back</span>
+            </a>
+            <h1 data-i18n="new_driver">Новый водитель</h1>
+        </div>
+        <p class="text-muted small ml-5">Создание профиля водителя и настройка доступа к мобильному приложению</p>
+    </div>
 </div>
 
 {% if error %}
-<div class="error">{{ error }}</div>
+<div class="alert mb-4" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; max-width: 540px;">
+    <span class="material-symbols-outlined">warning</span>
+    <div class="fw-bold">{{ error }}</div>
+</div>
 {% endif %}
 
-<div class="card" style="max-width:520px;">
-    <div class="card-hdr"><span class="card-title" data-i18n="driver_data_card">Данные водителя</span></div>
-    <div class="card-body">
+<div class="card" style="max-width: 540px; border: 1px solid var(--border);">
+    <div class="card-hdr" style="background: var(--surface-low);">
+        <span class="card-title">
+            <span class="material-symbols-outlined text-primary">person_add</span>
+            Личная карточка и доступ
+        </span>
+    </div>
+    <div class="card-body p-5">
         <form method="post" action="/panel/drivers/add" enctype="multipart/form-data">
-            <div class="form-row">
-                <label data-i18n="full_name">ФИО *</label>
-                <input type="text" name="name" placeholder="Иванов Иван Иванович" required autofocus>
+            <div class="form-row mb-4">
+                <label class="text-muted small fw-bold mb-2 d-block" data-i18n="full_name">ФИО ВОДИТЕЛЯ *</label>
+                <input type="text" name="name" placeholder="Иванов Иван Иванович" required autofocus style="width: 100%;">
             </div>
-            <div class="form-grid-2">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
                 <div class="form-row">
-                    <label data-i18n="phone_login">Телефон (логин) *</label>
-                    <input type="text" name="phone" placeholder="+7 777 000 00 00" required>
+                    <label class="text-muted small fw-bold mb-2 d-block" data-i18n="phone_login">ТЕЛЕФОН (ЛОГИН) *</label>
+                    <input type="text" name="phone" placeholder="+7 777 000 00 00" required style="width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
                 </div>
                 <div class="form-row">
-                    <label data-i18n="password_for_login">Пароль для входа *</label>
-                    <input type="text" name="password" placeholder="Пароль" required>
+                    <label class="text-muted small fw-bold mb-2 d-block" data-i18n="password_for_login">ПАРОЛЬ ДОСТУПА *</label>
+                    <input type="text" name="password" placeholder="MIN 6 CHARS" required style="width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
                 </div>
             </div>
-            <div class="form-row">
-                <label data-i18n="iin">ИИН</label>
-                <input type="text" name="iin" placeholder="123456789012" maxlength="12">
+
+            <div class="form-row mb-4">
+                <label class="text-muted small fw-bold mb-2 d-block" data-i18n="iin">ИНДИВИДУАЛЬНЫЙ НОМЕР (ИИН/ИНН)</label>
+                <input type="text" name="iin" placeholder="123456789012" maxlength="12" style="width: 100%; font-family: 'JetBrains Mono', monospace;">
             </div>
-            <div class="form-row">
-                <label data-i18n="assign_vehicle">Назначить борт</label>
-                <select name="vehicle_id">
-                    <option value="" data-i18n="not_assigned">— Не назначен —</option>
+
+            <div class="form-row mb-4">
+                <label class="text-muted small fw-bold mb-2 d-block" data-i18n="assign_vehicle">ЗАКРЕПИТЬ ТРАНСПОРТНОЕ СРЕДСТВО</label>
+                <select name="vehicle_id" style="width: 100%;">
+                    <option value="" data-i18n="not_assigned">— НЕ НАЗНАЧЕН —</option>
                     {% for v in vehicles %}
-                    <option value="{{ v.id }}">{{ v.license_plate }}{% if v.make %} — {{ v.make }}{% if v.model %} {{
-                        v.model }}{% endif %}{% endif %}</option>
+                    <option value="{{ v.id }}">{{ v.license_plate }}{% if v.make %} — {{ v.make }}{% if v.model %} {{ v.model }}{% endif %}{% endif %}</option>
                     {% endfor %}
                 </select>
+                <div class="topbar-meta small mt-1" style="font-size: 10px;">Водителю будет доступен выбор этого борта по умолчанию при открытии смены.</div>
             </div>
-            <div class="form-row">
-                <label data-i18n="passport_scan">Скан паспорта (фото или PDF)</label>
-                <input type="file" name="passport_file" accept="image/*,.pdf" style="padding:6px 0;">
+
+            <div class="form-row mb-5">
+                <label class="text-muted small fw-bold mb-2 d-block" data-i18n="passport_scan">ОСНОВНОЙ ДОКУМЕНТ (PASSPORT/LICENSE)</label>
+                <input type="file" name="passport_file" accept="image/*,.pdf" class="small" style="width: 100%;">
             </div>
-            <div class="action-group" style="margin-top:8px;">
-                <button type="submit" class="btn" data-i18n="add_btn">Добавить</button>
-                <a href="/panel/drivers" class="btn btn-ghost" data-i18n="cancel">Отмена</a>
+
+            <div style="display: flex; gap: 12px; margin-top: 32px; border-top: 1px solid var(--border); padding-top: 24px;">
+                <button type="submit" class="btn" style="flex: 2; height: 48px; font-weight: 700;" data-i18n="add_btn">
+                    <span class="material-symbols-outlined" style="margin-right: 8px;">how_to_reg</span>
+                    Зарегистрировать
+                </button>
+                <a href="/panel/drivers" class="btn btn-ghost" style="flex: 1; height: 48px; font-weight: 700;" data-i18n="cancel">Отмена</a>
             </div>
         </form>
     </div>
 </div>
+
 {% endblock %}

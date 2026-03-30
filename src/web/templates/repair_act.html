@@ -2,145 +2,286 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Акт неисправности #{{ repair.id }}</title>
+    <title>Акт дефектовки #{{ repair.id }} — {{ repair.vehicle.license_plate if repair.vehicle else '' }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap">
     <style>
+        :root {
+            --primary: #2563eb;
+            --text: #111827;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --bg-page: #f9fafb;
+        }
+
         @media print {
             .no-print { display: none !important; }
-            body { margin: 0; font-size: 13px; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
+            .document-container { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
         }
+
         * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; color: #111; line-height: 1.6; }
-        .header { text-align: center; border-bottom: 3px solid #111; padding-bottom: 16px; margin-bottom: 24px; }
-        .header h1 { font-size: 22px; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; }
-        .header .sub { font-size: 14px; color: #555; }
-        .header .company { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-        .act-number { font-size: 18px; font-weight: 700; margin-top: 8px; }
-        .section { margin-bottom: 20px; }
-        .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 10px; }
-        .info-table { width: 100%; border-collapse: collapse; }
-        .info-table td { padding: 8px 12px; border: 1px solid #ddd; vertical-align: top; }
-        .info-table td:first-child { width: 200px; font-weight: 600; background: #f8f9fa; color: #333; }
-        .priority-critical { color: #dc2626; font-weight: 700; }
-        .priority-high { color: #d97706; font-weight: 700; }
-        .priority-normal { color: #2563eb; }
-        .priority-low { color: #6b7280; }
-        .description-box { background: #f9fafb; border: 1px solid #ddd; border-radius: 6px; padding: 16px; font-size: 15px; min-height: 80px; white-space: pre-wrap; }
-        .signatures { display: flex; justify-content: space-between; margin-top: 50px; }
-        .sig-block { width: 45%; border-top: 1px solid #111; padding-top: 8px; text-align: center; }
-        .sig-label { font-size: 12px; color: #666; }
-        .actions { display: flex; gap: 12px; margin-bottom: 20px; }
-        .btn-print { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .btn-print:hover { background: #1d4ed8; }
-        .btn-back { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
-        .btn-back:hover { background: #e5e7eb; }
-        .stamp-area { border: 2px dashed #ccc; width: 120px; height: 120px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 11px; text-transform: uppercase; margin-top: 20px; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #0c0c0c; /* Matches Dark Theme Dashboard */
+            color: var(--text);
+            line-height: 1.5;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .actions-bar {
+            max-width: 800px;
+            margin: 0 auto 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-ghost { background: transparent; color: #9ca3af; border: 1px solid #374151; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.05); color: white; border-color: #4b5563; }
+        
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+        .document-container {
+            background: white;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 60px 80px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .header {
+            border-bottom: 2px solid #000;
+            padding-bottom: 24px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .header-left h1 {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0 0 4px;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+
+        .header-left .company {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .header-right { text-align: right; }
+        .header-right .doc-id { font-size: 18px; font-weight: 800; }
+        .header-right .doc-date { font-size: 13px; color: var(--text-muted); }
+
+        .section { margin-bottom: 32px; }
+        .section-title {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+            margin-bottom: 16px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .data-row { margin-bottom: 12px; }
+        .data-label { font-size: 11px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px; text-transform: uppercase; }
+        .data-value { font-size: 15px; font-weight: 600; }
+        .data-value.mono { font-family: 'JetBrains Mono', monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; border: 1px solid #e5e7eb; }
+
+        .description-box {
+            background: #fafafa;
+            border: 1px solid #eee;
+            padding: 24px;
+            font-size: 15px;
+            border-radius: 8px;
+            min-height: 120px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .priority-badge { font-weight: 800; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .pb-critical { background: #dc2626; }
+        .pb-high { background: #f97316; }
+        .pb-normal { background: #3b82f6; }
+        .pb-low { background: #6b7280; }
+
+        .signature-table { width: 100%; margin-top: 60px; }
+        .signature-table td { width: 50%; vertical-align: bottom; height: 100px; padding-bottom: 8px; }
+        .sig-line { border-bottom: 1px solid #000; margin-right: 40px; margin-bottom: 8px; }
+        .sig-text { font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
+
+        .stamp-placeholder {
+            position: absolute;
+            bottom: 60px;
+            right: 80px;
+            width: 120px;
+            height: 120px;
+            border: 2px dashed #eee;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #eee;
+            font-weight: 800;
+            font-size: 12px;
+            transform: rotate(-15deg);
+        }
     </style>
 </head>
 <body>
 
-<div class="actions no-print">
-    <a href="/panel/repairs" class="btn-back">← Назад к ремонтам</a>
-    <button class="btn-print" onclick="window.print()">🖨️ Распечатать / Сохранить PDF</button>
+<div class="actions-bar no-print">
+    <a href="/panel/repairs" class="btn btn-ghost">← К списку ремонтов</a>
+    <button class="btn btn-primary" onclick="window.print()">
+        Печать / Сохранить PDF
+    </button>
 </div>
 
-<div class="header">
-    <div class="company">Freight TMS</div>
-    <h1>Акт неисправности транспортного средства</h1>
-    <div class="act-number">№ {{ repair.id }} от {{ repair.created_at.strftime('%d.%m.%Y') if repair.created_at else '—' }}</div>
-</div>
+<div class="document-container">
+    <div class="header">
+        <div class="header-left">
+            <div class="company">Freight TMS — Logistics Fleet Control</div>
+            <h1>Акт дефектовки ТС</h1>
+        </div>
+        <div class="header-right">
+            <div class="doc-id">№ RE-{{ repair.id }}</div>
+            <div class="doc-date">от {{ repair.created_at.strftime('%d.%m.%Y') if repair.created_at else '—' }}</div>
+        </div>
+    </div>
 
-<div class="section">
-    <div class="section-title">Транспортное средство</div>
-    <table class="info-table">
-        <tr>
-            <td>Государственный номер</td>
-            <td><strong>{{ repair.vehicle.license_plate if repair.vehicle else '—' }}</strong></td>
-        </tr>
-        {% if repair.vehicle and repair.vehicle.make %}
-        <tr>
-            <td>Марка / Модель</td>
-            <td>{{ repair.vehicle.make }} {{ repair.vehicle.model or '' }}</td>
-        </tr>
-        {% endif %}
-        {% if repair.vehicle and repair.vehicle.year %}
-        <tr>
-            <td>Год выпуска</td>
-            <td>{{ repair.vehicle.year }}</td>
-        </tr>
-        {% endif %}
-        {% if repair.vehicle and repair.vehicle.vin %}
-        <tr>
-            <td>VIN</td>
-            <td>{{ repair.vehicle.vin }}</td>
-        </tr>
-        {% endif %}
-    </table>
-</div>
+    <div class="section">
+        <div class="section-title">Информация о транспортном средстве</div>
+        <div class="info-grid">
+            <div>
+                <div class="data-row">
+                    <div class="data-label">Государственный номер</div>
+                    <div class="data-value mono">{{ repair.vehicle.license_plate if repair.vehicle else '—' }}</div>
+                </div>
+                <div class="data-row">
+                    <div class="data-label">Марка / Модель</div>
+                    <div class="data-value">{{ repair.vehicle.make }} {{ repair.vehicle.model or '' }}</div>
+                </div>
+            </div>
+            <div>
+                <div class="data-row">
+                    <div class="data-label">VIN / Номер кузова</div>
+                    <div class="data-value small" style="font-size: 12px;">{{ repair.vehicle.vin or 'НЕ УКАЗАН' }}</div>
+                </div>
+                <div class="data-row">
+                    <div class="data-label">Пробег (текущий)</div>
+                    <div class="data-value">{{ "{:,.0f}".format(repair.vehicle.current_odometer or 0) }} км</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div class="section">
-    <div class="section-title">Сведения о неисправности</div>
-    <table class="info-table">
+    <div class="section">
+        <div class="section-title">Сведения о неисправностях</div>
+        <div class="info-grid">
+            <div>
+                <div class="data-row">
+                    <div class="data-label">Заявитель / Водитель</div>
+                    <div class="data-value">{{ repair.reported_by or '—' }}</div>
+                </div>
+                <div class="data-row">
+                    <div class="data-label">Приоритет безопасности</div>
+                    <div class="data-value">
+                        {% if repair.priority == 'CRITICAL' %}<span class="priority-badge pb-critical">КРИТИЧЕСКИЙ</span>
+                        {% elif repair.priority == 'HIGH' %}<span class="priority-badge pb-high">ВЫСОКИЙ</span>
+                        {% elif repair.priority == 'LOW' %}<span class="priority-badge pb-low">НИЗКИЙ</span>
+                        {% else %}<span class="priority-badge pb-normal">НОРМАЛЬНЫЙ</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="data-row">
+                    <div class="data-label">Статус заявки</div>
+                    <div class="data-value">
+                        {% if repair.status == 'OPEN' %}⏳ Ожидание осмотра
+                        {% elif repair.status == 'IN_PROGRESS' %}🔧 В работе у механика
+                        {% else %}✅ Ремонт завершен{% endif %}
+                    </div>
+                </div>
+                <div class="data-row">
+                    <div class="data-label">Дата регистрации</div>
+                    <div class="data-value">{{ repair.created_at.strftime('%d.%m.%Y %H:%M') if repair.created_at else '—' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Описание дефекта / Характер повреждения</div>
+        <div class="description-box">{{ repair.description }}</div>
+    </div>
+
+    {% if repair.resolution_notes %}
+    <div class="section">
+        <div class="section-title">Карта выполненных работ</div>
+        <div class="description-box" style="background: #fdfdfd; border-color: #3b82f633;">{{ repair.resolution_notes }}</div>
+        <div class="info-grid" style="margin-top: 16px;">
+            <div class="data-row">
+                <div class="data-label">Дата завершения</div>
+                <div class="data-value">{{ repair.resolved_at.strftime('%d.%m.%Y %H:%M') if repair.resolved_at else '—' }}</div>
+            </div>
+            <div class="data-row">
+                <div class="data-label">Исполнитель (Механик)</div>
+                <div class="data-value">{{ repair.resolved_by or '—' }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <table class="signature-table">
         <tr>
-            <td>Дата обнаружения</td>
-            <td>{{ repair.created_at.strftime('%d.%m.%Y %H:%M') if repair.created_at else '—' }}</td>
-        </tr>
-        <tr>
-            <td>Заявитель</td>
-            <td>{{ repair.reported_by or '—' }}</td>
-        </tr>
-        <tr>
-            <td>Приоритет</td>
             <td>
-                {% if repair.priority == 'CRITICAL' %}<span class="priority-critical">🔴 КРИТИЧЕСКИЙ</span>
-                {% elif repair.priority == 'HIGH' %}<span class="priority-high">🟡 ВЫСОКИЙ</span>
-                {% elif repair.priority == 'LOW' %}<span class="priority-low">⚪ НИЗКИЙ</span>
-                {% else %}<span class="priority-normal">🔵 НОРМАЛЬНЫЙ</span>{% endif %}
+                <div class="sig-line"></div>
+                <div class="sig-text">Материально ответственное лицо / Диспетчер</div>
+            </td>
+            <td>
+                <div class="sig-line"></div>
+                <div class="sig-text">Водитель (Ознакомлен)</div>
             </td>
         </tr>
-        <tr>
-            <td>Статус</td>
-            <td>
-                {% if repair.status == 'OPEN' %}⏳ Ожидает ремонта
-                {% elif repair.status == 'IN_PROGRESS' %}🔧 Передано в работу
-                {% else %}✅ Отремонтировано{% endif %}
-            </td>
-        </tr>
     </table>
+
+    <div class="stamp-placeholder">МЕСТО ПЕЧАТИ</div>
 </div>
 
-<div class="section">
-    <div class="section-title">Описание неисправности</div>
-    <div class="description-box">{{ repair.description }}</div>
-</div>
-
-{% if repair.resolution_notes %}
-<div class="section">
-    <div class="section-title">Выполненные работы</div>
-    <div class="description-box">{{ repair.resolution_notes }}</div>
-    <table class="info-table" style="margin-top:10px;">
-        <tr>
-            <td>Дата ремонта</td>
-            <td>{{ repair.resolved_at.strftime('%d.%m.%Y %H:%M') if repair.resolved_at else '—' }}</td>
-        </tr>
-        <tr>
-            <td>Исполнитель</td>
-            <td>{{ repair.resolved_by or '—' }}</td>
-        </tr>
-    </table>
-</div>
-{% endif %}
-
-<div class="signatures">
-    <div class="sig-block">
-        <div class="sig-label">Диспетчер / ответственный</div>
-    </div>
-    <div class="sig-block">
-        <div class="sig-label">Водитель</div>
-    </div>
-</div>
-
-<div class="stamp-area">
-    М.П.
+<div style="margin-top: 40px; text-align: center; color: #4b5563; font-size: 11px;" class="no-print">
+    Документ сформирован автоматически в системе Freight TMS.<br>
+    Цифровая подпись: {{ repair.id }}-{{ repair.vehicle_id }}-{{ repair.created_at.timestamp() | int if repair.created_at else 0 }}
 </div>
 
 </body>

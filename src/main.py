@@ -14,6 +14,7 @@ from src.core.config import settings
 from src.bot.bot_app import register_handlers
 from src.services.anomaly import run_anomaly_digest
 from src.services.doc_expiry import run_doc_expiry_check
+from src.services.maintenance import run_maintenance_alert_check
 from src.web.panel import router as panel_router
 from src.web.director import router as director_router
 from src.web.driver_app import router as driver_router
@@ -50,7 +51,8 @@ async def lifespan(app: FastAPI):
     # Start APScheduler before PTB (independent of bot lifecycle)
     scheduler.add_job(run_anomaly_digest, 'interval', hours=1, id='anomaly_digest')
     scheduler.add_job(run_doc_expiry_check, 'cron', hour=9, minute=0, id='doc_expiry_check')
-    scheduler.start()  # NOTE: do NOT await — APScheduler 3.x start() is synchronous
+    scheduler.add_job(run_maintenance_alert_check, 'cron', hour=10, minute=0, id='maint_alert_check')
+    scheduler.start()
 
     try:
         async with ptb_app:

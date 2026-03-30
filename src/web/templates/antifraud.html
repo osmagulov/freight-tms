@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Антифрод: Анализ ГСМ — Freight TMS{% endblock %}
+
+{% block extra_css %}
+.upload-dropzone {
+    background: var(--surface-low);
+    border: 2px dashed var(--border);
+    border-radius: 24px;
+    padding: 40px;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+.upload-dropzone:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+
+.upload-icon-box {
+    width: 64px; height: 64px;
+    background: var(--surface-highest);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    color: var(--text-muted);
+    transition: all 0.3s;
+}
+.upload-dropzone:hover .upload-icon-box { background: var(--primary); color: white; box-shadow: 0 0 20px var(--primary-glow); }
+
+.fraud-flag-card {
+    border-left: 4px solid var(--danger);
+    background: rgba(239, 68, 68, 0.03);
+    padding: 20px;
+    border-radius: 12px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    animation: slideIn 0.4s ease-out forwards;
+}
+@keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+.info-item {
+    display: flex; gap: 14px; align-items: center;
+    padding: 12px; border-radius: 12px;
+    background: var(--surface-low); border: 1px solid var(--border);
+}
+
+.process-step {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: var(--primary); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 900;
+}
+{% endblock %}
+
+{% block content %}
+<div class="page-hdr">
+    <div>
+        <h1 class="page-title">Интеллектуальный антифрод</h1>
+        <p class="text-muted small">Сверхточный аудит топливных транзакций и кросс-валидация чеков</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 360px; gap: 32px; align-items: start;">
+    <div class="main-flow">
+        <!-- Analysis Parameters Form -->
+        <div class="card mb-6">
+            <div class="card-hdr">
+                <div class="card-title">
+                    <span class="material-symbols-outlined text-primary">analytics</span>
+                    Параметры сверки АЗС
+                </div>
+            </div>
+            <div class="card-body">
+                <form action="/panel/antifraud/run" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    <div class="input-group">
+                        <label class="mb-3 d-block"><span class="process-step" style="display: inline-flex; vertical-align: middle; margin-top: -2px; margin-right: 8px;">1</span> ОТЧЕТ ТОПЛИВНОЙ СИСТЕМЫ (CSV / EXCEL)</label>
+                        <div class="upload-dropzone" onclick="this.querySelector('input').click()">
+                            <input type="file" name="trans_file" required class="hidden">
+                            <div class="upload-icon-box">
+                                <span class="material-symbols-outlined" style="font-size: 32px;">upload_file</span>
+                            </div>
+                            <div class="text-white fw-bold mb-1">Выберите файл транзакций</div>
+                            <div class="topbar-meta small" style="font-size: 11px;">Официальный экспорт из личного кабинета АЗС</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div class="input-group">
+                            <label class="mb-3 d-block"><span class="process-step" style="display: inline-flex; vertical-align: middle; margin-top: -2px; margin-right: 8px;">2</span> ДАННЫЕ ДЛЯ СВЕРКИ</label>
+                            <div class="card" style="padding: 16px; background: var(--surface-low); border-color: var(--border);">
+                                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                                    <input type="checkbox" name="use_db" value="True" checked style="width: 20px; height: 20px;">
+                                    <div>
+                                        <div class="text-white fw-bold small">База данных PWA</div>
+                                        <div class="topbar-meta" style="font-size: 11px;">Все чеки водителей за период</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label class="mb-3 d-block"><span class="process-step" style="display: inline-flex; vertical-align: middle; margin-top: -2px; margin-right: 8px;">3</span> ВНЕШНИЙ ОТЧЕТ (ОПЦИЯ)</label>
+                            <input type="file" name="manual_file" style="height: 52px; border-radius: 12px; font-size: 12px; padding: 12px;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; padding-top: 24px; border-top: 1px solid var(--border);">
+                        <button type="submit" class="btn" style="padding: 14px 40px;">
+                            <span class="material-symbols-outlined" style="font-weight: normal;">flash_on</span>
+                            ЗАПУСТИТЬ АНАЛИЗ ГСМ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="card mb-6" style="border-color: var(--danger); background: rgba(239, 68, 68, 0.05);">
+            <div class="card-body" style="display: flex; align-items: center; gap: 16px; color: var(--danger);">
+                <span class="material-symbols-outlined">warning</span>
+                <span class="fw-bold">{{ error }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Results Rendering -->
+        {% if red_flags is not none %}
+        <div class="card">
+            <div class="card-hdr" style="justify-content: space-between;">
+                <div class="card-title">
+                    <span class="material-symbols-outlined text-warning">rule</span>
+                    Результаты аудита
+                </div>
+                <div class="mono" style="font-size: 11px; opacity: 0.5;">
+                    PROCESSED: {{ processed_trans }} TXN / {{ processed_manual }} RECEIPTS
+                </div>
+            </div>
+            <div class="card-body">
+                {% if red_flags %}
+                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; padding: 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 20px;">
+                        <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--danger); color: white; display: flex; align-items: center; justify-content: center;">
+                            <span class="material-symbols-outlined" style="font-size: 32px; font-variation-settings: 'wght' 700;">report</span>
+                        </div>
+                        <div>
+                            <div class="text-white font-black" style="font-size: 20px;">ОБНАРУЖЕНО НАРУШЕНИЙ: {{ red_flags|length }}</div>
+                            <div class="text-danger small fw-bold" style="letter-spacing: 0.1em; margin-top: 2px;">ТРЕБУЕТСЯ ВМЕШАТЕЛЬСТВО ДИСПОТЧЕРА</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        {% for flag in red_flags %}
+                        <div class="fraud-flag-card">
+                            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: var(--danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <span class="material-symbols-outlined" style="font-size: 20px;">{% if "ФАНТОМНЫЙ" in flag %}ghost_toggle{% else %}notifications_active{% endif %}</span>
+                            </div>
+                            <div>
+                                <div class="text-white fw-bold mb-1" style="font-size: 14px;">{{ flag.split(':')[0] }}</div>
+                                <div class="text-muted" style="font-size: 13px; line-height: 1.5;">{{ flag.split(':', 1)[1] if ':' in flag else flag }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="padding: 80px 40px; text-align: center;">
+                        <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                            <span class="material-symbols-outlined" style="font-size: 48px; font-variation-settings: 'FILL' 1;">verified</span>
+                        </div>
+                        <h2 class="text-white font-black" style="font-size: 24px;">АНОМАЛИЙ НЕ НАЙДЕНО</h2>
+                        <p class="text-muted small mt-2">Все транзакции АЗС полностью соответствуют отчетам водителей.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Context Information -->
+    <div class="info-column space-y-6">
+        <div class="card" style="padding: 24px;">
+            <div class="sb-section-lbl" style="padding: 0; margin-bottom: 20px;">АЛГОРИТМ ПРОВЕРКИ</div>
+            <div class="space-y-4">
+                <div class="info-item">
+                    <span class="material-symbols-outlined text-primary">schedule</span>
+                    <div class="small"><strong class="text-white d-block">ВРЕМЕННОЕ ОКНО</strong> Сверка +/- 30 минут от чека</div>
+                </div>
+                <div class="info-item">
+                    <span class="material-symbols-outlined text-primary">location_on</span>
+                    <div class="small"><strong class="text-white d-block">ГЕО-ВАЛИДАЦИЯ</strong> Проверка по координатам АЗС</div>
+                </div>
+                <div class="info-item">
+                    <span class="material-symbols-outlined text-primary">currency_exchange</span>
+                    <div class="small"><strong class="text-white d-block">КУРС ВАЛЮТ</strong> Авто-конвертация RUB/KZT</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 24px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent); border-color: var(--primary);">
+            <div class="card-title small" style="margin-bottom: 12px; color: var(--primary);">
+                <span class="material-symbols-outlined">lightbulb</span>
+                СОВЕТ СИСТЕМЫ
+            </div>
+            <p class="text-muted small" style="line-height: 1.6;">
+                Регулярно загружайте отчеты за календарный месяц. При обнаружении "Фантомных" транзакций — не спешите отклонять расходы, возможно чек водителя еще не обработан системой OCR.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

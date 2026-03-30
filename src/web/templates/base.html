@@ -3,1271 +3,418 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Freight TMS{% endblock %}</title>
-    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+    <title>{% block title %}Freight TMS — Управление флотом{% endblock %}</title>
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <!-- HTMX for smooth transitions -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
     <style>
-        /* ── Design tokens ── */
         :root {
-            --sidebar-bg: #0d1117;
-            --sidebar-w: 248px;
-            --accent: #3b82f6;
-            --accent-h: #2563eb;
+            /* Obsidian Premium Palette */
+            --bg: #09090b;
+            --surface-low: #121214;
+            --surface: #18181b;
+            --surface-high: #202023;
+            --surface-highest: #27272a;
+            
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.5);
+            --secondary: #6366f1;
+            
             --success: #10b981;
-            --danger: #ef4444;
             --warning: #f59e0b;
-            --purple: #8b5cf6;
-            --orange: #f97316;
-            --bg: #f0f2f5;
-            --surface: #ffffff;
-            --text: #111827;
-            --muted: #6b7280;
-            --border: #e5e7eb;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
-            --shadow: 0 4px 12px rgba(0,0,0,.07);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,.10);
-            --r: 12px;
-        }
-        *, *::before, *::after { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
-            background: var(--bg); color: var(--text); margin: 0; font-size: 14px; line-height: 1.5;
+            --danger: #ef4444;
+            
+            --text: #fafafa;
+            --text-muted: #a1a1aa;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(255, 255, 255, 0.15);
+            
+            --sidebar-width: 280px;
+            --topbar-height: 72px;
+            --radius: 12px;
         }
 
-        /* ── Sidebar ── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Outfit', system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* ── Glassmorphism Sidebar ── */
         .sidebar {
-            position: fixed; left: 0; top: 0; height: 100vh; width: var(--sidebar-w);
-            background: var(--sidebar-bg);
+            position: fixed; top: 12px; left: 12px; bottom: 12px;
+            width: var(--sidebar-width);
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
             display: flex; flex-direction: column;
-            z-index: 200; overflow-y: auto; overflow-x: hidden;
-            border-right: 1px solid rgba(255,255,255,.05);
+            z-index: 1000;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
+
         .sb-brand {
-            padding: 20px 18px 16px; border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0;
-            display: flex; align-items: center; gap: 10px;
+            padding: 24px;
+            display: flex; align-items: center; gap: 14px;
+            border-bottom: 1px solid var(--border);
         }
-        .sb-brand-icon {
-            width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        
+        .sb-logo-box {
+            width: 40px; height: 40px;
+            background: var(--primary);
+            border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 18px; box-shadow: 0 4px 12px rgba(59,130,246,.35);
+            box-shadow: 0 0 20px var(--primary-glow);
         }
-        .sb-brand-text { display: flex; flex-direction: column; }
-        .sb-brand-name { color: #fff; font-size: 14px; font-weight: 700; letter-spacing: .1px; line-height: 1.2; }
-        .sb-brand-sub  { color: rgba(255,255,255,.3); font-size: 11px; margin-top: 1px; }
-        .sb-nav { padding: 10px 0; flex: 1; }
-        .sb-section {
-            padding: 14px 18px 5px; font-size: 10px; font-weight: 700;
-            letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,.2);
+        
+        .sb-brand-name { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+        .sb-brand-sub { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+
+        .sb-nav { flex: 1; padding: 20px 16px; overflow-y: auto; scrollbar-width: none; }
+        .sb-nav::-webkit-scrollbar { display: none; }
+
+        .sb-section-lbl { 
+            font-size: 10px; font-weight: 800; color: var(--text-muted); 
+            padding: 16px 16px 8px; letter-spacing: 0.15em; text-transform: uppercase;
         }
+
         .sb-link {
-            display: flex; align-items: center; gap: 10px;
-            padding: 7px 18px; color: rgba(255,255,255,.5); text-decoration: none;
-            font-size: 13.5px; font-weight: 500;
-            transition: color .15s, background .15s;
-            border-radius: 0; position: relative;
+            display: flex; align-items: center; gap: 14px;
+            padding: 12px 16px; border-radius: 12px;
+            color: var(--text-muted); text-decoration: none;
+            font-size: 14px; font-weight: 600;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 4px;
         }
-        .sb-link:hover  { color: rgba(255,255,255,.85); background: rgba(255,255,255,.04); }
-        .sb-link.active {
-            color: #fff; background: rgba(59,130,246,.15);
-        }
-        .sb-link.active::before {
-            content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
-            width: 3px; background: var(--accent); border-radius: 0 2px 2px 0;
-        }
-        .sb-icon {
-            width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px;
-            background: rgba(255,255,255,.06);
-            transition: background .15s;
-        }
-        .sb-link:hover .sb-icon  { background: rgba(255,255,255,.10); }
-        .sb-link.active .sb-icon { background: rgba(59,130,246,.25); }
 
-        /* Sidebar icon colors per section */
-        .sb-link[href*="trips"].active .sb-icon    { background: rgba(59,130,246,.25); }
-        .sb-link[href*="expenses"].active .sb-icon { background: rgba(16,185,129,.2); }
-        .sb-link[href*="requests"].active .sb-icon { background: rgba(20,184,166,.2); }
-        .sb-link[href*="anomalies"].active .sb-icon{ background: rgba(245,158,11,.2); }
-        .sb-link[href*="fleet"].active .sb-icon    { background: rgba(139,92,246,.2); }
-        .sb-link[href*="drivers"].active .sb-icon  { background: rgba(249,115,22,.2); }
-        .sb-link[href*="repairs"].active .sb-icon  { background: rgba(239,68,68,.2); }
-        .sb-link[href*="map"].active .sb-icon      { background: rgba(14,165,233,.2); }
-        .sb-link[href*="director"].active .sb-icon { background: rgba(168,85,247,.2); }
-
-        .sb-footer {
-            padding: 10px 18px 16px; border-top: 1px solid rgba(255,255,255,.06); flex-shrink: 0;
+        .sb-link:hover { 
+            background: rgba(255, 255, 255, 0.03); 
+            color: var(--text);
+            transform: translateX(4px);
         }
-        .sb-footer a {
-            display: flex; align-items: center; gap: 10px;
-            color: rgba(255,255,255,.3); font-size: 13px; text-decoration: none;
-            padding: 6px 0; transition: color .12s;
+
+        .sb-link.active { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: 0 8px 24px var(--primary-glow);
         }
-        .sb-footer a:hover { color: rgba(255,255,255,.6); }
 
-        /* ── Main layout ── */
-        .main-wrap { margin-left: var(--sidebar-w); min-height: 100vh; }
-        .container  { padding: 28px 32px; max-width: 1300px; }
+        .sb-link.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
 
-        /* ── Page header ── */
-        .page-hdr {
+        .sb-badge {
+            margin-left: auto; background: var(--danger); color: white;
+            font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 20px;
+        }
+
+        /* ── Topbar ── */
+        .topbar {
+            position: fixed; top: 0; left: var(--sidebar-width); right: 0;
+            height: var(--topbar-height);
+            background: rgba(9, 9, 11, 0.6); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 24px;
+            padding: 0 40px; z-index: 900;
+            margin-left: 24px;
         }
-        .page-hdr h1, .page-hdr h2 {
-            margin: 0; font-size: 22px; font-weight: 800;
-            color: var(--text); letter-spacing: -.3px;
-        }
-        .page-hdr-left { display: flex; align-items: center; gap: 10px; }
+        
+        .breadcrumb { display: flex; align-items: center; gap: 12px; }
+        .breadcrumb-item { color: var(--text-muted); font-size: 13px; font-weight: 600; }
+        .breadcrumb-sep { color: var(--border); }
 
-        /* ── KPI cards — gradient style ── */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 16px; margin-bottom: 26px; }
-        .kpi {
-            border-radius: var(--r); padding: 20px 22px;
-            box-shadow: var(--shadow);
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white; position: relative; overflow: hidden;
-            transition: transform .15s, box-shadow .15s;
+        .user-pill {
+            display: flex; align-items: center; gap: 12px;
+            padding: 6px 6px 6px 16px; border-radius: 30px;
+            background: var(--surface-low); border: 1px solid var(--border);
+            transition: all 0.2s;
         }
-        .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-        .kpi::after {
-            content: ''; position: absolute;
-            top: -24px; right: -24px; width: 80px; height: 80px;
-            background: rgba(255,255,255,.10); border-radius: 50%;
-        }
-        .kpi::before {
-            content: ''; position: absolute;
-            bottom: -16px; left: -16px; width: 56px; height: 56px;
-            background: rgba(255,255,255,.06); border-radius: 50%;
-        }
-        .kpi.green  { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16,185,129,.25); }
-        .kpi.amber  { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 4px 12px rgba(245,158,11,.25); }
-        .kpi.red    { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 4px 12px rgba(239,68,68,.25); }
-        .kpi.purple { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); box-shadow: 0 4px 12px rgba(139,92,246,.25); }
-        .kpi.orange { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); box-shadow: 0 4px 12px rgba(249,115,22,.25); }
-        .kpi-label  { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: rgba(255,255,255,.75); margin-bottom: 10px; }
-        .kpi-value  { font-size: 32px; font-weight: 900; color: #fff; line-height: 1; }
-        .kpi-sub    { font-size: 11.5px; color: rgba(255,255,255,.65); margin-top: 6px; }
+        .user-pill:hover { border-color: var(--primary); }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
-        /* ── Card ── */
-        .card { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; border: 1px solid rgba(0,0,0,.04); }
-        .card-hdr {
-            padding: 14px 20px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-            background: #fafafa;
+        /* ── Main Content Area ── */
+        .main-wrap { 
+            margin-left: calc(var(--sidebar-width) + 24px); 
+            padding-top: var(--topbar-height); 
+            min-height: 100vh;
         }
-        .card-title { font-size: 14px; font-weight: 700; color: var(--text); }
-        .card-body  { padding: 20px; }
+        .content-container { padding: 40px; max-width: 1400px; margin: 0 auto; }
 
-        /* ── Tables ── */
-        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .table-wrap { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow-x: auto; border: 1px solid rgba(0,0,0,.04); -webkit-overflow-scrolling: touch; }
+        /* ── Common Components ── */
+        .card { 
+            background: var(--surface); 
+            border: 1px solid var(--border); 
+            border-radius: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: border-color 0.3s;
+        }
+        .card:hover { border-color: var(--border-highlight); }
+        .card-hdr { padding: 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-weight: 800; font-size: 16px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+        .card-body { padding: 24px; }
+
+        .btn { 
+            display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+            padding: 12px 24px; border-radius: 12px; border: none; font-family: inherit;
+            font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.25s;
+            background: var(--primary); color: white; text-decoration: none;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--primary-glow); }
+        .btn:active { transform: translateY(0); }
+        .btn-ghost { background: var(--surface-low); color: var(--text-muted); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--surface-highest); color: var(--text); }
+        .btn-xs { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+
+        .table-container { 
+            background: var(--surface); 
+            border: 1px solid var(--border); 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
         table { width: 100%; border-collapse: collapse; }
-        thead th {
-            background: #f8fafc; font-size: 11px; font-weight: 700;
-            letter-spacing: .6px; text-transform: uppercase; color: var(--muted);
-            padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border);
-            white-space: nowrap;
+        th { 
+            background: rgba(255,255,255,0.02); 
+            padding: 16px 24px; text-align: left; 
+            font-weight: 800; color: var(--text-muted); 
+            font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
         }
-        tbody td { padding: 13px 18px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-        tbody tr:last-child td { border-bottom: none; }
-        tbody tr:hover { background: #f9fafb; }
-        tfoot td {
-            padding: 13px 18px; font-weight: 700;
-            background: #f1f5f9; border-top: 2px solid var(--border);
-        }
+        td { padding: 18px 24px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        tr:hover td { background: rgba(255,255,255,0.01); }
 
-        /* ── Buttons ── */
-        .btn {
+        .badge { 
+            padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; 
             display: inline-flex; align-items: center; gap: 6px;
-            padding: 9px 18px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
-            text-decoration: none; border: none; cursor: pointer; white-space: nowrap;
-            transition: all .15s;
-            background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;
-            box-shadow: 0 2px 6px rgba(59,130,246,.3);
+            text-transform: uppercase; letter-spacing: 0.02em;
         }
-        .btn:hover   { background: linear-gradient(135deg, #2563eb, #1d4ed8); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(59,130,246,.35); color: #fff; }
-        .btn:active  { transform: translateY(0); }
-        .btn-sm      { padding: 6px 13px; font-size: 12.5px; border-radius: 7px; }
-        .btn-xs      { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
-        .btn-success { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 2px 6px rgba(16,185,129,.3); }
-        .btn-success:hover { background: linear-gradient(135deg, #059669, #047857); }
-        .btn-danger  { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 2px 6px rgba(239,68,68,.3); }
-        .btn-danger:hover  { background: linear-gradient(135deg, #dc2626, #b91c1c); }
-        .btn-amber   { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 2px 6px rgba(245,158,11,.3); }
-        .btn-amber:hover { background: linear-gradient(135deg, #d97706, #b45309); }
-        .btn-purple  { background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 2px 6px rgba(139,92,246,.3); }
-        .btn-purple:hover  { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
-        .btn-muted   { background: #94a3b8; box-shadow: none; } .btn-muted:hover { background: #64748b; }
-        .btn-dark    { background: linear-gradient(135deg, #374151, #1f2937); box-shadow: 0 2px 6px rgba(0,0,0,.2); }
-        .btn-dark:hover { background: linear-gradient(135deg, #1f2937, #111827); }
-        .btn-ghost   {
-            background: transparent; color: var(--muted);
-            border: 1px solid var(--border); box-shadow: none;
-        }
-        .btn-ghost:hover { background: #f3f4f6; color: var(--text); transform: none; box-shadow: none; }
+        .badge-active { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .badge-pending { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .badge-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
 
-        /* ── Badges ── */
-        .badge {
-            display: inline-flex; align-items: center; padding: 3px 10px;
-            border-radius: 999px; font-size: 11.5px; font-weight: 600;
+        .input-group { margin-bottom: 24px; }
+        .input-group label { display: block; font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.05em; }
+        input, select, textarea {
+            width: 100%; background: var(--surface-low); border: 1px solid var(--border); border-radius: 12px;
+            padding: 12px 16px; color: var(--text); font-family: inherit; font-size: 15px;
+            transition: all 0.2s;
         }
-        .badge-planned   { background: #dbeafe; color: #1d4ed8; }
-        .badge-active    { background: #d1fae5; color: #065f46; }
-        .badge-completed { background: #ede9fe; color: #5b21b6; }
-        .badge-cancelled { background: #fee2e2; color: #991b1b; }
-        .badge-pending   { background: #fef3c7; color: #92400e; }
-        .badge-approved  { background: #d1fae5; color: #065f46; }
-        .badge-rejected  { background: #fee2e2; color: #991b1b; }
-        .badge-available    { background: #d1fae5; color: #065f46; }
-        .badge-on-trip      { background: #dbeafe; color: #1d4ed8; }
-        .badge-maintenance  { background: #fef3c7; color: #92400e; }
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
 
-        /* ── Forms ── */
-        label { font-size: 12.5px; font-weight: 600; color: #374151; display: block; margin-bottom: 5px; }
-        input[type=text], input[type=password], input[type=date],
-        input[type=datetime-local], input[type=number], select, textarea {
-            width: 100%; padding: 9px 13px; border: 1.5px solid #e5e7eb;
-            border-radius: 8px; font-size: 14px; color: var(--text); background: #fff;
-            transition: border-color .15s, box-shadow .15s; font-family: inherit;
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none; border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59,130,246,.12);
-        }
-        .form-row { margin-bottom: 16px; }
-        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-        .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
-
-        /* ── Misc utilities ── */
-        .error {
-            color: #991b1b; font-size: 13px; padding: 10px 14px;
-            background: #fee2e2; border-radius: 8px; margin: 10px 0;
-            border: 1px solid #fca5a5;
-        }
-        .empty {
-            text-align: center; padding: 64px 20px; color: var(--muted);
-        }
-        .empty-icon { font-size: 44px; margin-bottom: 12px; opacity: .8; }
-        .text-muted { color: var(--muted); }
+        /* Helpers */
+        .text-muted { color: var(--text-muted); }
+        .small { font-size: 12px; }
         .fw-bold { font-weight: 700; }
-        .action-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mono { font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: -0.02em; }
+        
+        .page-hdr { margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .page-title { font-size: 28px; font-weight: 900; letter-spacing: -0.03em; }
 
-        /* ── Filter bar ── */
-        .filter-bar {
-            display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap;
-            margin-bottom: 20px; padding: 14px 18px;
-            background: white; border-radius: var(--r); box-shadow: var(--shadow-sm);
-            border: 1px solid rgba(0,0,0,.04);
-        }
-        .filter-bar label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; }
-        .filter-bar select, .filter-bar input { width: auto; min-width: 140px; }
+        /* Languages Buttons */
+        .lang-switch-box { display: flex; gap: 6px; padding: 4px; background: var(--surface-low); border-radius: 12px; border: 1px solid var(--border); margin: 0 16px 16px; }
+        .lang-mini-btn { flex: 1; height: 28px; border: none; border-radius: 8px; background: transparent; cursor: pointer; transition: all 0.2s; }
+        .lang-mini-btn.active { background: var(--surface-highest); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 
-        /* ── Back link ── */
-        .back-link {
-            display: inline-flex; align-items: center; gap: 5px;
-            color: var(--muted); text-decoration: none; font-size: 13px;
-            margin-bottom: 16px; transition: color .12s; font-weight: 500;
-        }
-        .back-link:hover { color: var(--text); }
-
-        /* ── Info grid (trip detail) ── */
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
-        .info-item {
-            background: #f9fafb; border-radius: 8px; padding: 12px 14px;
-            border: 1px solid #f3f4f6;
-        }
-        .info-item label { font-size: 10.5px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
-        .info-item span  { font-size: 14px; font-weight: 600; color: var(--text); }
-
-        /* ── Total banner ── */
-        .total-banner {
-            display: flex; justify-content: space-between; align-items: center;
-            background: linear-gradient(135deg, #1e293b, #0f172a); color: white;
-            border-radius: var(--r); padding: 18px 24px; margin-bottom: 20px;
-            box-shadow: 0 4px 16px rgba(0,0,0,.2);
-        }
-        .total-banner .label  { font-size: 13px; opacity: .6; font-weight: 500; }
-        .total-banner .amount { font-size: 26px; font-weight: 900; }
-
-        /* ── Scrollbar styling ── */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-
-        .lang-btn {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #fff; border-radius: 4px; padding: 4px 8px; cursor: pointer;
-            transition: all 0.2s; font-size: 16px;
-        }
-        .lang-btn:hover { background: rgba(255,255,255,0.15); }
-        .lang-btn.active { background: var(--accent); border-color: var(--accent); }
-
-        /* ── Mobile responsiveness ── */
-        @media (max-width: 800px) {
-            .sidebar { position: static; height: auto; width: 100%; border-right: none; border-bottom: 2px solid var(--accent); }
-            .sb-nav { display: flex; overflow-x: auto; padding: 0; white-space: nowrap; -webkit-overflow-scrolling: touch; background: #07090c; }
-            .sb-section { display: none; }
-            .sb-link { padding: 12px 14px; flex-shrink: 0; border-radius: 0; flex-direction: column; gap: 4px; font-size: 11px; }
-            .sb-link.active::before { top: auto; bottom: 0; left: 0; right: 0; height: 3px; width: auto; border-radius: 2px 2px 0 0; }
-            .sb-icon { margin: 0 auto; width: 24px; height: 24px; font-size: 12px; }
-            .sb-brand { display: none; } /* Or keep it smaller */
-            
-            .main-wrap { margin-left: 0; }
-            .container { padding: 16px; }
-            
-            .page-hdr { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
-            .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-            .kpi { padding: 14px; }
-            .kpi-value { font-size: 24px; }
-            
-            .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; gap: 0; }
-            .filter-bar { padding: 10px; gap: 10px; }
-        }
+        {% block extra_css %}{% endblock %}
     </style>
 </head>
-<body>
+<body {% if not user %}style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;"{% endif %}>
+
+{% if user %}
 <aside class="sidebar">
     <div class="sb-brand">
-        <div class="sb-brand-icon">🚛</div>
-        <div class="sb-brand-text">
-            <div class="sb-brand-name">Freight TMS</div>
-            <div class="sb-brand-sub" data-i18n="tagline">Управление перевозками</div>
+        <div class="sb-logo-box">
+            <span class="material-symbols-outlined text-white" style="font-size: 24px; font-variation-settings: 'FILL' 1;">local_shipping</span>
+        </div>
+        <div>
+            <div class="sb-brand-name">Freight<span style="color:var(--primary)">TMS</span></div>
+            <div class="sb-brand-sub" data-i18n="tagline">Cloud Fleet Management</div>
         </div>
     </div>
-    <div style="padding: 10px 18px 5px; display: flex; gap: 8px;">
-        <button onclick="setLang('ru')" id="btn-ru" class="lang-btn">🇷🇺</button>
-        <button onclick="setLang('kk')" id="btn-kk" class="lang-btn">🇰🇿</button>
-        <button onclick="setLang('zh')" id="btn-zh" class="lang-btn">🇨🇳</button>
+    
+    <div class="sb-nav">
+        <div class="sb-section-lbl" data-i18n="ops">Основные операции</div>
+        <a href="/panel/director" class="sb-link {% if request.url.path == '/panel/director' %}active{% endif %}">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span data-i18n="dashboard">Аналитика</span>
+        </a>
+        <a href="/panel/trips" class="sb-link {% if '/trips' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">route</span>
+            <span data-i18n="trips">Рейс-менеджер</span>
+        </a>
+        <a href="/panel/expenses" class="sb-link {% if '/expenses' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">payments</span>
+            <span data-i18n="expenses">Шины / Расходы</span>
+            {% if pending_count and pending_count > 0 %}
+            <span class="sb-badge">{{ pending_count }}</span>
+            {% endif %}
+        </a>
+        <a href="/panel/requests" class="sb-link {% if '/requests' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">contact_support</span>
+            <span data-i18n="requests">Запросы водителей</span>
+        </a>
+
+        <div class="sb-section-lbl" data-i18n="fleet">Транспорт и Кадры</div>
+        <a href="/panel/drivers" class="sb-link {% if '/drivers' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">group</span>
+            <span data-i18n="drivers">Экипажи</span>
+        </a>
+        <a href="/panel/fleet" class="sb-link {% if '/fleet' in request.url.path or '/vehicles' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">front_loader</span>
+            <span data-i18n="vehicles">Автопарк</span>
+        </a>
+        <a href="/panel/maintenance" class="sb-link {% if '/maintenance' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">event_note</span>
+            <span data-i18n="maintenance">Плановое ТО</span>
+        </a>
+        <a href="/panel/repairs" class="sb-link {% if '/repairs' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">build_circle</span>
+            <span data-i18n="repairs">Ремонты</span>
+        </a>
+
+        <div class="sb-section-lbl" data-i18n="analytics">Безопасность</div>
+        <a href="/panel/anomalies" class="sb-link {% if '/anomalies' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">warning</span>
+            <span data-i18n="anomalies">Аномалии топлива</span>
+        </a>
+        <a href="/panel/geofences" class="sb-link {% if '/geofences' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">share_location</span>
+            <span data-i18n="geofences">Геозоны</span>
+        </a>
+        <a href="/panel/director/rating" class="sb-link {% if '/rating' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">emoji_events</span>
+            <span data-i18n="rating">Рейтинг KPI</span>
+        </a>
     </div>
-    <nav class="sb-nav">
-        <div class="sb-section" data-i18n="ops">Операции</div>
-        <a href="/panel/trips"     class="sb-link {% if request.url.path.startswith('/panel/trips') %}active{% endif %}">
-            <span class="sb-icon">📋</span> <span data-i18n="trips">Рейсы</span>
+
+    <div class="lang-switch-box">
+        <button onclick="setLang('ru')" id="btn-ru" class="lang-mini-btn">RU</button>
+        <button onclick="setLang('kk')" id="btn-kk" class="lang-mini-btn">KZ</button>
+        <button onclick="setLang('zh')" id="btn-zh" class="lang-mini-btn">CN</button>
+    </div>
+    
+    <div style="padding: 24px; border-top: 1px solid var(--border);">
+        <a href="/panel/logout" class="sb-link" style="color: var(--danger); opacity: 0.8; margin-bottom: 0;">
+            <span class="material-symbols-outlined">logout</span>
+            <span data-i18n="logout">Завершить сессию</span>
         </a>
-        <a href="/panel/expenses"  class="sb-link {% if request.url.path.startswith('/panel/expenses') %}active{% endif %}">
-            <span class="sb-icon">💳</span> <span data-i18n="expenses">Расходы</span>
-        </a>
-        <a href="/panel/requests"  class="sb-link {% if request.url.path.startswith('/panel/requests') %}active{% endif %}">
-            <span class="sb-icon">💬</span> <span>Заявки</span>
-        </a>
-        <a href="/panel/documents/generator"  class="sb-link {% if request.url.path.startswith('/panel/documents/generator') %}active{% endif %}">
-            <span class="sb-icon">📄</span> <span>Документы (СМР)</span>
-        </a>
-        <a href="/panel/anomalies" class="sb-link {% if request.url.path.startswith('/panel/anomalies') %}active{% endif %}">
-            <span class="sb-icon">⚠️</span> <span data-i18n="anomalies">Аномалии</span>
-        </a>
-        <div class="sb-section" data-i18n="fleet">Парк</div>
-        <a href="/panel/fleet"    class="sb-link {% if request.url.path.startswith('/panel/fleet') %}active{% endif %}">
-            <span class="sb-icon">🚚</span> <span data-i18n="trucks">Транспорт</span>
-        </a>
-        <a href="/panel/drivers"  class="sb-link {% if request.url.path.startswith('/panel/drivers') %}active{% endif %}">
-            <span class="sb-icon">👤</span> <span data-i18n="drivers">Водители</span>
-        </a>
-        <a href="/panel/repairs"  class="sb-link {% if request.url.path.startswith('/panel/repairs') %}active{% endif %}">
-            <span class="sb-icon">🔧</span> <span data-i18n="repairs">Ремонты</span>
-        </a>
-        <a href="/panel/documents/expiring" class="sb-link {% if request.url.path.startswith('/panel/documents') %}active{% endif %}">
-            <span class="sb-icon">📄</span> <span data-i18n="docs">Документы</span>
-        </a>
-        <a href="/panel/map"      class="sb-link {% if request.url.path.startswith('/panel/map') %}active{% endif %}">
-            <span class="sb-icon">🗺️</span> <span data-i18n="map">Карта</span>
-        </a>
-        <div class="sb-section" data-i18n="analytics">Аналитика</div>
-        <a href="/panel/director" class="sb-link {% if request.url.path.startswith('/panel/director') %}active{% endif %}">
-            <span class="sb-icon">📊</span> <span data-i18n="director">Директор</span>
-        </a>
-    </nav>
-    <div class="sb-footer">
-        <a href="/panel/logout"><span data-i18n="exit_icon">⎋</span> <span data-i18n="logout">Выйти</span></a>
     </div>
 </aside>
-<div class="main-wrap">
-    <div class="container">
+
+<main class="main-wrap">
+    <header class="topbar">
+        <div class="breadcrumb">
+            <span class="breadcrumb-item">Freight TMS</span>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-item" id="topbar-section-name">Dashboard</span>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 32px;">
+            <div class="topbar-meta fw-bold small mono" id="topbar-clock">00:00:00</div>
+            <div class="user-pill">
+                <div style="text-align: right;">
+                    <div class="fw-bold small text-white">{{ user.username if user else 'Dispatcher' }}</div>
+                    <div class="topbar-meta" style="font-size: 10px;" data-i18n="role_admin">System Admin</div>
+                </div>
+                <div class="avatar">
+                    <span class="material-symbols-outlined text-muted">account_circle</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="content-container">
         {% block content %}{% endblock %}
     </div>
-</div>
+</main>
+{% else %}
+    <div class="content-container" style="max-width: 480px; width: 100%;">
+        {% block content %}{% endblock %}
+    </div>
+{% endif %}
 
 <script>
+    // ── Translation Logic ──
     const translations = {
         ru: {
-            "tagline": "Управление перевозками",
-            "ops": "Операции",
-            "trips": "Рейсы",
-            "expenses": "Расходы",
-            "anomalies": "Аномалии",
-            "fleet": "Парк",
-            "trucks": "Транспорт",
-            "drivers": "Водители",
-            "repairs": "Ремонты",
-            "docs": "Документы",
-            "map": "Карта",
-            "analytics": "Аналитика",
-            "director": "Директор",
-            "logout": "Выйти",
-            "back": "Назад",
-            "save": "Сохранить",
-            "cancel": "Отмена",
-            "delete": "Удалить",
-            "total": "Итого",
-            "status": "Статус",
-            "date": "Дата",
-            "driver": "Водитель",
-            "vehicle": "Транспорт",
-            "route": "Маршрут",
-            "cargo": "Груз",
-            "client": "Клиент",
-            "odometer": "Одометр",
-            "drivers_and_trucks": "Водители и борта",
-            "add_driver": "Добавить водителя",
-            "fio": "ФИО",
-            "phone": "Телефон",
-            "iin_passport": "ИИН / Паспорт",
-            "fuel_norm": "Норма (л/100км)",
-            "pwa": "PWA",
-            "actions": "Действия",
-            "edit": "Изменить",
-            "activate": "Активировать",
-            "delete_vulgar": "Удалить",
-            "delete_driver": "Удалить Водителя",
-            "delete_vehicle": "Удалить Борт",
-            "repairs_title": "Журнал ремонтов и тех.обслуживания",
-            "new_issue": "Сообщить о неисправности",
-            "all_vehicles": "Все борты",
-            "all_statuses": "Все статусы",
-            "description": "Описание",
-            "priority": "Приоритет",
-            "reported_by": "Заявил",
-            "start_work": "В работу",
-            "close": "Закрыть",
-            "act": "Акт",
-            "resolution": "Что сделано",
-            "status_active": "Активен",
-            "pwa_yes": "✓ Есть",
-            "pwa_no": "✗ Нет",
-            "kpi_needs_repair": "Требует ремонта",
-            "kpi_in_progress": "В работе",
-            "kpi_resolved": "Отремонтировано",
-            "register_issue": "Зарегистрировать неисправность",
-            "issue_desc_label": "Описание неисправности",
-            "issue_desc_placeholder": "Что сломано / что нужно починить...",
-            "priority_critical": "Критический",
-            "priority_high": "Высокий",
-            "priority_normal": "Нормальный",
-            "priority_low": "Низкий",
-            "repair_status_open": "Открыта",
-            "repair_status_progress": "В работе",
-            "repair_status_closed": "Закрыта",
-            "reset": "Сбросить",
-            "apply": "Применить",
-            "add_trip": "Новый рейс",
-            "status_planned": "Запланирован",
-            "status_active_trip": "Активен",
-            "status_completed": "Завершён",
-            "status_cancelled": "Отменён",
-            "no_trips": "Рейсов пока нет",
-            "create_first_trip": "Создайте первый рейс",
-            "expenses_title": "Расходы на одобрение",
-            "expenses_awaiting": "ожидают",
-            "no_pending_expenses": "Нет расходов, ожидающих одобрения.",
-            "expense_type": "Тип",
-            "amount": "Сумма",
-            "receipt": "Чек",
-            "approve": "Одобрить",
-            "reject": "Отклонить",
-            "reject_reason_placeholder": "Причина (необяз.)",
-            "status_approved": "Одобрен",
-            "status_rejected": "Отклонён",
-            "login_label": "Логин",
-            "password_label": "Пароль",
-            "login_btn": "Войти",
-            "anomalies_title": "Аномалии расхода топлива",
-            "active": "активных",
-            "no_anomalies": "Нет активных аномалий расхода топлива.",
-            "fact": "Факт",
-            "norm": "Норма",
-            "excess": "Превышение",
-            "false_alarm": "Ложная тревога",
-            "director_report_title": "Отчёт директора",
-            "from": "С",
-            "to": "По",
-            "by_trucks": "По бортам",
-            "by_drivers": "По водителям",
-            "revenue": "Доход (Фрахт)",
-            "total_expenses": "Всего расходов",
-            "net_profit": "Чистая прибыль (план)",
-            "trips_active_label": "Рейсов / Активных",
-            "fuel_analytics": "Топливная аналитика",
-            "refuels": "Заправок",
-            "total_liters": "Всего литров",
-            "fuel_costs": "Затраты на топливо",
-            "avg_price_per_liter": "Ср. цена за литр",
-            "by_expense_categories": "По категориям расходов",
-            "category": "Категория",
-            "records": "Записей",
-            "share": "Доля",
-            "FUEL": "Топливо",
-            "FINE": "Штрафы",
-            "REPAIR": "Ремонт",
-            "PER_DIEM": "Суточные",
-            "total_voc": "ИТОГО",
-            "no_expenses_period": "Нет расходов за выбранный период.",
-            "expenses_by_drivers": "Расходы по водителям",
-            "avg_per_trip": "Ср. на рейс",
-            "details": "Подробнее",
-            "export_by_object": "Экспорт по объекту",
-            "docs_title": "Истекающие документы",
-            "next_30_days": "Следующие 30 дней",
-            "docs_ok": "Все документы в порядке — ничего не истекает в ближайшие 30 дней.",
-            "expired": "Истекли",
-            "up_to_7_days": "До 7 дней",
-            "up_to_30_days": "До 30 дней",
-            "document": "Документ",
-            "expiry_date": "Срок истекает",
-            "open": "Открыть",
-            "all_docs": "Все документы",
-            "expired_days_ago": "Истёк",
-            "days_ago": "дн. назад",
-            "expires_in_days": "Через",
-            "days_short": "дн.",
-            "back_to_trips": "К списку рейсов",
-            "trip_number": "Рейс",
-            "faults_on_board": "На борту есть неисправности",
-            "go_to_repairs": "Перейти к ремонтам",
-            "trip_info": "Информация о рейсе",
-            "freight_price": "Стоимость (Фрахт)",
-            "planned_departure": "Выезд (план)",
-            "planned_arrival": "Прибытие (план)",
-            "start_odometer": "Одометр (начало)",
-            "end_odometer": "Одометр (конец)",
-            "delivery_status": "Статус доставки",
-            "total_expenses_kzt": "Итого расходов (KZT)",
-            "add_expense_btn": "Добавить расход",
-            "no_expenses": "Расходов нет",
-            "currency": "Валюта",
-            "on_review": "На проверке",
-            "upload_doc": "Загрузить документ",
-            "file_pdf_photo": "Файл (PDF, Фото)",
-            "upload_btn": "Загрузить",
-            "no_docs": "Документов нет",
-            "locations_title": "Геопозиции",
-            "time": "Время",
-            "latitude": "Широта",
-            "longitude": "Долгота",
-            "map_btn": "Карта",
-            "fleet_title": "Парк транспорта",
-            "add_vehicle_btn": "Добавить борт",
-            "all_vehicles": "Всего ТС",
-            "on_trip": "В рейсе",
-            "available": "Свободно",
-            "on_maintenance": "На ТО",
-            "license_plate": "Гос. номер",
-            "make_model_year": "Марка / Модель / Год",
-            "maintenance": "Ремонты",
-            "status_available": "Свободен",
-            "status_on_trip": "В рейсе",
-            "status_maintenance": "На ТО",
-            "no_vehicles": "Транспортных средств пока нет.",
-            "map_title": "Карта парка",
-            "map_desc": "Показаны последние позиции машин с активными рейсами. Обновление каждые 30 сек.",
-            "no_active_trucks": "Нет машин с активными рейсами и геопозицией.",
-            "expenses_by_trucks": "Расходы по бортам",
-            "summary_btn": "Сводка",
-            "km_short": "Км",
-            "no_trips_period": "Нет рейсов за выбранный период.",
-            "total_for": "Итого по",
-            "fuel_anomalies_history": "История аномалий топлива",
-            "dispatcher_queue": "Очередь диспетчера",
-            "fact_l_100km": "Факт (л/100км)",
-            "no_anomalies": "Аномалий нет.",
-            "select_driver": "— выберите водителя —",
-            "select_vehicle": "— выберите борт —",
-            "select_type": "— выберите тип —",
-            "choose_file": "Выберите файл",
-            "new_trip": "Новый рейс",
-            "trip_data": "Данные рейса",
-            "driver_required": "Водитель *",
-            "vehicle_required": "Транспорт *",
-            "trip_status_required": "Статус рейса *",
-            "load_info": "Груз",
-            "client_name": "Клиент",
-            "freight_price": "Стоимость (Фрахт)",
-            "freight_currency": "Валюта фрахта",
-            "planned_departure_label": "Планируемое отправление",
-            "planned_arrival_label": "Планируемое прибытие",
-            "create_trip_btn": "Создать рейс",
-            "cancel": "Отмена",
-            "add_expense_title": "Добавить расход",
-            "expense_details": "Детали расхода",
-            "expense_type_required": "Тип расхода *",
-            "amount_required": "Сумма *",
-            "currency_required": "Валюта *",
-            "fuel_info": "Данные по заправке",
-            "liters_label": "Литры",
-            "odometer_reading_label": "Показания одометра",
-            "gas_station_label": "АЗС (Сеть/Адрес)",
-            "status_required": "Статус *",
-            "comment_label": "Комментарий",
-            "comment_placeholder": "Описание расхода (опционально)",
-            "receipt_doc": "Чек / Документ (фото, опционально)",
-            "save_btn": "Сохранить",
-            "edit_trip": "Редактировать рейс",
-            "back_to_trip": "Вернуться к рейсу",
-            "new_vehicle": "Новый борт",
-            "vehicle_data_card": "Данные транспортного средства",
-            "make": "Марка",
-            "model": "Модель",
-            "year_of_issue": "Год выпуска",
-            "fuel_norm": "Норма расхода (л/100км)",
-            "add_btn": "Добавить",
-            "new_driver": "Новый водитель",
-            "driver_data_card": "Данные водителя",
-            "full_name": "ФИО *",
-            "phone_login": "Телефон (логин) *",
-            "password_for_login": "Пароль для входа *",
-            "iin": "ИИН",
-            "assign_vehicle": "Назначить борт",
-            "not_assigned": "— Не назначен —",
-            "passport_scan": "Скан паспорта (фото или PDF)",
-            "reject_reason_placeholder": "Причина (необяз.)",
-            "expense_type_fuel": "Топливо",
-            "expense_type_per_diem": "Суточные",
-            "expense_type_fine": "Штраф",
-            "expense_type_repair": "Ремонт",
-            "expense_type_other": "Прочее",
-            "status_planned": "Запланирован",
-            "delete_btn": "🗑️ Удалить",
-            "no_repairs": "Нет записей о ремонтах.",
-            "fleet_title": "Транспорт",
-            "drivers": "Водители",
-            "trips": "Рейсы",
-            "download_act": "Скачать акт",
-            "all_drivers": "Все водители",
-            "all_vehicles": "Все борты",
-            "all_statuses": "Все",
+            dashboard: "Аналитика", trips: "Рейс-менеджер", expenses: "Шины / Расходы", 
+            drivers: "Экипажи", vehicles: "Автопарк", maintenance: "Плановое ТО",
+            geofences: "Геозоны", rating: "Рейтинг KPI", logout: "Завершить сессию",
+            tagline: "Cloud Fleet Management", role_admin: "System Admin",
+            ops: "ОСНОВНЫЕ ОПЕРАЦИИ", fleet: "ТРАНСПОРТ И КАДРЫ", analytics: "БЕЗОПАСНОСТЬ",
+            anomalies: "Аномалии топлива", requests: "Запросы водителей",
+            login_btn: "Войти в панель управления"
         },
         kk: {
-            "tagline": "Тасымалдарды басқару",
-            "ops": "Операциялар",
-            "trips": "Рейстер",
-            "expenses": "Шығындар",
-            "anomalies": "Аномалиялар",
-            "fleet": "Парк",
-            "trucks": "Көлік",
-            "drivers": "Жүргізушілер",
-            "repairs": "Жөндеу",
-            "docs": "Құжаттар",
-            "map": "Карта",
-            "analytics": "Аналитика",
-            "director": "Директор",
-            "logout": "Шығу",
-            "back": "Артқа",
-            "save": "Сақтау",
-            "cancel": "Болдырмау",
-            "delete": "Жою",
-            "total": "Барлығы",
-            "status": "Мәртебе",
-            "date": "Күні",
-            "driver": "Жүргізуші",
-            "vehicle": "Көлік",
-            "route": "Маршрут",
-            "cargo": "Жүк",
-            "client": "Клиент",
-            "odometer": "Одометр",
-            "drivers_and_trucks": "Жүргізушілер мен борттар",
-            "add_driver": "Жүргізушіні қосу",
-            "fio": "ТАӘ",
-            "phone": "Телефон",
-            "iin_passport": "ЖСН / Паспорт",
-            "fuel_norm": "Норма (л/100км)",
-            "pwa": "PWA",
-            "actions": "Әрекеттер",
-            "edit": "Өзгерту",
-            "activate": "Белсендіру",
-            "delete_vulgar": "Жою",
-            "delete_driver": "Жүргізушіні жою",
-            "delete_vehicle": "Бортты жою",
-            "repairs_title": "Жөндеу және ТҚ көрсету журналы",
-            "new_issue": "Ақау туралы хабарлау",
-            "all_vehicles": "Барлық борттар",
-            "all_statuses": "Барлық мәртебелер",
-            "description": "Сипаттама",
-            "priority": "Приоритет",
-            "reported_by": "Мәлімдеген",
-            "start_work": "Жұмысқа алу",
-            "close": "Жабу",
-            "act": "Акт",
-            "resolution": "Не істелді",
-            "status_active": "Белсенді",
-            "pwa_yes": "✓ Бар",
-            "pwa_no": "✗ Жоқ",
-            "kpi_needs_repair": "Жөндеуді қажет етеді",
-            "kpi_in_progress": "Жұмыста",
-            "kpi_resolved": "Жөнделді",
-            "register_issue": "Ақаулықты тіркеу",
-            "issue_desc_label": "Ақаулық сипаттамасы",
-            "issue_desc_placeholder": "Не бұзылды / нені жөндеу керек...",
-            "priority_critical": "Критиктік",
-            "priority_high": "Жоғары",
-            "priority_normal": "Қалыпты",
-            "priority_low": "Төмен",
-            "repair_status_open": "Ашық",
-            "repair_status_progress": "Жұмыста",
-            "repair_status_closed": "Жабық",
-            "reset": "Болдырмау",
-            "apply": "Қолдану",
-            "add_trip": "Жаңа рейс",
-            "status_planned": "Жоспарланды",
-            "status_active_trip": "Белсенді",
-            "status_completed": "Аяқталды",
-            "status_cancelled": "Болдырылмады",
-            "no_trips": "Рейстер жоқ",
-            "create_first_trip": "Бірінші рейсті жасаңыз",
-            "expenses_title": "Бекітуге арналған шығындар",
-            "expenses_awaiting": "күтуде",
-            "no_pending_expenses": "Бекітуді күтіп тұрған шығындар жоқ.",
-            "expense_type": "Түрі",
-            "amount": "Сомасы",
-            "receipt": "Чек",
-            "approve": "Бекіту",
-            "reject": "Бас тарту",
-            "reject_reason_placeholder": "Себебі (міндетті емес)",
-            "status_approved": "Бекітілді",
-            "status_rejected": "Бас тартылды",
-            "login_label": "Кіру",
-            "password_label": "Құпия сөз",
-            "login_btn": "Кіру",
-            "anomalies_title": "Отын шығынын аномалиялары",
-            "active": "белсенді",
-            "no_anomalies": "Отын шығынын белсенді аномалиялары жоқ.",
-            "fact": "Факт",
-            "norm": "Норма",
-            "excess": "Асып кету",
-            "false_alarm": "Жалған дабыл",
-            "director_report_title": "Директор есебі",
-            "from": "Бастап",
-            "to": "Дейін",
-            "by_trucks": "Борттар бойынша",
-            "by_drivers": "Жүргізушілер бойынша",
-            "revenue": "Табыс (Фрахт)",
-            "total_expenses": "Барлық шығындар",
-            "net_profit": "Таза пайда (жоспар)",
-            "trips_active_label": "Рейстер / Белсенді",
-            "fuel_analytics": "Жанармай аналитикасы",
-            "refuels": "Заправкалар",
-            "total_liters": "Барлық литрлер",
-            "fuel_costs": "Жанармай шығындары",
-            "avg_price_per_liter": "Литрдің орташа бағасы",
-            "by_expense_categories": "Шығын санаттары бойынша",
-            "category": "Санат",
-            "records": "Жазбалар",
-            "share": "Үлесі",
-            "FUEL": "Жанармай",
-            "FINE": "Айыппұлдар",
-            "REPAIR": "Жөндеу",
-            "PER_DIEM": "Тәуліктік",
-            "total_voc": "БАРЛЫҒЫ",
-            "no_expenses_period": "Таңдалған кезеңде шығындар жоқ.",
-            "expenses_by_drivers": "Жүргізушілер бойынша шығындар",
-            "avg_per_trip": "Рейске орташа",
-            "details": "Толығырақ",
-            "export_by_object": "Объект бойынша экспорт",
-            "docs_title": "Мерзімі бітетін құжаттар",
-            "next_30_days": "Келесі 30 күн",
-            "docs_ok": "Барлық құжаттар дұрыс — жақын арада ештеңе бітпейді.",
-            "expired": "Мерзімі бітті",
-            "up_to_7_days": "7 күнге дейін",
-            "up_to_30_days": "30 күнге дейін",
-            "document": "Құжат",
-            "expiry_date": "Мерзімі бітеді",
-            "open": "Ашу",
-            "all_docs": "Барлық құжаттар",
-            "expired_days_ago": "Бітті",
-            "days_ago": "күн бұрын",
-            "expires_in_days": "Кейін",
-            "days_short": "күн",
-            "back_to_trips": "Рейстер тізіміне",
-            "trip_number": "Рейс",
-            "faults_on_board": "Көлікте ақаулар бар",
-            "go_to_repairs": "Жөндеуге өту",
-            "trip_info": "Рейс туралы ақпарат",
-            "freight_price": "Құны (Фрахт)",
-            "planned_departure": "Шығу (жоспар)",
-            "planned_arrival": "Келу (жоспар)",
-            "start_odometer": "Одометр (басы)",
-            "end_odometer": "Одометр (соңы)",
-            "delivery_status": "Жеткізу мәртебесі",
-            "total_expenses_kzt": "Барлық шығындар (KZT)",
-            "add_expense_btn": "Шығынды қосу",
-            "no_expenses": "Шығындар жоқ",
-            "currency": "Валюта",
-            "on_review": "Тексерілуде",
-            "upload_doc": "Құжатты жүктеу",
-            "file_pdf_photo": "Файл (PDF, Фото)",
-            "upload_btn": "Жүктеу",
-            "no_docs": "Құжаттар жоқ",
-            "locations_title": "Геопозициялар",
-            "time": "Уақыт",
-            "latitude": "Ендік",
-            "longitude": "Бойлық",
-            "map_btn": "Карта",
-            "fleet_title": "Транспорт паркі",
-            "add_vehicle_btn": "Борт қосу",
-            "all_vehicles": "Барлық ТЖ",
-            "on_trip": "Рейсте",
-            "available": "Бос",
-            "on_maintenance": "ТО-да",
-            "license_plate": "Мемл. нөмірі",
-            "make_model_year": "Маркасы / Моделі / Жылы",
-            "maintenance": "Жөндеу",
-            "status_available": "Бос",
-            "status_on_trip": "Рейсте",
-            "status_maintenance": "ТО-да",
-            "no_vehicles": "Көлік құралдары әлі жоқ.",
-            "map_title": "Парк картасы",
-            "map_desc": "Белсенді рейстері бар машиналардың соңғы позициялары көрсетілген. Әр 30 секунд сайын жаңартылуда.",
-            "no_active_trucks": "Белсенді рейстері мен геопозициялары бар машиналар жоқ.",
-            "expenses_by_trucks": "Борттар бойынша шығындар",
-            "summary_btn": "Сводка",
-            "km_short": "Км",
-            "no_trips_period": "Таңдалған кезеңде рейстер жоқ.",
-            "total_for": "Барлығы",
-            "fuel_anomalies_history": "Жанармай аномалияларының тарихы",
-            "dispatcher_queue": "Диспетчер кезегі",
-            "fact_l_100km": "Факт (л/100км)",
-            "no_anomalies": "Аномалиялар жоқ.",
-            "select_driver": "— жүргізушіні таңдаңыз —",
-            "select_vehicle": "— бортты таңдаңыз —",
-            "select_type": "— түрін таңдаңыз —",
-            "choose_file": "Файлды таңдаңыз",
-            "new_trip": "Жаңа рейс",
-            "trip_data": "Рейс деректері",
-            "driver_required": "Жүргізуші *",
-            "vehicle_required": "Транспорт *",
-            "trip_status_required": "Рейс мәртебесі *",
-            "load_info": "Груз",
-            "client_name": "Клиент",
-            "freight_price": "Құны (Фрахт)",
-            "freight_currency": "Фрахт валютасы",
-            "planned_departure_label": "Жоспарланған шығу",
-            "planned_arrival_label": "Жоспарланған келу",
-            "create_trip_btn": "Рейсті құру",
-            "cancel": "Болдырмау",
-            "add_expense_title": "Шығынды қосу",
-            "expense_details": "Шығын мәліметтері",
-            "expense_type_required": "Шығын түрі *",
-            "amount_required": "Сомасы *",
-            "currency_required": "Валюта *",
-            "fuel_info": "Жанармай мәліметтері",
-            "liters_label": "Литрлер",
-            "odometer_reading_label": "Одометр көрсеткіштері",
-            "gas_station_label": "ЖҚС (Желі/Мекенжай)",
-            "status_required": "Мәртебе *",
-            "comment_label": "Түсініктеме",
-            "comment_placeholder": "Шығын сипаттамасы (міндетті емес)",
-            "receipt_doc": "Чек / Құжат (фото, міндетті емес)",
-            "save_btn": "Сақтау",
-            "edit_trip": "Рейсті өңдеу",
-            "back_to_trip": "Рейске оралу",
-            "new_vehicle": "Жаңа борт",
-            "vehicle_data_card": "Көлік құралының деректері",
-            "make": "Маркасы",
-            "model": "Моделі",
-            "year_of_issue": "Шығарылған жылы",
-            "fuel_norm": "Шығын нормасы (л/100км)",
-            "add_btn": "Қосу",
-            "new_driver": "Жаңа жүргізуші",
-            "driver_data_card": "Жүргізуші деректері",
-            "full_name": "Аты-жөні *",
-            "phone_login": "Телефон (логин) *",
-            "password_for_login": "Кіру паролі *",
-            "iin": "ЖСН",
-            "assign_vehicle": "Бортты тағайындау",
-            "not_assigned": "— Тағайындалмаған —",
-            "passport_scan": "Төлқұжат сканері (фото немесе PDF)",
-            "reject_reason_placeholder": "Себебі (міндетті емес)",
-            "expense_type_fuel": "Жанармай",
-            "expense_type_per_diem": "Тәуліктік",
-            "expense_type_fine": "Айыппұл",
-            "expense_type_repair": "Жөндеу",
-            "expense_type_other": "Басқа",
-            "status_planned": "Жоспарланған",
-            "delete_btn": "🗑️ Жою",
-            "no_repairs": "Жөндеу жазбалары жоқ.",
-            "fleet_title": "Транспорт",
-            "drivers": "Жүргізушілер",
-            "trips": "Рейстер",
-            "download_act": "Актіні жүктеп алу",
-            "all_drivers": "Барлық жүргізушілер",
-            "all_vehicles": "Барлық борттар",
-            "all_statuses": "Барлығы",
+            dashboard: "Аналитика", trips: "Рейстер", expenses: "Шығындар",
+            drivers: "Экипаждар", vehicles: "Автопарк", maintenance: "ТҚК жоспары",
+            geofences: "Геоаймақтар", rating: "KPI рейтингі", logout: "Шығу",
+            login_btn: "Жүйеге кіру"
         },
         zh: {
-            "tagline": "物流运输管理系统",
-            "ops": "业务操作",
-            "trips": "行程列表",
-            "expenses": "费用管理",
-            "anomalies": "异常监控",
-            "fleet": "车队管理",
-            "trucks": "车辆列表",
-            "drivers": "驾驶员",
-            "repairs": "维修记录",
-            "docs": "证照管理",
-            "map": "实时地图",
-            "analytics": "数据报表",
-            "director": "总监面板",
-            "logout": "登出系统",
-            "back": "返回",
-            "save": "保存",
-            "cancel": "取消",
-            "delete": "删除",
-            "total": "总计",
-            "status": "状态",
-            "date": "日期",
-            "driver": "驾驶员",
-            "vehicle": "车辆",
-            "route": "路线",
-            "cargo": "货物",
-            "client": "客户",
-            "odometer": "里程表",
-            "drivers_and_trucks": "驾驶员与车辆",
-            "add_driver": "添加驾驶员",
-            "fio": "姓名",
-            "phone": "电话",
-            "iin_passport": "证件号",
-            "fuel_norm": "油耗标准",
-            "pwa": "APP状态",
-            "actions": "操作",
-            "edit": "编辑",
-            "activate": "激活账户",
-            "delete_vulgar": "删除",
-            "delete_driver": "删除驾驶员",
-            "delete_vehicle": "删除车辆",
-            "repairs_title": "维修与保养日志",
-            "new_issue": "报修故障",
-            "all_vehicles": "所有车辆",
-            "all_statuses": "所有状态",
-            "description": "描述",
-            "priority": "优先级",
-            "reported_by": "上报人",
-            "start_work": "进入维修",
-            "close": "完成关闭",
-            "act": "单据",
-            "resolution": "处理方案",
-            "status_active": "活跃",
-            "pwa_yes": "✓ 已设置",
-            "pwa_no": "✗ 未设置",
-            "kpi_needs_repair": "待维修",
-            "kpi_in_progress": "维修中",
-            "kpi_resolved": "已修复",
-            "register_issue": "登记故障",
-            "issue_desc_label": "故障描述",
-            "issue_desc_placeholder": "哪里坏了 / 需要修什么...",
-            "priority_critical": "紧急",
-            "priority_high": "高",
-            "priority_normal": "普通",
-            "priority_low": "低",
-            "repair_status_open": "待处理",
-            "repair_status_progress": "修理中",
-            "repair_status_closed": "已关闭",
-            "reset": "重置",
-            "apply": "应用",
-            "add_trip": "新行程",
-            "status_planned": "已计划",
-            "status_active_trip": "进行中",
-            "status_completed": "已完成",
-            "status_cancelled": "已取消",
-            "no_trips": "暂无行程",
-            "create_first_trip": "创建第一个行程",
-            "expenses_title": "待审批费用",
-            "expenses_awaiting": "待处理",
-            "no_pending_expenses": "暂无待审批费用。",
-            "expense_type": "费用类型",
-            "amount": "金额",
-            "receipt": "单据",
-            "approve": "审批通过",
-            "reject": "驳回",
-            "reject_reason_placeholder": "驳回原因 (可选)",
-            "status_approved": "已审批",
-            "status_rejected": "已驳回",
-            "login_label": "用户名",
-            "password_label": "密码",
-            "login_btn": "登录",
-            "anomalies_title": "油耗异常监控",
-            "active": "活动项",
-            "no_anomalies": "暂无油耗异常数据。",
-            "fact": "实际",
-            "norm": "标准",
-            "excess": "超出比例",
-            "false_alarm": "误报处理",
-            "director_report_title": "总监报表",
-            "from": "开始日期",
-            "to": "结束日期",
-            "by_trucks": "分车辆统计",
-            "by_drivers": "分驾驶员统计",
-            "revenue": "总收入 (运费)",
-            "total_expenses": "总支出",
-            "net_profit": "预计净利润",
-            "trips_active_label": "行程数 / 进行中",
-            "fuel_analytics": "燃油分析",
-            "refuels": "加油次数",
-            "total_liters": "总加油量 (升)",
-            "fuel_costs": "燃油总成本",
-            "avg_price_per_liter": "平均单价/升",
-            "by_expense_categories": "费用分类统计",
-            "category": "费用类别",
-            "records": "记录数",
-            "share": "占比",
-            "FUEL": "燃油",
-            "FINE": "罚款",
-            "REPAIR": "维修",
-            "PER_DIEM": "差旅津贴",
-            "total_voc": "合计",
-            "no_expenses_period": "该时间段内暂无费用支出。",
-            "expenses_by_drivers": "驾驶员费用统计",
-            "avg_per_trip": "单次行程平均",
-            "details": "详细信息",
-            "export_by_object": "按对象导出",
-            "docs_title": "即将到期证件",
-            "next_30_days": "未来30天",
-            "docs_ok": "所有证照状态良好 —— 未来30天内无到期项。",
-            "expired": "已过期",
-            "up_to_7_days": "7天内到期",
-            "up_to_30_days": "30天内到期",
-            "document": "证件名称",
-            "expiry_date": "有效期至",
-            "open": "查看详情",
-            "all_docs": "所有证照",
-            "expired_days_ago": "已过期",
-            "days_ago": "天",
-            "expires_in_days": "剩余",
-            "days_short": "天",
-            "back_to_trips": "返回行程列表",
-            "trip_number": "行程单号",
-            "faults_on_board": "车辆报修提示",
-            "go_to_repairs": "前往维修页",
-            "trip_info": "行程详情",
-            "freight_price": "合同运费 (货款)",
-            "planned_departure": "预计出发",
-            "planned_arrival": "预计到达",
-            "start_odometer": "起始里程",
-            "end_odometer": "结束里程",
-            "delivery_status": "交付状态",
-            "total_expenses_kzt": "总支出合计 (KZT)",
-            "add_expense_btn": "添加费用记录",
-            "no_expenses": "暂无费用记录",
-            "currency": "币种",
-            "on_review": "审核中",
-            "upload_doc": "上传行程文件",
-            "file_pdf_photo": "选择文件 (PDF/图片)",
-            "upload_btn": "上传",
-            "no_docs": "暂无相关文件",
-            "locations_title": "行驶轨迹 (实时位置)",
-            "time": "记录时间",
-            "latitude": "纬度",
-            "longitude": "经度",
-            "map_btn": "地图查看",
-            "fleet_title": "车队管理 (所有车辆)",
-            "add_vehicle_btn": "新增车辆",
-            "all_vehicles": "在册车辆总数",
-            "on_trip": "行程中",
-            "available": "空闲 (待命)",
-            "on_maintenance": "保养维修中",
-            "license_plate": "车牌号",
-            "make_model_year": "品牌 / 型号 / 年份",
-            "maintenance": "维修状态",
-            "status_available": "空闲",
-            "status_on_trip": "行程中",
-            "status_maintenance": "保养中",
-            "no_vehicles": "目前暂无车辆信息。",
-            "map_title": "实时监控地图 (车队)",
-            "map_desc": "地图显示正在执行行程的车辆位置。每30秒自动更新一次。",
-            "no_active_trucks": "目前没有正在行驶或具有定位数据的车辆。",
-            "expenses_by_trucks": "分车辆费用报表",
-            "summary_btn": "返回总表",
-            "km_short": "公里 (KM)",
-            "no_trips_period": "该时间段内暂无行程记录。",
-            "total_for": "小计",
-            "fuel_anomalies_history": "燃油异常历史记录",
-            "dispatcher_queue": "调度任务队列",
-            "fact_l_100km": "实际油耗 (L/100KM)",
-            "no_anomalies": "目前暂无异常记录。",
-            "select_driver": "— 请选择驾驶员 —",
-            "select_vehicle": "— 请选择车辆 —",
-            "select_type": "— 请选择类型 —",
-            "choose_file": "选择文件",
-            "new_trip": "创建新行程",
-            "trip_data": "行程基本详情",
-            "driver_required": "驾驶员 (必填) *",
-            "vehicle_required": "运输车辆 (必填) *",
-            "trip_status_required": "行程状态 (必填) *",
-            "load_info": "货物详情",
-            "client_name": "客户名称",
-            "freight_price": "运费总额",
-            "freight_currency": "报价币种",
-            "planned_departure_label": "预计出发时间",
-            "planned_arrival_label": "预计到达时间",
-            "create_trip_btn": "确认创建行程",
-            "cancel": "取消操作",
-            "add_expense_title": "录入新费用",
-            "expense_details": "费用明细",
-            "expense_type_required": "费用类型 (必填) *",
-            "amount_required": "金额 (必填) *",
-            "currency_required": "币种 (必填) *",
-            "fuel_info": "加油站相关详情",
-            "liters_label": "加油量 (升)",
-            "odometer_reading_label": "里程表读数",
-            "gas_station_label": "加油站名称/地址",
-            "status_required": "审核状态 (必填) *",
-            "comment_label": "备注说明",
-            "comment_placeholder": "费用相关的补充说明 (选填)",
-            "receipt_doc": "单据照片 / 凭证 (选填)",
-            "save_btn": "保存并提交",
-            "edit_trip": "编辑行程信息",
-            "back_to_trip": "返回行程详情",
-            "new_vehicle": "新增车队车辆",
-            "vehicle_data_card": "车辆详细参数",
-            "make": "厂家/品牌",
-            "model": "具体型号",
-            "year_of_issue": "出厂年份",
-            "fuel_norm": "标准油耗量 (L/100KM)",
-            "add_btn": "确认添加",
-            "new_driver": "新增驾驶员",
-            "driver_data_card": "驾驶员个人资料",
-            "full_name": "姓名 (必填) *",
-            "phone_login": "手机号 (登录账号) *",
-            "password_for_login": "登录密码 (必填) *",
-            "iin": "个人证件号 (IIN)",
-            "assign_vehicle": "指派固定车辆",
-            "not_assigned": "— 暂未指派 —",
-            "passport_scan": "证件照片 / 护照扫描件 (选填)",
-            "reject_reason_placeholder": "拒绝理由 (选填)",
-            "expense_type_fuel": "燃油费",
-            "expense_type_per_diem": "差旅补助",
-            "expense_type_fine": "交通罚款",
-            "expense_type_repair": "车辆维修",
-            "expense_type_other": "其他杂项",
-            "status_planned": "计划中 (待出发)",
-            "delete_btn": "🗑️ 确认删除记录",
-            "no_repairs": "目前暂无车辆维修或保养记录。",
-            "fleet_title": "车队管理",
-            "drivers": "司机管理",
-            "trips": "行程列表",
-            "download_act": "点击下载车辆报告/单据",
-            "all_drivers": "显示所有驾驶员",
-            "all_vehicles": "显示全部车辆列表",
-            "all_statuses": "全部显示",
+            dashboard: "分析", trips: "行程", expenses: "费用",
+            drivers: "车组人员", vehicles: "车队", maintenance: "维修保养",
+            geofences: "地理围栏", rating: "KPI排名", logout: "注销",
+            login_btn: "登录管理面板"
         }
     };
 
     function setLang(lang) {
-        localStorage.setItem('panel_lang', lang);
+        localStorage.setItem('tms_lang', lang);
         applyLang(lang);
     }
 
-    const dynamicMap = {
-        kk: {
-            "Алматы": "Алматы", "Астана": "Астана", "Шымкент": "Шымкент", "Тараз": "Тараз",
-            "Атырау": "Атырау", "Актобе": "Ақтөбе", "Москва": "Мәскеу", "Урумчи": "Үрімжі",
-            "Гуанчжоу": "Гуанчжоу", "Хоргос": "Қорғас", "Китай": "Қытай", "Пекин": "Бейжің",
-        },
-        zh: {
-            "Алматы": "阿拉木图", "Астана": "阿斯塔纳", "Шымкент": "奇姆肯特", "Тараз": "塔拉兹",
-            "Атырау": "阿特劳", "Актобе": "阿克托别", "Москва": "莫斯科", "Урумчи": "乌鲁木齐",
-            "Гуанчжоу": "广州", "Хоргос": "霍尔格斯", "Достык": "多斯特克", "Чэнду": "成都", "西安": "西安",
-            "Активен": "运行中", "Завершён": "已完成", "Отменён": "已取消", "Запланирован": "计划中",
-            "Доставлено": "已送达", "В пути": "运输中", "Пустой": "空放", "Груженый": "重柜",
-            "Стандарт": "标准", "Ремонт": "维修", "Суточные": "补助", "Штраф": "罚款", "Топливо": "加油",
-            "Китай": "中国", "Казахстан": "哈萨克斯坦", "Россия": "俄罗斯", "Пекин": "北京", "Шанхай": "上海",
-            "Урумчи": "乌鲁木齐", "Ухань": "武汉", "Хоргос": "霍尔果斯", "Иу": "义乌", "Цзиньхуа": "金华",
-            "Иванов": "伊万诺夫", "Петров": "彼得罗夫", "Сергей": "谢尔盖", "Александр": "亚历山大"
-        }
-    };
-
-    async function translateText(text, targetLang) {
-        if (!text || targetLang === 'ru') return text;
-        const sl = 'ru';
-        const tl = targetLang === 'zh' ? 'zh-CN' : targetLang;
-        try {
-            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`;
-            const resp = await fetch(url);
-            const json = await resp.json();
-            return json[0].map(x => x[0]).join('');
-        } catch (e) {
-            console.error("Translation error:", e);
-            return text;
-        }
-    }
-
-    async function applyLang(lang) {
-        const t = translations[lang] || translations['ru'];
-        // Static translations
+    function applyLang(lang) {
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
-            if (t[key]) {
-                if (el.tagName === 'INPUT' && (el.type === 'button' || el.type === 'submit')) {
-                    el.value = t[key];
-                } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                    if (el.placeholder) el.placeholder = t[key];
-                } else {
-                    el.innerText = t[key];
-                }
+            if (translations[lang] && translations[lang][key]) {
+                el.innerText = translations[lang][key];
             }
         });
-
-        // Dynamic content translation (best effort for user-input strings)
-        if (lang !== 'ru') {
-            const map = dynamicMap[lang] || {};
-            // First apply known mappings for speed
-            document.querySelectorAll('td, .fw-bold, .text-muted, .badge, .card-title, h1, .auto-translate').forEach(el => {
-                let changed = false;
-                for (let node of el.childNodes) {
-                    if (node.nodeType === 3) { // Text node
-                        let val = node.nodeValue.trim();
-                        if (!val) continue;
-                        for (const [ru, target] of Object.entries(map)) {
-                            if (val.includes(ru)) {
-                                node.nodeValue = node.nodeValue.replaceAll(ru, target);
-                                changed = true;
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Then try API translation for specific fields if they look like Russian
-            if (lang === 'zh' || lang === 'kk') {
-                 document.querySelectorAll('.auto-translate').forEach(async el => {
-                    const original = el.getAttribute('data-original') || el.innerText;
-                    if (!el.getAttribute('data-original')) el.setAttribute('data-original', original);
-                    
-                    if (/[а-яА-Я]/.test(original)) {
-                        const translated = await translateText(original, lang);
-                        el.innerText = translated;
-                    }
-                });
-            }
-        } else {
-            // Restore originals if switching back to RU
-            document.querySelectorAll('.auto-translate').forEach(el => {
-                if (el.getAttribute('data-original')) el.innerText = el.getAttribute('data-original');
-            });
-        }
-
-        // Toggle active class on buttons
-        document.querySelectorAll('.lang-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.id === `btn-${lang}`);
-        });
-
-        document.documentElement.lang = lang;
-        window.dispatchEvent(new CustomEvent('langChanged', { detail: { lang, t } }));
+        document.querySelectorAll('.lang-mini-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById('btn-' + lang);
+        if (activeBtn) activeBtn.classList.add('active');
+        window.dispatchEvent(new CustomEvent('langChanged', { detail: { lang } }));
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        const savedLang = localStorage.getItem('panel_lang') || 'ru';
+        const savedLang = localStorage.getItem('tms_lang') || 'ru';
         applyLang(savedLang);
+        
+        // Dynamic Clock & Date
+        function updateClock() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const clockEl = document.getElementById('topbar-clock');
+            if (clockEl) clockEl.innerText = dateStr + ' | ' + timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        // Auto Section Name
+        const activeLink = document.querySelector('.sb-link.active');
+        if (activeLink) {
+            document.getElementById('topbar-section-name').innerText = activeLink.querySelector('span:not(.material-symbols-outlined)').innerText;
+        }
+    });
+
+    // Handle HTMX updates
+    document.addEventListener('htmx:afterSwap', () => {
+        const lang = localStorage.getItem('tms_lang') || 'ru';
+        applyLang(lang);
     });
 </script>
 </body>

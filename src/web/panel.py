@@ -11,7 +11,12 @@ from sqlalchemy import func, select, update as sa_update, delete
 from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
-from src.db.models import Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate, RepairStatus, Trip, TripDocument, TripStatus, Vehicle, VehicleDocument, VehicleRepair, VehicleStatus, DriverRequest, RequestStatus
+from src.db.models import (
+    Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate, 
+    RepairStatus, Trip, TripDocument, TripStatus, Vehicle, 
+    VehicleDocument, VehicleRepair, VehicleStatus, DriverRequest, 
+    RequestStatus, Geofence, TripEvent
+)
 from src.services.r2 import save_uploaded_file
 from datetime import date as date_type
 from src.web.auth import (
@@ -21,6 +26,8 @@ from src.web.auth import (
     verify_password,
 )
 from src.core.config import settings
+from src.services.fuel_antifraud import FuelAntifraudService
+from src.services.maintenance import get_maintenance_dashboard_data
 
 logger = logging.getLogger(__name__)
 
@@ -797,6 +804,148 @@ async def trip_edit_submit(
         await session.commit()
 
     return RedirectResponse(url=f"/panel/trips/{trip.id}", status_code=302)
+
+
+# --- FUEL ANTIFRAUD ---
+@router.get("/antifraud", response_class=HTMLResponse)
+async def antifraud_page(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    return templates.TemplateResponse(request, "antifraud.html", {
+        "request": request, "user": current_user, "red_flags": None
+    })
+
+@router.post("/antifraud/run", response_class=HTMLResponse)
+async def antifraud_run(
+    request: Request,
+    trans_file: UploadFile = File(...),
+    manual_file: UploadFile = File(None),
+    use_db: bool = Form(default=False),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    # 1. Read transaction file
+    trans_content = (await trans_file.read()).decode("utf-8", errors="ignore")
+    trans_data = FuelAntifraudService.parse_station_transactions(trans_content)
+    
+    manual_data = []
+    
+    # 2. Get manual data (either from uploaded file or DB)
+    if use_db:
+        async with async_session() as session:
+            manual_data = await FuelAntifraudService.get_manual_data_from_db(session)
+    
+    if manual_file and manual_file.filename:
+        manual_content = (await manual_file.read()).decode("utf-8", errors="ignore")
+        manual_from_file = FuelAntifraudService.parse_manual_csv(manual_content)
+        manual_data.extend(manual_from_file)
+        
+    if not manual_data and not use_db:
+         return templates.TemplateResponse(request, "antifraud.html", {
+            "request": request, "user": current_user, "error": "Необходимо загрузить ручной отчет или выбрать 'Сверку с БД'"
+        })
+
+    # 3. Run check
+    red_flags = FuelAntifraudService.check_fraud(manual_data, trans_data)
+    
+    return templates.TemplateResponse(request, "antifraud.html", {
+        "request": request, 
+        "user": current_user, 
+        "red_flags": red_flags,
+        "processed_trans": len(trans_data),
+        "processed_manual": len(manual_data)
+    })
+
+
+# --- PREVENTIVE MAINTENANCE ---
+@router.get("/maintenance", response_class=HTMLResponse)
+async def maintenance_dashboard(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from src.services.maintenance import get_maintenance_dashboard_data
+    async with async_session() as session:
+        data = await get_maintenance_dashboard_data(session)
+    return templates.TemplateResponse(request, "maintenance.html", {
+        "request": request, "user": current_user, "vehicles": data
+    })
+
+@router.post("/maintenance/{vehicle_id}/reset")
+async def maintenance_reset(
+    vehicle_id: int,
+    current_odo: int = Form(...),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
+        vehicle = result.scalars().first()
+        if vehicle:
+            vehicle.last_maintenance_odometer = current_odo
+            session.add(vehicle)
+            await session.commit()
+    return RedirectResponse(url="/panel/maintenance", status_code=302)
+
+
+# --- GEOFENCES ---
+@router.get("/geofences", response_class=HTMLResponse)
+async def geofences_list(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        res = await session.execute(select(Geofence).order_by(Geofence.created_at.desc()))
+        fences = res.scalars().all()
+    return templates.TemplateResponse(request, "geofences.html", {
+        "request": request, "user": current_user, "geofences": fences
+    })
+
+@router.post("/geofences/add")
+async def geofence_add(
+    name: str = Form(...),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    radius: int = Form(500),
+    event_type: str = Form(...),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        fence = Geofence(
+            name=name.strip(),
+            latitude=latitude,
+            longitude=longitude,
+            radius_meters=radius,
+            event_type=event_type
+        )
+        session.add(fence)
+        await session.commit()
+    return RedirectResponse(url="/panel/geofences", status_code=302)
+
+@router.post("/geofences/{fence_id}/delete")
+async def geofence_delete(
+    fence_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        res = await session.execute(select(Geofence).where(Geofence.id == fence_id))
+        fence = res.scalars().first()
+        if fence:
+            await session.delete(fence)
+            await session.commit()
+    return RedirectResponse(url="/panel/geofences", status_code=302)
+
+
+# --- ECO-DRIVING LEADERBOARD ---
+@router.get("/eco-driving", response_class=HTMLResponse)
+async def eco_driving_dashboard(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    from src.services.eco_driving import get_driver_leaderboard
+    async with async_session() as session:
+        leaderboard = await get_driver_leaderboard(session)
+    return templates.TemplateResponse(request, "eco_driving.html", {
+        "request": request, "user": current_user, "leaderboard": leaderboard
+    })
 
 
 @router.post("/trips/{trip_id}/delete")

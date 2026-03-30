@@ -1,96 +1,127 @@
 {% extends "base.html" %}
 
 {% block title %}Генератор документов | Freight TMS{% endblock %}
+{% block header %}📄 Формирование отчетности по шаблонам{% endblock %}
 
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col">
-        <h2 class="fw-black mb-0"><i class="bi bi-file-earmark-spreadsheet text-success"></i> Генератор Документов</h2>
-        <p class="text-muted">Формирование СМР, Актов и Договоров в Excel (.xlsx) по шаблонам</p>
+<div class="page-hdr">
+    <div>
+        <h1 data-i18n="doc_gen_title">Генератор бизнес-документов</h1>
+        <p class="text-muted small">Автоматическое заполнение CMR, Инвойсов и Актов на основе данных из рейсов</p>
     </div>
 </div>
 
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body p-4">
+<div class="card mb-5" style="border: 1px solid var(--border);">
+    <div class="card-hdr" style="background: var(--surface-low);">
+        <span class="card-title">
+            <span class="material-symbols-outlined text-primary">description</span>
+            Параметры формирования Excel
+        </span>
+    </div>
+    <div class="card-body p-5">
         <form action="/panel/documents/generate_excel" method="POST">
-            <div class="row">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px;">
                 <!-- Trip Selection -->
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Привязать к рейсу (Автозаполнение):</label>
-                    <select name="trip_id" class="form-select select2-basic" id="trip-select">
-                        <option value="">— Создать пустой без привязки —</option>
-                        {% for trip in trips %}
-                        <option value="{{ trip.id }}">
-                            Рейс #{{ trip.id }} | {{ trip.route_from }} → {{ trip.route_to }} 
-                            (Водитель: {{ trip.driver.name if trip.driver else 'Нет' }})
+                <div class="form-row">
+                    <label class="text-muted small fw-bold mb-2 d-block">1. ВЫБЕРИТЕ РЕЙС (ИСТОЧНИК ДАННЫХ) *</label>
+                    <select name="trip_id" class="form-select select2-basic" id="trip-select" style="width: 100%;">
+                        <option value="">— Создать пустой (ручное заполнение) —</option>
+                        {% for t in trips %}
+                        <option value="{{ t.id }}">
+                            #{{ t.id }} | {{ t.route_from }} → {{ t.route_to }} 
+                            {% if t.driver %}({{ t.driver.name }}){% endif %}
                         </option>
                         {% endfor %}
                     </select>
-                    <div class="form-text">Выберите рейс, чтобы система автоматически подставила водителя, машину, маршрут.</div>
+                    <div class="topbar-meta mt-2" style="font-size: 10px; line-height: 1.4;">Система автоматически извлечет данные водителя, тягача и маршрута из выбранного рейса.</div>
                 </div>
 
                 <!-- Template Selection -->
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Шаблон (Форма Excel):</label>
-                    <select name="template_name" class="form-select" required>
-                        <option value="cmr_template.xlsx">CMR (Международная накладная)</option>
-                        <!-- Add more here internally like invoice.xlsx later if they put files in the folder -->
+                <div class="form-row">
+                    <label class="text-muted small fw-bold mb-2 d-block">2. ВЫБЕРИТЕ ШАБЛОН ДОКУМЕНТА *</label>
+                    <select name="template_name" required style="width: 100%;">
+                        <option value="cmr_template.xlsx">📜 CMR (Международная накладная)</option>
+                        <option value="invoice.xlsx">💰 ИНВОЙС / СЧЕТ НА ОПЛАТУ</option>
+                        <option value="act.xlsx">🤝 АКТ ВЫПОЛНЕННЫХ РАБОТ</option>
                     </select>
                 </div>
             </div>
 
-            <hr class="my-4">
-            <h5 class="fw-bold mb-3">Ручное заполнение атрибутов:</h5>
-            <p class="text-muted small">Оставьте поля пустыми, если выбрали рейс — они подтянутся из базы. Если вы впишете текст здесь, он перебьет автозаполнение.</p>
+            <div style="border-top: 1px solid var(--border); padding-top: 32px; margin-bottom: 32px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 24px;">
+                    <span class="material-symbols-outlined text-warning" style="font-size: 20px;">edit_note</span>
+                    <h5 class="text-white fw-bold mb-0" style="font-size: 14px; letter-spacing: 0.05em;">РУЧНАЯ КОРРЕКТИРОВКА ПОЛЕЙ</h5>
+                </div>
+                
+                <p class="topbar-meta small mb-4" style="font-size: 11px; background: rgba(245, 158, 11, 0.05); padding: 12px; border-radius: 6px; border-left: 3px solid var(--warning);">
+                    Значения, введенные здесь вручную, имеют <strong class="text-white">приоритет</strong> над данными из базы рейса. Используйте для разовых правок.
+                </p>
 
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Отправитель <code>{{"{{sender_name}}"}}</code></label>
-                    <input type="text" name="data[sender_name]" class="form-control" placeholder="Рога и Копыта ООО">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">ОТПРАВИТЕЛЬ <code>{{"{{sender_name}}"}}</code></label>
+                        <input type="text" name="data[sender_name]" placeholder="Напр: ТОО 'КАЗ-ЛОГИСТИК'" style="width: 100%;">
+                    </div>
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">ПОЛУЧАТЕЛЬ <code>{{"{{receiver_name}}"}}</code></label>
+                        <input type="text" name="data[receiver_name]" placeholder="Напр: ООО 'МСК-ТРАНС'" style="width: 100%;">
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Получатель <code>{{"{{receiver_name}}"}}</code></label>
-                    <input type="text" name="data[receiver_name]" class="form-control" placeholder="Зарубеж Импорт ТОО">
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">НАИМЕНОВАНИЕ ГРУЗА <code>{{"{{cargo_name}}"}}</code></label>
+                        <input type="text" name="data[cargo_name]" placeholder="Напр: ТНП, паллеты, 33 шт" style="width: 100%;">
+                    </div>
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">ВЕС (КГ) <code>{{"{{cargo_weight}}"}}</code></label>
+                        <input type="text" name="data[cargo_weight]" placeholder="Напр: 20450" style="width: 100%; font-family: 'JetBrains Mono', monospace;">
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Груз <code>{{"{{cargo_name}}"}}</code></label>
-                    <input type="text" name="data[cargo_name]" class="form-control" placeholder="ТНП, коробки, паллеты...">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Вес груза <code>{{"{{cargo_weight}}"}}</code></label>
-                    <input type="text" name="data[cargo_weight]" class="form-control" placeholder="20000">
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">ОТКУДА <code>{{"{{route_from}}"}}</code></label>
+                        <input type="text" name="data[route_from]" placeholder="Город А" style="width: 100%;">
+                    </div>
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">КУДА <code>{{"{{route_to}}"}}</code></label>
+                        <input type="text" name="data[route_to]" placeholder="Город Б" style="width: 100%;">
+                    </div>
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">ВОДИТЕЛЬ <code>{{"{{driver_name}}"}}</code></label>
+                        <input type="text" name="data[driver_name]" placeholder="ФИО Полностью" style="width: 100%;">
+                    </div>
                 </div>
             </div>
 
-            <div class="row g-3 mt-2">
-                <div class="col-md-4">
-                    <label class="form-label">Маршрут Откуда <code>{{"{{route_from}}"}}</code></label>
-                    <input type="text" name="data[route_from]" class="form-control" placeholder="Алматы">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 32px; margin-top: 16px;">
+                <div class="topbar-meta" style="font-size: 10px; display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined text-primary" style="font-size: 16px;">info</span>
+                    Шаблоны хранятся в <code>/src/assets/docs_templates/</code>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Маршрут Куда <code>{{"{{route_to}}"}}</code></label>
-                    <input type="text" name="data[route_to]" class="form-control" placeholder="Москва">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Водитель ФИО <code>{{"{{driver_name}}"}}</code></label>
-                    <input type="text" name="data[driver_name]" class="form-control">
-                </div>
-            </div>
-
-            <div class="mt-4 border-top pt-4">
-                <button type="submit" class="btn btn-success btn-lg px-5 fw-bold shadow-sm">
-                    <i class="bi bi-file-excel"></i> Сгенерировать .xlsx
+                <button type="submit" class="btn" style="padding: 12px 40px; font-weight: 800; border-radius: 8px; font-size: 15px;">
+                    <span class="material-symbols-outlined" style="margin-right: 10px;">file_download</span>
+                    Сгенерировать .xlsx
                 </button>
-                <div class="mt-2 text-muted small"><i class="bi bi-info-circle"></i> Загрузите ваши собственные шаблоны в папку <code>src/assets/docs_templates/</code> для расширения списка.</div>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Scripts -->
+<div class="card p-4" style="background: rgba(16, 185, 129, 0.05); border: 1px dashed var(--success);">
+    <div style="display: flex; gap: 16px; align-items: flex-start;">
+        <span class="material-symbols-outlined text-success" style="font-size: 24px;">offline_pin</span>
+        <div>
+            <h6 class="text-white fw-bold mb-1" style="font-size: 13px;">ГОТОВНОСТЬ СИСТЕМЫ</h6>
+            <p class="topbar-meta small mb-0" style="font-size: 11px;">Движок генерации OpenPyXL активен. При нажатии на кнопку файл будет сформирован в памяти и отправлен в браузер как скачиваемый объект. Данные в базе рейса изменены не будут.</p>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        if (typeof jQuery !== 'undefined') {
+        if (typeof jQuery !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
             $('.select2-basic').select2({ theme: 'bootstrap-5' });
         }
     });

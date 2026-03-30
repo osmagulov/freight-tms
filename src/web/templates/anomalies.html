@@ -1,54 +1,83 @@
 {% extends "base.html" %}
 {% block title %}Аномалии — Freight TMS{% endblock %}
+{% block header %}🚨 Аномалии и Риски{% endblock %}
+
 {% block content %}
 
 <div class="page-hdr">
-    <h1 data-i18n="anomalies_title">Аномалии расхода топлива</h1>
+    <div>
+        <h1 data-i18n="anomalies_title">Контроль расхода топлива</h1>
+        <p class="text-muted small">Выявление сливов и неэффективного вождения на основе норм</p>
+    </div>
     {% if anomalies %}
-    <span class="badge badge-cancelled">{{ anomalies | length }} <span data-i18n="active">активных</span></span>
+    <span class="badge badge-cancelled" style="padding: 8px 16px; border-radius: 8px; font-size: 13px;">
+        <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 6px;">warning</span>
+        {{ anomalies | length }} <span data-i18n="active">активных событий</span>
+    </span>
     {% endif %}
 </div>
 
 {% if not anomalies %}
-<div class="table-wrap">
-    <div class="empty">
-        <div class="empty-icon">✅</div>
-        <p data-i18n="no_anomalies">Нет активных аномалий расхода топлива.</p>
-    </div>
+<div class="card py-5 text-center" style="border: 1px solid var(--border); background: rgba(16, 185, 129, 0.05);">
+    <div class="empty-icon mb-3"><span class="material-symbols-outlined text-success" style="font-size: 48px;">check_circle</span></div>
+    <p class="text-success fw-bold" data-i18n="no_anomalies">Система не обнаружила активных аномалий. Все расходы в пределах нормы.</p>
 </div>
 {% else %}
 <div class="table-wrap">
     <table>
         <thead>
             <tr>
-                <th data-i18n="date">Дата</th>
-                <th data-i18n="vehicle">Борт ID</th>
-                <th data-i18n="trips">Рейс</th>
-                <th data-i18n="fact">Факт (л/100км)</th>
-                <th data-i18n="norm">Норма (л/100км)</th>
-                <th data-i18n="excess">Превышение</th>
-                <th data-i18n="actions">Действие</th>
+                <th style="width: 140px;">ВРЕМЯ</th>
+                <th>ТРАНСПОРТ</th>
+                <th>РЕЙС</th>
+                <th>ФАКТ (л/100)</th>
+                <th>НОРМА</th>
+                <th>ОТКЛОНЕНИЕ</th>
+                <th style="width: 160px; text-align: right;">ДЕЙСТВИЯ</th>
             </tr>
         </thead>
         <tbody>
             {% for anomaly in anomalies %}
             <tr id="anomaly-{{ anomaly.id }}">
-                <td class="text-muted">{{ anomaly.created_at.strftime('%d.%m %H:%M') if anomaly.created_at else "—" }}</td>
-                <td>{{ anomaly.vehicle_id }}</td>
-                <td><a href="/panel/trips/{{ anomaly.trip_id }}" class="btn btn-xs btn-ghost">#{{ anomaly.trip_id }}</a></td>
-                <td>{{ "%.1f"|format(anomaly.actual_per_100km) }}</td>
-                <td class="text-muted">{{ "%.1f"|format(anomaly.norm_per_100km) }}</td>
-                <td><span class="badge badge-cancelled">+{{ "%.0f"|format(anomaly.excess_percent) }}%</span></td>
+                <td class="text-muted small">
+                    <div class="fw-bold text-white">{{ anomaly.created_at.strftime('%d.%m') if anomaly.created_at else "—" }}</div>
+                    <div>{{ anomaly.created_at.strftime('%H:%M') if anomaly.created_at else "" }}</div>
+                </td>
                 <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined text-muted" style="font-size: 18px;">local_shipping</span>
+                        <span class="fw-bold text-white">ID: {{ anomaly.vehicle_id }}</span>
+                    </div>
+                </td>
+                <td>
+                    <a href="/panel/trips/{{ anomaly.trip_id }}" class="btn btn-xs btn-ghost">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">route</span>
+                        #{{ anomaly.trip_id }}
+                    </a>
+                </td>
+                <td class="fw-bold text-white">{{ "%.1f"|format(anomaly.actual_per_100km) }}</td>
+                <td class="text-muted">{{ "%.1f"|format(anomaly.norm_per_100km) }}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="badge badge-cancelled" style="font-weight: 800;">+{{ "%.0f"|format(anomaly.excess_percent) }}%</span>
+                        <div style="flex: 1; height: 4px; background: var(--surface-highest); border-radius: 2px; min-width: 60px;">
+                            <div style="height: 100%; width: {{ [anomaly.excess_percent, 100] | min }}%; background: var(--danger);"></div>
+                        </div>
+                    </div>
+                </td>
+                <td style="text-align: right;">
                     {% if not anomaly.is_false_alarm %}
                     <form hx-post="/panel/anomalies/{{ anomaly.id }}/dismiss"
                           hx-target="#anomaly-{{ anomaly.id }}"
                           hx-swap="outerHTML"
                           style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-ghost" data-i18n="false_alarm">Ложная тревога</button>
+                        <button type="submit" class="btn btn-xs btn-ghost" style="color: var(--muted); border-color: transparent;">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">remove_done</span>
+                            Ложная тревога
+                        </button>
                     </form>
                     {% else %}
-                    <span class="text-muted" data-i18n="false_alarm">Ложная тревога</span>
+                    <span class="badge badge-ghost">Разобрано</span>
                     {% endif %}
                 </td>
             </tr>
@@ -57,4 +86,19 @@
     </table>
 </div>
 {% endif %}
+
+<div class="card mt-4 p-4" style="border: 1px solid var(--border); border-left: 4px solid var(--primary); background: rgba(59, 130, 246, 0.05);">
+    <div style="display: flex; gap: 16px;">
+        <span class="material-symbols-outlined text-primary">info</span>
+        <div>
+            <h6 class="fw-bold text-white mb-2" style="font-size: 14px;">Об аномалиях</h6>
+            <p class="text-muted small mb-0" style="line-height: 1.6;">
+                Система рассчитывает средний расход топлива на 100 км по окончании рейса или после каждой заправки. 
+                Если текущий расход превышает установленную норму более чем на <strong class="text-white">15%</strong>, создается аномалия. 
+                Это может указывать на хищение топлива, неисправность топливной системы или агрессивный стиль вождения.
+            </p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

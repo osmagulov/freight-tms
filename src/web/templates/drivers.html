@@ -1,80 +1,139 @@
 {% extends "base.html" %}
-{% block title %}Водители — Freight TMS{% endblock %}
-{% block content %}
+{% block title %}Экипажи — Freight TMS{% endblock %}
 
+{% block extra_css %}
+.driver-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    transition: all 0.25s;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.driver-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
+
+.driver-avatar {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: var(--surface-highest);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 900; color: var(--primary);
+    border: 1px solid var(--border);
+}
+
+.action-row { display: flex; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+{% endblock %}
+
+{% block content %}
 <div class="page-hdr">
-    <h1 data-i18n="drivers_and_trucks">Водители и борта</h1>
-    <a href="/panel/drivers/add" class="btn btn-sm" data-i18n="add_driver">+ Добавить водителя</a>
+    <div>
+        <h1 class="page-title">Управление экипажами</h1>
+        <p class="text-muted small">Список активных водителей и закрепленных транспортных средств</p>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+        <a href="/panel/drivers/add" class="btn">
+            <span class="material-symbols-outlined">person_add</span>
+            ДОБАВИТЬ ВОДИТЕЛЯ
+        </a>
+    </div>
 </div>
 
-<div class="table-wrap">
+<!-- Statistics Row -->
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px;">
+    <div class="card" style="padding: 20px; text-align: center;">
+        <div class="topbar-meta small fw-bold">ВСЕГО ВОДИТЕЛЕЙ</div>
+        <div class="mono" style="font-size: 24px; margin-top: 4px;">{{ rows|length }}</div>
+    </div>
+    <div class="card" style="padding: 20px; text-align: center;">
+        <div class="topbar-meta small fw-bold">АКТИВНЫХ</div>
+        <div class="mono" style="font-size: 24px; margin-top: 4px; color: var(--success);">{{ rows|selectattr('0.status', 'equalto', 'ACTIVE')|list|length }}</div>
+    </div>
+    <div class="card" style="padding: 20px; text-align: center;">
+        <div class="topbar-meta small fw-bold">ЗАКРЕПЛЕНО БОРТОВ</div>
+        <div class="mono" style="font-size: 24px; margin-top: 4px;">{{ rows|selectattr('1', 'ne', none)|list|length }}</div>
+    </div>
+    <div class="card" style="padding: 20px; text-align: center;">
+        <div class="topbar-meta small fw-bold">БЕЗ PWA</div>
+        <div class="mono" style="font-size: 24px; margin-top: 4px; color: var(--danger);">{{ rows|rejectattr('0.password_hash')|list|length }}</div>
+    </div>
+</div>
+
+<div class="table-container">
     <table>
         <thead>
             <tr>
-                <th data-i18n="fio">ФИО</th>
-                <th data-i18n="phone">Телефон</th>
-                <th data-i18n="iin_passport">ИИН / Паспорт</th>
-                <th data-i18n="vehicle">Борт</th>
-                <th data-i18n="trucks">Марка / Модель</th>
-                <th data-i18n="fuel_norm">Норма (л/100км)</th>
-                <th data-i18n="status">Статус</th>
-                <th data-i18n="pwa">PWA</th>
-                <th data-i18n="actions">Действия</th>
+                <th style="width: 280px;">ЭКИПАЖ / КОНТАКТЫ</th>
+                <th style="width: 220px;">ДОКУМЕНТЫ</th>
+                <th style="width: 220px;">БОРТОВОЙ НОМЕР</th>
+                <th>PWA / СТАТУС</th>
+                <th style="text-align: right;">УПРАВЛЕНИЕ</th>
             </tr>
         </thead>
         <tbody>
             {% for driver, vehicle in rows %}
-            <tr>
-                <td class="fw-bold"><span class="auto-translate">{{ driver.name or '—' }}</span></td>
-                <td class="text-muted">{{ driver.phone or '—' }}</td>
-                <td class="text-muted">
-                    {{ driver.iin or '—' }}
-                    {% if driver.passport_r2_url %}<a href="{{ driver.passport_r2_url }}" target="_blank" class="btn btn-xs btn-ghost" style="margin-left:4px;">📄</a>{% endif %}
-                </td>
-                <td>{{ vehicle.license_plate if vehicle else '—' }}</td>
-                <td class="text-muted">
-                    {% if vehicle and vehicle.make %}{{ vehicle.make }}{% if vehicle.model %} {{ vehicle.model }}{% endif %}
-                    {% else %}—{% endif %}
-                </td>
-                <td>{{ vehicle.fuel_norm_per_100km if vehicle and vehicle.fuel_norm_per_100km else '—' }}</td>
+            <tr style="cursor: pointer;" onclick="window.location='/panel/drivers/{{ driver.id }}/edit'">
                 <td>
-                    {% if driver.status == "ACTIVE" %}
-                    <span class="badge badge-active" data-i18n="status_active">Активен</span>
-                    {% else %}
-                    <span class="badge badge-pending">{{ driver.status }}</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if driver.password_hash %}
-                    <span class="badge badge-active" title="Пароль PWA установлен" data-i18n="pwa_yes">✓ Есть</span>
-                    {% else %}
-                    <span class="badge badge-pending" title="Водитель не может войти в приложение" data-i18n="pwa_no">✗ Нет</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <div class="action-group">
-                        <a class="btn btn-sm btn-ghost" href="/panel/drivers/{{ driver.id }}/edit" data-i18n="edit">Изменить</a>
-                        <a class="btn btn-sm btn-ghost" href="/panel/drivers/{{ driver.id }}/documents" data-i18n="docs">📄 Документы</a>
-                        {% if driver.status != "ACTIVE" %}
-                        <form method="post" action="/panel/drivers/{{ driver.id }}/activate" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-success" data-i18n="activate">✓ Активировать</button>
-                        </form>
-                        {% endif %}
-                        <div style="border-top: 1px dotted #e5e7eb; margin-top: 6px; padding-top: 4px; display: flex; gap: 8px;">
-                            <form method="post" action="/panel/drivers/{{ driver.id }}/delete" onsubmit="return confirm('Удалить ВОДИТЕЛЯ и все его данные (рейсы, документы)?')" style="display:inline;">
-                                <button type="submit" class="btn btn-xs btn-ghost" style="color:#ef4444; border:none; opacity:0.6;" data-i18n="delete_driver">🗑️ Водителя</button>
-                            </form>
-                            {% if vehicle %}
-                            <form method="post" action="/panel/vehicles/{{ vehicle.id }}/delete" onsubmit="return confirm('Удалить БОРТ и все его данные (ремонты, документы)?')" style="display:inline;">
-                                <button type="submit" class="btn btn-xs btn-ghost" style="color:#ef4444; border:none; opacity:0.6;" data-i18n="delete_vehicle">🗑️ Борт</button>
-                            </form>
-                            {% endif %}
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="driver-avatar">
+                            {{ driver.name[:1] if driver.name else 'D' }}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white" style="font-size: 15px;">{{ driver.name or 'Unnamed Driver' }}</div>
+                            <div class="topbar-meta small">{{ driver.phone or 'Нет номера' }}</div>
                         </div>
                     </div>
                 </td>
+                <td>
+                    <div class="mono" style="font-size: 13px;">{{ driver.iin or '—' }}</div>
+                    {% if driver.passport_r2_url %}
+                    <a href="{{ driver.passport_r2_url }}" target="_blank" class="badge badge-ghost mt-2" onclick="event.stopPropagation()">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">visibility</span> СКАН ПАСПОРТА
+                    </a>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if vehicle %}
+                        <div class="badge badge-pending" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 6px 12px; background: var(--surface-highest); color: white;">
+                            {{ vehicle.license_plate }}
+                        </div>
+                        <div class="topbar-meta small mt-1">{{ vehicle.make }} {{ vehicle.model }}</div>
+                    {% else %}
+                        <span class="text-muted small italic">НЕ ЗАКРЕПЛЕН</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        {% if driver.password_hash %}
+                        <span class="badge badge-active" title="Доступ в PWA включен"><span class="material-symbols-outlined" style="font-size: 16px;">phonelink</span> PWA</span>
+                        {% else %}
+                        <span class="badge badge-danger" title="Нет пароля PWA"><span class="material-symbols-outlined" style="font-size: 16px;">phonelink_off</span> NO PWA</span>
+                        {% endif %}
+                        
+                        {% if driver.status == 'ACTIVE' %}
+                        <span class="badge badge-active">АКТИВЕН</span>
+                        {% else %}
+                        <span class="badge badge-pending">{{ driver.status }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td style="text-align: right;" onclick="event.stopPropagation()">
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        {% if driver.status != 'ACTIVE' %}
+                        <form method="post" action="/panel/drivers/{{ driver.id }}/activate" style="display:inline;">
+                            <button type="submit" class="btn btn-xs btn-ghost" style="color:var(--success)"><span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span></button>
+                        </form>
+                        {% endif %}
+                        <a href="/panel/drivers/{{ driver.id }}/documents" class="btn btn-xs btn-ghost"><span class="material-symbols-outlined" style="font-size: 18px;">folder</span></a>
+                        <a href="/panel/drivers/{{ driver.id }}/edit" class="btn btn-xs btn-ghost"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></a>
+                        <form method="post" action="/panel/drivers/{{ driver.id }}/delete" onsubmit="return confirm('Удалить водителя?')" style="display:inline;">
+                            <button type="submit" class="btn btn-xs btn-ghost" style="color:var(--danger); opacity:0.4"><span class="material-symbols-outlined" style="font-size: 18px;">delete</span></button>
+                        </form>
+                    </div>
+                </td>
             </tr>
-            {% else %}
-            <tr><td colspan="9" style="text-align:center; color:var(--muted); padding:32px;">Водителей нет</td></tr>
             {% endfor %}
         </tbody>
     </table>

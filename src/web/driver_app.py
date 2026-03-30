@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from src.core.config import settings
 from src.db.database import async_session
 from src.db.models import Driver, Trip, Expense, Vehicle, TripStatus, LocationUpdate, VehicleRepair, RepairStatus, DriverDocument, TripDocument, TripEvent, DriverRequest, RequestType, RequestStatus
+from src.services.geofence import check_geofence_arrival
 from antigravity_modules.expense_crud import get_active_trip_for_driver, create_expense
 from src.services.r2 import save_uploaded_file
 from src.web.auth import verify_password
@@ -535,6 +536,11 @@ async def location_post(request: Request):
                 longitude=lng
             )
             session.add(loc)
+            
+            # Check for geofences if there's an active trip
+            if trip:
+                await check_geofence_arrival(session, trip, lat, lng)
+                
             await session.commit()
             
     return {"status": "ok"}

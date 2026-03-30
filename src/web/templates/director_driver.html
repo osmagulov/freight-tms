@@ -1,177 +1,202 @@
 {% extends "base.html" %}
-{% block title %}{{ driver.name or "Водитель" }} — Freight TMS{% endblock %}
+{% block title %}{{ driver.name or "Водитель" }} — Аналитика — Freight TMS{% endblock %}
+{% block header %}📊 Финансовая аналитика водителя{% endblock %}
+
 {% block content %}
 
 <div class="page-hdr">
-    <div class="page-hdr-left">
-        <a href="/panel/director/drivers" class="btn btn-ghost btn-sm">← Все</a>
-        <h1>👤 {{ driver.name or "Водитель #" ~ driver.id }}</h1>
+    <div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+            <a href="/panel/director/drivers" class="btn btn-xs btn-ghost" style="padding: 0; width: 32px; height: 32px; justify-content: center; border-radius: 50%;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">arrow_back</span>
+            </a>
+            <h1>{{ driver.name or "Водитель #" ~ driver.id }}</h1>
+            <span class="badge badge-active small" style="padding: 2px 10px; font-size: 10px; font-weight: 800;">DRIVER PROFILE</span>
+        </div>
+        <p class="text-muted small ml-5">Детальная статистика расходов, топливной эффективности и истории рейсов</p>
     </div>
-    <a href="/panel/director/export?driver_id={{ driver.id }}&from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-success">↓ CSV</a>
-</div>
-
-{% if all_drivers %}
-<div style="margin-bottom:18px;">
-    <label style="font-size:12px; color:var(--muted); margin-bottom:6px; display:block;">Переключить водителя</label>
-    <select onchange="location='/panel/director/drivers/' + this.value + '?from_date={{ from_date }}&to_date={{ to_date }}'" style="max-width:260px;">
-        {% for d in all_drivers %}
-        <option value="{{ d.id }}" {% if d.id == driver.id %}selected{% endif %}>{{ d.name or "ID " ~ d.id }}</option>
-        {% endfor %}
-    </select>
-</div>
-{% endif %}
-
-<!-- Period filter -->
-<div class="filter-bar" style="margin-bottom:18px;">
-    <form method="get" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-        <label>С
-            <input type="date" name="from_date" value="{{ from_date }}" style="width:145px;">
-        </label>
-        <label>По
-            <input type="date" name="to_date" value="{{ to_date }}" style="width:145px;">
-        </label>
-        <button type="submit" class="btn btn-sm">Применить</button>
-    </form>
-</div>
-
-<!-- Main KPIs -->
-<div class="kpi-grid" style="margin-bottom:22px;">
-    <div class="kpi green">
-        <div class="kpi-label">Итого расходов</div>
-        <div class="kpi-value" style="font-size:18px;">{{ "{:,.0f}".format(total_kzt) }} ₸</div>
-    </div>
-    <div class="kpi">
-        <div class="kpi-label">Рейсов</div>
-        <div class="kpi-value">{{ trip_count }}</div>
-    </div>
-    <div class="kpi amber">
-        <div class="kpi-label">Ср. расход на рейс</div>
-        <div class="kpi-value" style="font-size:16px;">{{ "{:,.0f}".format(avg_per_trip) }} ₸</div>
-    </div>
-    <div class="kpi">
-        <div class="kpi-label">Записей</div>
-        <div class="kpi-value">{{ expenses | length }}</div>
+    <div style="display: flex; gap: 12px;">
+         <a href="/panel/director/export?driver_id={{ driver.id }}&from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-xs btn-ghost" style="height: 36px; padding: 0 16px;">
+            <span class="material-symbols-outlined" style="margin-right: 8px; font-size: 18px;">download</span>
+            ЭКСПОРТ CSV
+         </a>
     </div>
 </div>
 
-<!-- Fuel stats for this driver -->
-{% if fuel_count > 0 %}
-<div class="card" style="margin-bottom:22px;">
-    <div class="card-hdr"><span class="card-title">⛽ Топливо</span></div>
-    <div class="card-body">
-        <div class="kpi-grid">
+<div class="row" style="display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start;">
+    <!-- Sidebar Filters -->
+    <div class="side-col">
+        <div class="card mb-4" style="border: 1px solid var(--border);">
+            <div class="card-hdr" style="background: var(--surface-low);">
+                <span class="card-title">
+                    <span class="material-symbols-outlined text-primary">filter_list</span>
+                    Фильтры
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <form method="get" id="filterForm">
+                    <div class="form-row mb-4">
+                        <label class="text-muted small fw-bold mb-2 d-block">ВЫБРАТЬ ВОДИТЕЛЯ</label>
+                        <select onchange="location='/panel/director/drivers/' + this.value + '?from_date={{ from_date }}&to_date={{ to_date }}'" style="width: 100%;">
+                            {% for d in all_drivers %}
+                            <option value="{{ d.id }}" {% if d.id == driver.id %}selected{% endif %}>{{ d.name or "ID " ~ d.id }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row mb-3">
+                        <label class="text-muted small fw-bold mb-2 d-block">ПЕРИОД С</label>
+                        <input type="date" name="from_date" value="{{ from_date }}" style="width: 100%;">
+                    </div>
+                    <div class="form-row mb-4">
+                        <label class="text-muted small fw-bold mb-2 d-block">ПЕРИОД ПО</label>
+                        <input type="date" name="to_date" value="{{ to_date }}" style="width: 100%;">
+                    </div>
+                    <button type="submit" class="btn w-100" style="height: 40px; font-weight: 700;">ПРИМЕНИТЬ</button>
+                </form>
+            </div>
+        </div>
+
+        {% if categories %}
+        <div class="card" style="border: 1px solid var(--border);">
+            <div class="card-hdr" style="background: var(--surface-low);">
+                <span class="card-title">
+                    <span class="material-symbols-outlined text-primary">pie_chart</span>
+                    Структура затрат
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    {% for cat in categories %}
+                    {% set pct = ((cat.total_kzt or 0) / (total_kzt or 1) * 100) | round(1) %}
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span class="text-white fw-bold small" style="font-size: 11px;">
+                                {% if cat.expense_type == 'FUEL' %}⛽ ТОПЛИВО
+                                {% elif cat.expense_type == 'FINE' %}🚨 ШТРАФЫ
+                                {% elif cat.expense_type == 'REPAIR' %}🔧 РЕМОНТ
+                                {% else %}📦 {{ cat.expense_type }}{% endif %}
+                            </span>
+                            <span class="topbar-meta fw-bold" style="font-size: 10px;">{{ pct }}%</span>
+                        </div>
+                        <div style="height: 6px; background: var(--surface-low); border-radius: 3px; overflow: hidden; border: 1px solid var(--border-subtle);">
+                            <div style="width: {{ pct }}%; height: 100%; background: var(--primary); box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);"></div>
+                        </div>
+                        <div class="topbar-meta mt-1" style="font-size: 9px; text-align: right;">{{ "{:,.0f}".format(cat.total_kzt or 0) }} ₸</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-col">
+        <!-- Main KPIs -->
+        <div class="kpi-grid mb-4">
+            <div class="kpi" style="border-top: 3px solid var(--success); background: rgba(16, 185, 129, 0.05);">
+                <div class="kpi-label text-success">ИТОГО РАСХОДОВ</div>
+                <div class="kpi-value text-success" style="font-size: 20px;">{{ "{:,.0f}".format(total_kzt) }} ₸</div>
+                <div class="kpi-icon"><span class="material-symbols-outlined text-success">payments</span></div>
+            </div>
             <div class="kpi">
-                <div class="kpi-label">Заправок</div>
-                <div class="kpi-value">{{ fuel_count }}</div>
-            </div>
-            <div class="kpi green">
-                <div class="kpi-label">Литров</div>
-                <div class="kpi-value">{{ "{:,.0f}".format(fuel_liters) }}</div>
+                <div class="kpi-label">ЗАВЕРШЕНО РЕЙСОВ</div>
+                <div class="kpi-value">{{ trip_count }}</div>
+                <div class="kpi-icon"><span class="material-symbols-outlined">route</span></div>
             </div>
             <div class="kpi">
-                <div class="kpi-label">На топливо</div>
-                <div class="kpi-value" style="font-size:16px;">{{ "{:,.0f}".format(fuel_kzt) }} ₸</div>
+                <div class="kpi-label">СР. ЧЕК РЕЙСА</div>
+                <div class="kpi-value" style="font-size: 18px;">{{ "{:,.0f}".format(avg_per_trip) }} ₸</div>
+                <div class="kpi-icon"><span class="material-symbols-outlined">calculate</span></div>
             </div>
-            {% if fuel_liters > 0 %}
-            <div class="kpi amber">
-                <div class="kpi-label">Ср. цена/литр</div>
-                <div class="kpi-value">{{ "{:,.1f}".format(fuel_kzt / fuel_liters) }} ₸</div>
+        </div>
+
+        {% if fuel_count > 0 %}
+        <div class="card mb-4" style="border: 1px solid var(--border); background: linear-gradient(to bottom right, rgba(59, 130, 246, 0.03), transparent);">
+            <div class="card-hdr" style="background: var(--surface-low);">
+                <span class="card-title">
+                    <span class="material-symbols-outlined text-primary">local_gas_station</span>
+                    Топливная эффективность
+                </span>
             </div>
-            {% endif %}
+            <div class="card-body p-4">
+                <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); border: none; padding: 0;">
+                    <div style="text-align: center; border-right: 1px solid var(--border);">
+                        <div class="topbar-meta fw-bold" style="font-size: 9px; margin-bottom: 4px;">ЗАПРАВОК</div>
+                        <div class="text-white fw-bold" style="font-size: 20px;">{{ fuel_count }}</div>
+                    </div>
+                    <div style="text-align: center; border-right: 1px solid var(--border);">
+                        <div class="topbar-meta fw-bold" style="font-size: 9px; margin-bottom: 4px;">ВСЕГО ЛИТРОВ</div>
+                        <div class="text-white fw-bold" style="font-size: 20px;">{{ "{:,.0f}".format(fuel_liters) }}</div>
+                    </div>
+                    <div style="text-align: center; border-right: 1px solid var(--border);">
+                        <div class="topbar-meta fw-bold" style="font-size: 9px; margin-bottom: 4px;">ЗАТРАТЫ (₸)</div>
+                        <div class="text-white fw-bold" style="font-size: 20px;">{{ "{:,.0f}".format(fuel_kzt) }}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div class="topbar-meta fw-bold" style="font-size: 9px; margin-bottom: 4px;">СР. ЦЕНА / Л</div>
+                        <div class="text-primary fw-bold" style="font-size: 20px;">{{ "{:,.1f}".format(fuel_kzt / fuel_liters) if fuel_liters > 0 else '—' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Expense history -->
+        <div class="table-wrap" style="border: 1px solid var(--border);">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">ДАТА</th>
+                        <th>БОРТ / РЕЙС</th>
+                        <th>КАТЕГОРИЯ</th>
+                        <th>СУММА</th>
+                        <th>КОНВЕРТАЦИЯ (₸)</th>
+                        <th style="width: 40px; text-align: center;">СТАТУС</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in expenses %}
+                    <tr onclick="location='/panel/trips/{{ e.trip_id }}'" style="cursor:pointer;" class="hover-row">
+                        <td><span class="topbar-meta" style="font-size: 11px;">{{ e.created_at.strftime("%d.%m.%Y") if e.created_at else "—" }}</span></td>
+                        <td>
+                            <div class="fw-bold text-white small">{{ e.trip.vehicle.license_plate if e.trip and e.trip.vehicle else "—" }}</div>
+                            <div class="topbar-meta" style="font-size: 9px; font-family: 'JetBrains Mono', monospace;">RE-{{ e.trip_id }}</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span class="material-symbols-outlined text-muted" style="font-size: 16px;">
+                                    {% if e.expense_type == 'FUEL' %}local_gas_station
+                                    {% elif e.expense_type == 'FINE' %}report_problem
+                                    {% elif e.expense_type == 'REPAIR' %}construction
+                                    {% else %}inventory_2{% endif %}
+                                </span>
+                                <span class="topbar-meta small" style="font-weight: 700;">{{ e.expense_type }}</span>
+                            </div>
+                        </td>
+                        <td><span class="text-white small">{{ "{:,.0f}".format(e.amount) }} {{ e.currency }}</span></td>
+                        <td class="fw-bold text-white small">
+                            {{ "{:,.0f}".format(e.amount_kzt if e.amount_kzt is not none else e.amount) }} ₸
+                        </td>
+                        <td class="text-center">
+                            {% if e.status == "APPROVED" %}<span class="material-symbols-outlined text-success" style="font-size: 18px;">check_circle</span>
+                            {% elif e.status == "REJECTED" %}<span class="material-symbols-outlined text-danger" style="font-size: 18px;">cancel</span>
+                            {% else %}<span class="material-symbols-outlined text-warning" style="font-size: 18px;">schedule</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="py-5 text-center">
+                            <div class="empty-icon text-muted mb-3"><span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.1;">search_off</span></div>
+                            <p class="text-muted small">Нет расходов по этому водителю за выбранный период.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
-{% endif %}
 
-<!-- Category breakdown -->
-{% if categories %}
-<div class="card" style="margin-bottom:22px;">
-    <div class="card-hdr"><span class="card-title">📋 По категориям</span></div>
-    <div class="card-body table-responsive" style="padding:0;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Категория</th>
-                    <th>Записей</th>
-                    <th>Сумма (₸)</th>
-                    <th>Доля</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cat in categories %}
-                <tr>
-                    <td class="fw-bold">
-                        {% if cat.expense_type == 'FUEL' %}⛽ Топливо
-                        {% elif cat.expense_type == 'FINE' %}👮 Штрафы
-                        {% elif cat.expense_type == 'REPAIR' %}🔧 Ремонт
-                        {% else %}📦 {{ cat.expense_type }}{% endif %}
-                    </td>
-                    <td class="text-muted">{{ cat.cnt }}</td>
-                    <td>{{ "{:,.0f}".format(cat.total_kzt or 0) }} ₸</td>
-                    <td>
-                        {% if total_kzt > 0 %}
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <div style="background:var(--border); border-radius:4px; height:8px; width:80px; overflow:hidden;">
-                                <div style="background:#8b5cf6; height:100%; width:{{ ((cat.total_kzt or 0) / total_kzt * 100) | round(0) }}%;"></div>
-                            </div>
-                            <span class="text-muted" style="font-size:12px;">{{ ((cat.total_kzt or 0) / total_kzt * 100) | round(1) }}%</span>
-                        </div>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endif %}
-
-<!-- Expense history -->
-{% if expenses %}
-<div class="card">
-    <div class="card-hdr"><span class="card-title">📝 История расходов</span></div>
-    <div class="card-body table-responsive" style="padding:0;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Дата</th>
-                    <th>Борт</th>
-                    <th>Рейс</th>
-                    <th>Тип</th>
-                    <th>Сумма</th>
-                    <th>Сумма (₸)</th>
-                    <th>Статус</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for e in expenses %}
-                <tr onclick="location='/panel/trips/{{ e.trip_id }}'" style="cursor:pointer;">
-                    <td class="text-muted">{{ e.created_at.strftime("%d.%m.%Y") if e.created_at else "—" }}</td>
-                    <td>{{ e.trip.vehicle.license_plate if e.trip and e.trip.vehicle else "—" }}</td>
-                    <td class="text-muted">#{{ e.trip_id }}</td>
-                    <td>
-                        {% if e.expense_type == 'FUEL' %}⛽
-                        {% elif e.expense_type == 'FINE' %}👮
-                        {% elif e.expense_type == 'REPAIR' %}🔧
-                        {% else %}📦{% endif %}
-                        {{ e.expense_type }}
-                    </td>
-                    <td>{{ "{:,.0f}".format(e.amount) }} {{ e.currency }}</td>
-                    <td class="fw-bold">{{ "{:,.0f}".format(e.amount_kzt if e.amount_kzt is not none else e.amount) }} ₸</td>
-                    <td>
-                        {% if e.status == "APPROVED" %}<span class="badge badge-active">✓</span>
-                        {% elif e.status == "REJECTED" %}<span class="badge badge-cancelled">✕</span>
-                        {% else %}<span class="badge badge-pending">⏳</span>{% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% else %}
-<div class="table-wrap">
-    <div class="empty"><div class="empty-icon">📋</div><p>Нет расходов по этому водителю за выбранный период.</p></div>
-</div>
-{% endif %}
 {% endblock %}

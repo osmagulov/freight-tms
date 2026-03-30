@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Геозоны - Freight TMS{% endblock %}
+{% block header %}📍 Умные локации (Geofences){% endblock %}
+
+{% block content %}
+<div class="page-hdr">
+    <div>
+        <h1 data-i18n="geofences_title">Цифровые границы</h1>
+        <p class="text-muted small">Автоматическая регистрация прибытия, убытия и простоев на основе GPS</p>
+    </div>
+</div>
+
+<div class="row" style="display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start;">
+    <!-- Form to add new Geofence -->
+    <div class="card" style="border: 1px solid var(--border);">
+        <div class="card-hdr" style="background: var(--surface-low);">
+            <span class="card-title">
+                <span class="material-symbols-outlined text-primary">add_location_alt</span>
+                Создать точку
+            </span>
+        </div>
+        <div class="card-body p-4">
+            <form action="/panel/geofences/add" method="POST">
+                <div class="form-row mb-4">
+                    <label class="text-muted small fw-bold mb-2 d-block">НАЗВАНИЕ ЛОКАЦИИ *</label>
+                    <input type="text" name="name" required placeholder="Напр: СВХ ДАМУ АЛМАТЫ" style="width: 100%;">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">ШИРОТА (LAT) *</label>
+                        <input type="number" step="any" name="latitude" required placeholder="43.2389" style="width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+                    </div>
+                    <div class="form-row">
+                        <label class="text-muted small fw-bold mb-2 d-block">ДОЛГОТА (LNG) *</label>
+                        <input type="number" step="any" name="longitude" required placeholder="76.8897" style="width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+                    </div>
+                </div>
+
+                <div class="form-row mb-4">
+                    <label class="text-muted small fw-bold mb-2 d-block">РАДИУС СРАБАТЫВАНИЯ (МЕТРЫ) *</label>
+                    <input type="number" name="radius" value="500" required style="width: 100%;">
+                    <div class="topbar-meta mt-2" style="font-size: 10px; opacity: 0.6;">РЕКОМЕНДОВАНО: 300М - 1500М</div>
+                </div>
+
+                <div class="form-row mb-5">
+                    <label class="text-muted small fw-bold mb-2 d-block">ТИП СИСТЕМНОГО СОБЫТИЯ *</label>
+                    <select name="event_type" required style="width: 100%;">
+                        <option value="AUTO_ARRIVED">Прибытие (Общее)</option>
+                        <option value="BORDER_QUEUE_START">Граница: Вход в очередь</option>
+                        <option value="LOADING_START">Начало погрузки</option>
+                        <option value="UNLOADING_START">Начало выгрузки</option>
+                        <option value="WAREHOUSE_ARRIVED">Прибыл на СВХ</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn w-100" style="height: 44px; font-weight: 700;">
+                    <span class="material-symbols-outlined" style="margin-right: 8px;">add_task</span>
+                    Сохранить геозону
+                </button>
+            </form>
+        </div>
+        
+        <div class="card-body" style="background: rgba(59, 130, 246, 0.05); border-top: 1px solid var(--border); padding: 20px;">
+            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <span class="material-symbols-outlined text-primary" style="font-size: 20px;">tips_and_updates</span>
+                <div>
+                    <h6 class="fw-bold text-white mb-1" style="font-size: 12px; letter-spacing: 0.05em;">АВТОМАТИЗАЦИЯ</h6>
+                    <p class="topbar-meta small mb-0" style="line-height: 1.5; font-size: 10px;">Система автоматически зафиксирует событие в журнале рейса, когда телефон водителя войдет в указанный радиус.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Geofence List -->
+    <div class="table-wrap" style="border: 1px solid var(--border);">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 240px;">ЛОКАЦИЯ / НАЗВАНИЕ</th>
+                    <th>КООРДИНАТЫ</th>
+                    <th>РАДИУС</th>
+                    <th>ТИП СОБЫТИЯ</th>
+                    <th>СТАТУС</th>
+                    <th style="width: 40px; text-align: right;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in geofences %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="background: var(--surface-low); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                 <span class="material-symbols-outlined text-primary" style="font-size: 18px;">location_on</span>
+                            </div>
+                            <div class="fw-bold text-white small">{{ g.name }}</div>
+                        </div>
+                    </td>
+                    <td class="topbar-meta" style="font-size: 11px; font-family: 'JetBrains Mono', monospace; opacity: 0.7;">
+                        {{ "%.5f"|format(g.latitude) }}, {{ "%.5f"|format(g.longitude) }}
+                    </td>
+                    <td>
+                        <div class="badge badge-ghost text-white" style="background: var(--surface-low); border: 1px solid var(--border); font-size: 10px; font-weight: 700;">{{ g.radius_meters }} М</div>
+                    </td>
+                    <td>
+                        <span class="badge badge-pending" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.2); font-size: 9px; padding: 2px 8px;">
+                            {{ g.event_type }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if g.is_active %}
+                        <span class="badge badge-active" style="padding: 2px 8px; font-size: 10px;">АКТИВНА</span>
+                        {% else %}
+                        <span class="badge badge-cancelled" style="padding: 2px 8px; font-size: 10px;">ПАУЗА</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <form action="/panel/geofences/{{ g.id }}/delete" method="POST" onsubmit="return confirm('Удалить геозону?')">
+                            <button type="submit" class="btn btn-xs btn-ghost text-danger" style="border: none; opacity: 0.3; padding: 0; width: 32px; height: 32px; justify-content: center;">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="py-5 text-center">
+                        <div class="empty-icon text-muted mb-3"><span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.1;">map_search</span></div>
+                        <p class="text-muted small">Нет активных геозон. Создайте первую точку слева.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

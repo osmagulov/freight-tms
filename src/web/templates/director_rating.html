@@ -1,88 +1,109 @@
 {% extends "base.html" %}
 {% block title %}Рейтинг водителей — Freight TMS{% endblock %}
+{% block header %}🏆 Лидерборд водителей{% endblock %}
+
 {% block content %}
 
 <div class="page-hdr">
-    <h1 data-i18n="driver_rating">⭐ Рейтинг водителей (Отчет)</h1>
-</div>
-
-<!-- Period filter -->
-<div class="filter-bar" style="margin-bottom:22px;">
-    <form method="get" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-        <label><span data-i18n="from">С</span>
-            <input type="date" name="from_date" value="{{ from_date }}" style="width:145px;">
-        </label>
-        <label><span data-i18n="to">По</span>
-            <input type="date" name="to_date" value="{{ to_date }}" style="width:145px;">
-        </label>
-        <button type="submit" class="btn btn-sm" data-i18n="apply">Применить</button>
-    </form>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-left:auto;">
-        <a href="/panel/director" class="btn btn-sm" data-i18n="back_to_summary">← Назад к сводке</a>
+    <div>
+        <h1 data-i18n="driver_rating">Рейтинг водителей</h1>
+        <p class="text-muted small">Интегральный показатель эффективности на основе пробега, расхода и штрафов</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <form method="get" style="display: flex; align-items: center; gap: 12px; background: var(--surface); padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border);">
+            <span class="text-muted small fw-bold">ПЕРИОД:</span>
+            <input type="date" name="from_date" value="{{ from_date }}" style="width: 130px; border: none; background: transparent; font-size: 13px;">
+            <span class="text-muted">—</span>
+            <input type="date" name="to_date" value="{{ to_date }}" style="width: 130px; border: none; background: transparent; font-size: 13px;">
+            <button type="submit" class="btn btn-xs">
+                <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span>
+            </button>
+        </form>
+        <a href="/panel/director?from_date={{ from_date }}&to_date={{ to_date }}" class="btn btn-ghost">
+            <span class="material-symbols-outlined">dashboard</span>
+            Сводка
+        </a>
     </div>
 </div>
 
-<div class="card" style="margin-bottom:22px;">
-    <div class="card-header bg-dark text-white">
-        Точки рейтинга (базовая оценка 100) снижаются за: наличие топливных аномалий (-10), высокие штрафы.
+<div class="card mb-4" style="border: 1px solid var(--border); background: rgba(59, 130, 246, 0.05);">
+    <div class="card-body py-3 px-4 d-flex align-items-center gap-3">
+        <span class="material-symbols-outlined text-primary">info</span>
+        <span class="text-muted small">
+            <strong class="text-white">Как считается балл?</strong> 
+            Базовая оценка 100. Снижается за: топливные аномалии (-10), превышение среднего чека штрафов и ремонтные издержки на 10к км.
+        </span>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0" style="vertical-align: middle;">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width:40px;">#</th>
-                        <th>Водитель</th>
-                        <th>Балл</th>
-                        <th>Рейсов / КМ</th>
-                        <th class="text-end">Штрафы (₸ / 10к км)</th>
-                        <th class="text-end">Ремонты (₸ / 10к км)</th>
-                        <th class="text-center">Топливные Аномалии</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for d_id, st in leaderboard %}
-                    <tr>
-                        <td class="fw-bold fs-5 text-muted">{{ loop.index }}</td>
-                        <td class="fw-bold"><span class="auto-translate">{{ st.name }}</span></td>
-                        <td>
-                            {% if st.score >= 90 %}
-                                <span class="badge bg-success" style="font-size:14px;">{{ st.score }} / 100</span>
-                            {% elif st.score >= 60 %}
-                                <span class="badge bg-warning text-dark" style="font-size:14px;">{{ st.score }} / 100</span>
-                            {% else %}
-                                <span class="badge bg-danger" style="font-size:14px;">{{ st.score }} / 100</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {{ st.trips_count }} рейсов<br>
-                            <small class="text-muted">{{ "{:,.0f}".format(st.total_km) }} км</small>
-                        </td>
-                        <td class="text-end">
-                            <div class="text-danger fw-bold">{{ "{:,.0f}".format(st.total_fines_kzt) }} ₸</div>
-                            <small class="text-muted">{{ "{:,.0f}".format(st.fines_per_10k) }} ₸ / 10к км</small>
-                        </td>
-                        <td class="text-end">
-                            <div class="fw-bold">{{ "{:,.0f}".format(st.total_repairs_kzt) }} ₸</div>
-                            <small class="text-muted">{{ "{:,.0f}".format(st.repairs_per_10k) }} ₸ / 10к км</small>
-                        </td>
-                        <td class="text-center">
-                            {% if st.anomalies_count > 0 %}
-                                <span class="badge bg-danger fs-6">{{ st.anomalies_count }}</span>
-                            {% else %}
-                                <span class="badge bg-success fs-6">0</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 60px; text-align: center;">МЕСТО</th>
+                <th>ВОДИТЕЛЬ</th>
+                <th>БАЛЛ / 100</th>
+                <th>АКТИВНОСТЬ</th>
+                <th class="text-end">ШТРАФЫ (10к км)</th>
+                <th class="text-end">РЕМОНТЫ (10к км)</th>
+                <th style="width: 100px; text-align: center;">АНОМАЛИИ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d_id, st in leaderboard %}
+            <tr>
+                <td style="text-align: center;">
+                    {% if loop.index == 1 %}<span style="font-size: 20px;">🥇</span>
+                    {% elif loop.index == 2 %}<span style="font-size: 20px;">🥈</span>
+                    {% elif loop.index == 3 %}<span style="font-size: 20px;">🥉</span>
+                    {% else %}<span class="text-muted fw-bold">{{ loop.index }}</span>{% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--primary);">
+                            {{ st.name[:1] if st.name else "D" }}
+                        </div>
+                        <div class="fw-bold text-white">{{ st.name }}</div>
+                    </div>
+                </td>
+                <td>
+                    {% if st.score >= 90 %}
+                        <span class="badge badge-active" style="padding: 6px 12px; font-size: 13px;">{{ st.score }}</span>
+                    {% elif st.score >= 60 %}
+                        <span class="badge badge-pending" style="padding: 6px 12px; font-size: 13px;">{{ st.score }}</span>
                     {% else %}
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Нет завершенных рейсов за этот период</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+                        <span class="badge badge-cancelled" style="padding: 6px 12px; font-size: 13px;">{{ st.score }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="fw-bold text-white">{{ st.trips_count }} рейсов</div>
+                    <div class="topbar-meta" style="font-size: 11px;">{{ "{:,.0f}".format(st.total_km) }} км пробега</div>
+                </td>
+                <td class="text-end">
+                    <div class="text-danger fw-bold">{{ "{:,.0f}".format(st.total_fines_kzt) }} ₸</div>
+                    <div class="topbar-meta" style="font-size: 11px;">{{ "{:,.0f}".format(st.fines_per_10k) }} ₸ / 10к</div>
+                </td>
+                <td class="text-end">
+                    <div class="text-white fw-bold">{{ "{:,.0f}".format(st.total_repairs_kzt) }} ₸</div>
+                    <div class="topbar-meta" style="font-size: 11px;">{{ "{:,.0f}".format(st.repairs_per_10k) }} ₸ / 10к</div>
+                </td>
+                <td style="text-align: center;">
+                    {% if st.anomalies_count > 0 %}
+                        <span class="badge badge-cancelled" style="border-radius: 50%; width: 24px; height: 24px; padding: 0; justify-content: center;">{{ st.anomalies_count }}</span>
+                    {% else %}
+                        <span class="badge badge-active" style="border-radius: 50%; width: 24px; height: 24px; padding: 0; justify-content: center;">0</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-5 text-muted">
+                    Нет завершенных рейсов за этот период
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
 {% endblock %}

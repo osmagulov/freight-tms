@@ -298,3 +298,18 @@ class TripDocument(Base):
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
 
     trip = relationship("Trip", back_populates="documents")
+
+class Geofence(Base):
+    __tablename__ = "geofences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    radius_meters = Column(Integer, default=500)
+    
+    # What event to trigger upon entry
+    event_type = Column(String, nullable=False) # e.g. BORDER_QUEUE_START, UNLOADING_START
+    
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

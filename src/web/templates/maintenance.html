@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Техобслуживание — Freight TMS{% endblock %}
+{% block header %}🛠️ Планирование ТО и Сервиса{% endblock %}
+
+{% block content %}
+
+<div class="page-hdr">
+    <div>
+        <h1 data-i18n="maintenance_title">Техническое обслуживание</h1>
+        <p class="text-muted small">Контроль межсервисных интервалов, износа и плановой замены ГСМ</p>
+    </div>
+</div>
+
+<div class="kpi-grid mb-4">
+    <div class="kpi">
+        <div class="kpi-label">ВСЕГО ТС</div>
+        <div class="kpi-value text-white">{{ vehicles|length }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined">local_shipping</span></div>
+    </div>
+    <div class="kpi" style="border-top: 3px solid var(--danger); background: rgba(239, 68, 68, 0.05);">
+        <div class="kpi-label text-danger">КРИТИЧЕСКИЙ ИЗНОС</div>
+        <div class="kpi-value text-danger">{{ vehicles|selectattr("is_critical")|list|length }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined text-danger">report</span></div>
+    </div>
+    <div class="kpi" style="border-top: 3px solid var(--warning); background: rgba(245, 158, 11, 0.05);">
+        <div class="kpi-label text-warning">ТРЕБУЮТ ВНИМАНИЯ</div>
+        <div class="kpi-value text-warning">{{ vehicles|selectattr("is_warning")|list|length }}</div>
+        <div class="kpi-icon"><span class="material-symbols-outlined text-warning">notification_important</span></div>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>БОРТ / МОДЕЛЬ</th>
+                <th style="width: 250px;">РЕСУРС ТЕХНИКИ</th>
+                <th>ТЕКУЩИЙ ОДОМЕТР</th>
+                <th>С ПРОШЛОГО ТО</th>
+                <th>ОСТАТОК РЕСУРСА</th>
+                <th style="text-align: right;">ДЕЙСТВИЯ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in vehicles %}
+            <tr class="{% if v.is_critical %}row-critical{% elif v.is_warning %}row-warning{% endif %}" 
+                style="{% if v.is_critical %}background: rgba(239, 68, 68, 0.03);{% elif v.is_warning %}background: rgba(245, 158, 11, 0.03);{% endif %}">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="badge badge-ghost text-white" style="background: var(--surface-low); border: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; padding: 6px 12px;">
+                            {{ v.plate }}
+                        </div>
+                        <div class="topbar-meta" style="font-size: 10px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ v.model }}</div>
+                    </div>
+                </td>
+                <td>
+                    <div style="width: 100%;">
+                        <div style="background: var(--surface-low); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 6px; border: 1px solid var(--border-subtle);">
+                            {% set bar_color = 'var(--success)' %}
+                            {% if v.is_critical %}{% set bar_color = 'var(--danger)' %}
+                            {% elif v.is_warning %}{% set bar_color = 'var(--warning)' %}
+                            {% endif %}
+                            <div style="width: {{ v.progress_pct }}%; height: 100%; background: {{ bar_color }}; box-shadow: 0 0 12px {{ bar_color }}44; border-radius: 3px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="topbar-meta" style="font-size: 9px; font-weight: 700; color: {{ bar_color }};">{{ v.progress_pct }}% ИЗНОСА</span>
+                            <span class="topbar-meta" style="font-size: 9px;">ИНТЕРВАЛ: {{ "{:,.0f}".format(v.interval) }} КМ</span>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="fw-bold text-white small">{{ "{:,.0f}".format(v.current_odo or 0) | replace(',', ' ') }} км</div>
+                </td>
+                <td>
+                    <div class="topbar-meta" style="font-size: 11px;">{{ "{:,.0f}".format(v.km_since_last or 0) | replace(',', ' ') }} км</div>
+                </td>
+                <td>
+                    {% if v.is_critical %}
+                    <span class="badge badge-cancelled" style="padding: 4px 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                         {{ "{:,.0f}".format(v.remaining or 0) | replace(',', ' ') }} КМ
+                    </span>
+                    {% elif v.is_warning %}
+                    <span class="badge badge-pending" style="padding: 4px 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                         {{ "{:,.0f}".format(v.remaining or 0) | replace(',', ' ') }} КМ
+                    </span>
+                    {% else %}
+                    <span class="badge badge-active" style="padding: 4px 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                         +{{ "{:,.0f}".format(v.remaining or 0) | replace(',', ' ') }} КМ
+                    </span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">
+                    <button type="button" class="btn btn-xs btn-ghost" onclick="openResetModal({{ v.id }}, '{{ v.plate }}', {{ v.current_odo }})" title="Зафиксировать прохождение ТО">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">construction</span>
+                        <span style="font-weight: 700; margin-left: 6px;">ОТМЕТИТЬ ТО</span>
+                    </button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="py-5 text-center">
+                    <div class="empty-icon mb-3"><span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.1;">precision_manufacturing</span></div>
+                    <p class="text-muted small">В автопарке пока нет транспортных средств.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Odometer Reset Modal -->
+<div id="resetModal" class="modal-backdrop" style="display:none;" onclick="if(event.target === this) closeResetModal()">
+    <div class="card" style="width: 100%; max-width: 440px; border: 1px solid var(--border); box-shadow: 0 40px 100px rgba(0,0,0,0.8); background: #0c0c0c;">
+        <div class="card-hdr" style="background: var(--surface-low); border-bottom: 1px solid var(--border);">
+            <span class="card-title">
+                <span class="material-symbols-outlined text-primary">verified</span>
+                Фиксация ТО
+            </span>
+            <button class="btn btn-xs btn-ghost" onclick="closeResetModal()" style="padding: 0; min-width: 32px; height: 32px; justify-content: center;">✕</button>
+        </div>
+        <div class="card-body p-5">
+            <div class="mb-5 text-center">
+                <div class="topbar-meta fw-bold mb-1" style="font-size: 10px;">ОБНУЛЕНИЕ ИНТЕРВАЛА ДЛЯ БОРТА</div>
+                <div class="text-white fw-bold" style="font-size: 28px; letter-spacing: 0.05em;" id="modalPlate"></div>
+            </div>
+            <form id="resetForm" method="POST">
+                <div class="form-row">
+                    <label class="text-muted small fw-bold mb-3 d-block">ТЕКУЩИЙ ПРОБЕГ НА МОМЕНТ ОБСЛУЖИВАНИЯ (КМ)</label>
+                    <input type="number" name="current_odo" id="modalOdo" required autofocus
+                           style="width: 100%; height: 60px; font-size: 32px; font-weight: 800; text-align: center; background: var(--surface-low); border: 2px solid var(--border); border-radius: 12px; font-family: 'JetBrains Mono', monospace;">
+                </div>
+                
+                <div style="background: rgba(16, 185, 129, 0.05); border-radius: 8px; padding: 16px; margin-top: 32px; display: flex; gap: 12px; align-items: start;">
+                    <span class="material-symbols-outlined text-success" style="font-size: 20px;">task_alt</span>
+                    <p class="topbar-meta small" style="font-size: 10px; line-height: 1.5;">Счётчик межсервисного интервала будет сброшен в ноль. История ремонтов пополнится записью о прохождении планового ТО.</p>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 40px;">
+                    <button type="button" class="btn btn-ghost" style="flex: 1;" onclick="closeResetModal()">ОТМЕНА</button>
+                    <button type="submit" class="btn" style="flex: 2; height: 48px; font-weight: 700;">
+                        <span class="material-symbols-outlined" style="margin-right: 8px;">flash_on</span>
+                        ПОДТВЕРДИТЬ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-backdrop {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 2000; padding: 20px;
+    }
+    
+    tr.row-critical td { border-left: 2px solid var(--danger); }
+    tr.row-warning td { border-left: 2px solid var(--warning); }
+</style>
+
+<script>
+function openResetModal(id, plate, currentOdo) {
+    document.getElementById('modalPlate').innerText = plate;
+    document.getElementById('modalOdo').value = currentOdo;
+    document.getElementById('resetForm').action = '/panel/maintenance/' + id + '/reset';
+    document.getElementById('resetModal').style.display = 'flex';
+}
+function closeResetModal() {
+    document.getElementById('resetModal').style.display = 'none';
+}
+</script>
+{% endblock %}
