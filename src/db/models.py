@@ -313,3 +313,15 @@ class Geofence(Base):
     
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PanelUser(Base):
+    """Web panel users (dispatchers, directors, admins). Separate from Drivers."""
+    __tablename__ = "panel_users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(64), unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    role = Column(String(32), default="pending")  # pending | dispatcher | director | admin
+    is_active = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -12,10 +12,10 @@ from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
 from src.db.models import (
-    Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate, 
-    RepairStatus, Trip, TripDocument, TripStatus, Vehicle, 
-    VehicleDocument, VehicleRepair, VehicleStatus, DriverRequest, 
-    RequestStatus, Geofence, TripEvent
+    Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate,
+    RepairStatus, Trip, TripDocument, TripStatus, Vehicle,
+    VehicleDocument, VehicleRepair, VehicleStatus, DriverRequest,
+    RequestStatus, Geofence, TripEvent, PanelUser
 )
 from src.services.r2 import save_uploaded_file
 from datetime import date as date_type
@@ -93,19 +93,38 @@ async def login_submit(
     username: str = Form(...),
     password: str = Form(...),
 ):
-    if username != settings.ADMIN_USERNAME:
+    role = None
+
+    # 1. Check DB panel_users first
+    async with async_session() as session:
+        result = await session.execute(
+            select(PanelUser).where(PanelUser.username == username)
+        )
+        db_user = result.scalars().first()
+
+    if db_user:
+        if not db_user.is_active:
+            return templates.TemplateResponse(
+                request, "login.html",
+                {"request": request, "error": "Аккаунт ожидает активации администратором"},
+                status_code=401,
+            )
+        if verify_password(password, db_user.password_hash):
+            role = db_user.role
+
+    # 2. Fallback: env var admin
+    if role is None and username == settings.ADMIN_USERNAME:
+        if settings.ADMIN_PASSWORD_HASH and verify_password(password, settings.ADMIN_PASSWORD_HASH):
+            role = "admin"
+
+    if role is None:
         return templates.TemplateResponse(
             request, "login.html",
             {"request": request, "error": "Неверный логин или пароль"},
             status_code=401,
         )
-    if not settings.ADMIN_PASSWORD_HASH or not verify_password(password, settings.ADMIN_PASSWORD_HASH):
-        return templates.TemplateResponse(
-            request, "login.html",
-            {"request": request, "error": "Неверный логин или пароль"},
-            status_code=401,
-        )
-    token = create_access_token({"sub": username, "role": "dispatcher"})
+
+    token = create_access_token({"sub": username, "role": role})
     response = RedirectResponse(url="/panel/drivers", status_code=302)
     response.set_cookie(
         "access_token", token,
@@ -121,6 +140,112 @@ async def logout():
     response = RedirectResponse(url="/panel/login", status_code=302)
     response.delete_cookie("access_token")
     return response
+
+
+# --- REGISTRATION ---
+
+@router.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    return templates.TemplateResponse(request, "register.html", {"request": request})
+
+
+@router.post("/register", response_class=HTMLResponse)
+async def register_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+):
+    if password != confirm_password:
+        return templates.TemplateResponse(request, "register.html",
+            {"request": request, "error": "Пароли не совпадают"}, status_code=400)
+    if len(password) < 6:
+        return templates.TemplateResponse(request, "register.html",
+            {"request": request, "error": "Пароль минимум 6 символов"}, status_code=400)
+    async with async_session() as session:
+        existing = await session.execute(select(PanelUser).where(PanelUser.username == username))
+        if existing.scalars().first():
+            return templates.TemplateResponse(request, "register.html",
+                {"request": request, "error": "Логин уже занят"}, status_code=400)
+        new_user = PanelUser(
+            username=username,
+            password_hash=hash_password(password),
+            role="pending",
+            is_active=False,
+        )
+        session.add(new_user)
+        await session.commit()
+    return templates.TemplateResponse(request, "register.html",
+        {"request": request, "success": True})
+
+
+# --- USER MANAGEMENT (admin only) ---
+
+@router.get("/users", response_class=HTMLResponse)
+async def panel_users_list(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    if current_user.get("role") != "admin":
+        return RedirectResponse(url="/panel/drivers", status_code=302)
+    async with async_session() as session:
+        result = await session.execute(select(PanelUser).order_by(PanelUser.created_at.desc()))
+        users = result.scalars().all()
+    return templates.TemplateResponse(request, "panel_users.html",
+        {"request": request, "user": current_user, "panel_users": users})
+
+
+@router.post("/users/{user_id}/activate")
+async def activate_panel_user(
+    user_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    if current_user.get("role") != "admin":
+        return RedirectResponse(url="/panel/drivers", status_code=302)
+    async with async_session() as session:
+        result = await session.execute(select(PanelUser).where(PanelUser.id == user_id))
+        u = result.scalars().first()
+        if u:
+            u.is_active = True
+            session.add(u)
+            await session.commit()
+    return RedirectResponse(url="/panel/users", status_code=302)
+
+
+@router.post("/users/{user_id}/role")
+async def set_panel_user_role(
+    user_id: int,
+    role: str = Form(...),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    if current_user.get("role") != "admin":
+        return RedirectResponse(url="/panel/drivers", status_code=302)
+    if role not in ("dispatcher", "director", "admin", "pending"):
+        return RedirectResponse(url="/panel/users", status_code=302)
+    async with async_session() as session:
+        result = await session.execute(select(PanelUser).where(PanelUser.id == user_id))
+        u = result.scalars().first()
+        if u:
+            u.role = role
+            session.add(u)
+            await session.commit()
+    return RedirectResponse(url="/panel/users", status_code=302)
+
+
+@router.post("/users/{user_id}/delete")
+async def delete_panel_user(
+    user_id: int,
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    if current_user.get("role") != "admin":
+        return RedirectResponse(url="/panel/drivers", status_code=302)
+    async with async_session() as session:
+        result = await session.execute(select(PanelUser).where(PanelUser.id == user_id))
+        u = result.scalars().first()
+        if u:
+            await session.delete(u)
+            await session.commit()
+    return RedirectResponse(url="/panel/users", status_code=302)
 
 
 @router.get("/drivers", response_class=HTMLResponse)

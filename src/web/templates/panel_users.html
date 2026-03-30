@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Пользователи — Freight TMS{% endblock %}
+
+{% block extra_css %}
+.role-badge-pending  { background: rgba(245,158,11,0.12); color: var(--warning); border: 1px solid rgba(245,158,11,0.25); }
+.role-badge-dispatcher { background: rgba(59,130,246,0.12); color: var(--primary); border: 1px solid rgba(59,130,246,0.25); }
+.role-badge-director { background: rgba(99,102,241,0.12); color: var(--secondary); border: 1px solid rgba(99,102,241,0.25); }
+.role-badge-admin    { background: rgba(16,185,129,0.12); color: var(--success); border: 1px solid rgba(16,185,129,0.25); }
+.role-select {
+    background: var(--surface-high); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 4px 8px; font-size: 13px; cursor: pointer;
+}
+{% endblock %}
+
+{% block content %}
+<div class="page-hdr">
+    <div>
+        <h1 class="page-title">Управление пользователями</h1>
+        <p class="text-muted small">Активация аккаунтов и назначение ролей</p>
+    </div>
+</div>
+
+{% set pending = panel_users | selectattr('is_active', 'equalto', false) | list %}
+{% if pending %}
+<div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 14px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+    <span class="material-symbols-outlined" style="color: var(--warning);">pending_actions</span>
+    <span style="font-size: 14px; font-weight: 600;">{{ pending | length }} заявок ожидают активации</span>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-hdr">
+        <h2 class="card-title">
+            <span class="material-symbols-outlined text-primary">manage_accounts</span>
+            Пользователи панели
+        </h2>
+        <span class="badge badge-pending">{{ panel_users | length }} всего</span>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Логин</th>
+                    <th>Роль</th>
+                    <th>Статус</th>
+                    <th>Дата регистрации</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for u in panel_users %}
+            <tr {% if not u.is_active %}style="opacity:0.7;"{% endif %}>
+                <td>
+                    <span class="mono fw-bold" style="font-size: 14px;">{{ u.username }}</span>
+                </td>
+                <td>
+                    <span class="badge role-badge-{{ u.role }}" style="border-radius: 8px; padding: 3px 10px; font-size: 11px; letter-spacing: 0.05em;">
+                        {{ u.role | upper }}
+                    </span>
+                </td>
+                <td>
+                    {% if u.is_active %}
+                    <span class="badge badge-active">Активен</span>
+                    {% else %}
+                    <span class="badge badge-pending">Ожидает</span>
+                    {% endif %}
+                </td>
+                <td class="text-muted small">
+                    {{ u.created_at.strftime('%d.%m.%Y %H:%M') if u.created_at else '—' }}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <!-- Role selector -->
+                        <form method="post" action="/panel/users/{{ u.id }}/role" style="display:flex; gap:6px; align-items:center;">
+                            <select name="role" class="role-select" onchange="this.form.submit()">
+                                <option value="pending"    {% if u.role == 'pending' %}selected{% endif %}>Ожидание</option>
+                                <option value="dispatcher" {% if u.role == 'dispatcher' %}selected{% endif %}>Диспетчер</option>
+                                <option value="director"   {% if u.role == 'director' %}selected{% endif %}>Директор</option>
+                                <option value="admin"      {% if u.role == 'admin' %}selected{% endif %}>Админ</option>
+                            </select>
+                        </form>
+
+                        <!-- Activate button -->
+                        {% if not u.is_active %}
+                        <form method="post" action="/panel/users/{{ u.id }}/activate">
+                            <button type="submit" class="btn btn-sm" style="background: var(--success); color: white; font-size: 12px; padding: 6px 12px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">check</span>
+                                Активировать
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <!-- Delete button -->
+                        <form method="post" action="/panel/users/{{ u.id }}/delete" onsubmit="return confirm('Удалить пользователя {{ u.username }}?')">
+                            <button type="submit" class="btn btn-sm" style="background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); font-size: 12px; padding: 6px 10px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Нет зарегистрированных пользователей</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
