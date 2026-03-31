@@ -94,13 +94,17 @@ async def login_submit(
     password: str = Form(...),
 ):
     role = None
+    db_user = None
 
     # 1. Check DB panel_users first
-    async with async_session() as session:
-        result = await session.execute(
-            select(PanelUser).where(PanelUser.username == username)
-        )
-        db_user = result.scalars().first()
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(PanelUser).where(PanelUser.username == username)
+            )
+            db_user = result.scalars().first()
+    except Exception as e:
+        logger.warning(f"panel_users table not available (migration pending?): {e}")
 
     if db_user:
         if not db_user.is_active:
