@@ -52,7 +52,12 @@ class Settings(BaseSettings):
                 "Set a strong random secret via the JWT_SECRET_KEY env var before going to production. "
                 "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
-        if not self.ADMIN_PASSWORD_HASH and self.ADMIN_PASSWORD:
+        if self.ADMIN_PASSWORD_HASH and not self.ADMIN_PASSWORD_HASH.startswith("$2"):
+            # ADMIN_PASSWORD_HASH was set to a plaintext value — auto-hash it
+            from pwdlib import PasswordHash
+            self.ADMIN_PASSWORD_HASH = PasswordHash.recommended().hash(self.ADMIN_PASSWORD_HASH)
+            logger.info("ADMIN_PASSWORD_HASH was plaintext — auto-hashed.")
+        elif not self.ADMIN_PASSWORD_HASH and self.ADMIN_PASSWORD:
             from pwdlib import PasswordHash
             self.ADMIN_PASSWORD_HASH = PasswordHash.recommended().hash(self.ADMIN_PASSWORD)
             logger.info("ADMIN_PASSWORD_HASH auto-generated from ADMIN_PASSWORD.")
