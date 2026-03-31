@@ -118,8 +118,12 @@ async def login_submit(
 
     # 2. Fallback: env var admin
     if role is None and username == settings.ADMIN_USERNAME:
-        if settings.ADMIN_PASSWORD_HASH and verify_password(password, settings.ADMIN_PASSWORD_HASH):
-            role = "admin"
+        try:
+            if settings.ADMIN_PASSWORD_HASH and verify_password(password, settings.ADMIN_PASSWORD_HASH):
+                role = "admin"
+        except Exception as e:
+            logger.error(f"Admin password hash is invalid: {e}. Set ADMIN_PASSWORD in Railway env vars.")
+            role = None
 
     if role is None:
         return templates.TemplateResponse(
