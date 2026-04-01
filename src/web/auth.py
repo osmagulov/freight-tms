@@ -24,7 +24,10 @@ def create_access_token(data: dict, expires_minutes: Optional[int] = None) -> st
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify plain password against stored bcrypt hash."""
-    return password_hash.verify(plain_password, hashed_password)
+    try:
+        return password_hash.verify(plain_password, hashed_password)
+    except Exception:
+        return False
 
 
 def hash_password(plain_password: str) -> str:
