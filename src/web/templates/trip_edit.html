@@ -116,8 +116,12 @@
                         </div>
                     </div>
 
-                    <!-- Odometer Section -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px;">
+                    <!-- Distance + Odometer -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 40px;">
+                        <div class="form-row">
+                            <label class="text-muted small fw-bold mb-2 d-block">РАССТОЯНИЕ (КМ)</label>
+                            <input type="number" name="planned_distance_km" min="1" value="{{ trip.planned_distance_km if trip.planned_distance_km is not none else '' }}" style="width: 100%;" placeholder="Напр: 2500">
+                        </div>
                         <div class="form-row">
                             <label class="text-muted small fw-bold mb-2 d-block">ОДОМЕТР: СТАРТ</label>
                             <input type="number" name="start_odometer" value="{{ trip.start_odometer if trip.start_odometer is not none else '' }}" style="width: 100%;">

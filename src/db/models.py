@@ -32,12 +32,15 @@ class RepairStatus(str, enum.Enum):
     IN_PROGRESS = "IN_PROGRESS"  # В ремонте
     RESOLVED = "RESOLVED"   # Отремонтировано
 class TripEventType(str, enum.Enum):
-    BORDER_QUEUE_START = "BORDER_QUEUE_START" 
+    BORDER_QUEUE_START = "BORDER_QUEUE_START"
     BORDER_QUEUE_END = "BORDER_QUEUE_END"
     UNLOADING_START = "UNLOADING_START"
     UNLOADING_END = "UNLOADING_END"
     CUSTOMS_START = "CUSTOMS_START"
     CUSTOMS_END = "CUSTOMS_END"
+    DRIVER_CHANGE = "DRIVER_CHANGE"       # Driver handover mid-trip
+    VEHICLE_CHANGE = "VEHICLE_CHANGE"     # Cargo moved to another truck
+    TRAILER_CHANGE = "TRAILER_CHANGE"     # Trailer swapped
 
 class RequestType(str, enum.Enum):
     BORDER_QUEUE = "BORDER_QUEUE"
@@ -94,6 +97,7 @@ class Vehicle(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     license_plate = Column(String, unique=True, index=True, nullable=False)
+    trailer_plate = Column(String, nullable=True)  # Номер прицепа
     status = Column(String, default=VehicleStatus.AVAILABLE)
     make = Column(String, nullable=True)
     model = Column(String, nullable=True)
@@ -154,6 +158,8 @@ class Trip(Base):
     planned_departure = Column(DateTime(timezone=True), nullable=True)
     planned_arrival = Column(DateTime(timezone=True), nullable=True)
     delivery_status = Column(String, nullable=True)
+
+    planned_distance_km = Column(Integer, nullable=True)  # Планируемое расстояние в км
 
     # Financials (Analytics)
     price = Column(Float, nullable=True)             # Revenue / Rate from client

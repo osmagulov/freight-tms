@@ -93,7 +93,16 @@
     <div class="kpi-card blue">
         <div class="icon-box"><span class="material-symbols-outlined">payments</span></div>
         <div class="small fw-bold text-muted" style="letter-spacing: 0.05em; text-transform: uppercase;">ВАЛОВОЙ ФРАХТ</div>
-        <div class="mono" style="font-size: 28px; margin-top: 4px;">₸ {{ "{:,.0f}".format(total_revenue) }}</div>
+        {% if revenue_by_currency %}
+            {% for cur, amt in revenue_by_currency.items() %}
+            <div class="mono" style="font-size: {% if revenue_by_currency|length > 1 %}20{% else %}28{% endif %}px; margin-top: 4px;">
+                {% if cur == 'KZT' %}₸{% elif cur == 'USD' %}${% elif cur == 'EUR' %}€{% elif cur == 'RUB' %}₽{% else %}{{ cur }}{% endif %}
+                {{ "{:,.0f}".format(amt) }}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="mono" style="font-size: 28px; margin-top: 4px;">—</div>
+        {% endif %}
         <div class="trend-up mt-2"><span class="material-symbols-outlined" style="font-size: 14px;">trending_up</span> Доходы от рейсов</div>
     </div>
     
@@ -249,6 +258,62 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Fuel Planning Widget -->
+<div class="card mt-4" style="border: 1px solid var(--border);">
+    <div class="card-hdr" style="background: var(--surface-low);">
+        <span class="card-title">
+            <span class="material-symbols-outlined" style="color: #f59e0b;">local_gas_station</span>
+            ⛽ ПЛАН ТОПЛИВА — АКТИВНЫЕ И ЗАПЛАНИРОВАННЫЕ РЕЙСЫ
+        </span>
+        {% if total_planned_liters %}
+        <span style="margin-left: auto; font-size: 13px; font-weight: 900; font-family: monospace; color: #f59e0b; background: rgba(245,158,11,0.1); padding: 4px 12px; border-radius: 6px;">
+            ИТОГО: {{ total_planned_liters }} л
+        </span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if fuel_plan %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: var(--surface-low);">
+                    <th class="text-muted small fw-bold" style="padding: 10px 16px; text-align: left; font-size: 10px; letter-spacing: 0.08em;">РЕЙС</th>
+                    <th class="text-muted small fw-bold" style="padding: 10px 16px; text-align: left; font-size: 10px; letter-spacing: 0.08em;">БОРТ</th>
+                    <th class="text-muted small fw-bold" style="padding: 10px 16px; text-align: left; font-size: 10px; letter-spacing: 0.08em;">КМ</th>
+                    <th class="text-muted small fw-bold" style="padding: 10px 16px; text-align: right; font-size: 10px; letter-spacing: 0.08em;">ПОПОЛНИТЬ</th>
+                    <th class="text-muted small fw-bold" style="padding: 10px 16px; text-align: left; font-size: 10px; letter-spacing: 0.08em;">ВЫЕЗД</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fp in fuel_plan %}
+                <tr style="border-top: 1px solid var(--border);">
+                    <td style="padding: 12px 16px;">
+                        <a href="/panel/trips/{{ fp.trip_id }}" class="text-white fw-bold small" style="text-decoration: none;">{{ fp.route[:40] }}{% if fp.route|length > 40 %}…{% endif %}</a>
+                    </td>
+                    <td style="padding: 12px 16px;">
+                        <span class="mono text-white" style="font-size: 12px;">{{ fp.plate }}{% if fp.trailer %} / {{ fp.trailer }}{% endif %}</span>
+                    </td>
+                    <td style="padding: 12px 16px;">
+                        <span class="mono text-white small">{{ fp.distance_km }} км</span>
+                    </td>
+                    <td style="padding: 12px 16px; text-align: right;">
+                        <span style="font-size: 18px; font-weight: 900; font-family: monospace; color: #f59e0b;">{{ fp.liters }} л</span>
+                    </td>
+                    <td style="padding: 12px 16px;">
+                        <span class="text-muted small">{{ fp.departure.strftime('%d.%m %H:%M') if fp.departure else '—' }}</span>
+                        {% if fp.status == 'ACTIVE' %}<span class="badge badge-active" style="margin-left: 6px; font-size: 8px;">АКТИВЕН</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-5 text-center text-muted small">
+            Нет активных/запланированных рейсов с указанным расстоянием и нормой расхода борта
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

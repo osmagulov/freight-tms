@@ -27,15 +27,15 @@
 
 <style>
     /* Leaflet Dark Theme Overrides */
-    .leaflet-container { background: #0c0c0c !important; }
-    .leaflet-bar a { background-color: var(--surface-low) !important; color: white !important; border-color: var(--border) !important; }
-    .leaflet-popup-content-wrapper { background: var(--surface-low) !important; color: white !important; border-radius: 8px !important; border: 1px solid var(--border) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important; }
-    .leaflet-popup-tip { background: var(--surface-low) !important; border: 1px solid var(--border) !important; }
+    .leaflet-container { background: #e5e7eb !important; }
+    .leaflet-bar a { background-color: #fff !important; color: #333 !important; border-color: #ccc !important; }
+    .leaflet-popup-content-wrapper { background: #fff !important; color: #1e293b !important; border-radius: 8px !important; border: 1px solid #e2e8f0 !important; box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important; }
+    .leaflet-popup-tip { background: #fff !important; border: 1px solid #e2e8f0 !important; }
     
     .map-truck-popup { padding: 4px; }
-    .map-truck-title { font-weight: 800; color: white; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 8px; }
-    .map-truck-body { font-size: 13px; color: var(--muted); }
-    .map-truck-driver { color: var(--primary); font-weight: 600; }
+    .map-truck-title { font-weight: 800; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 6px; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 8px; }
+    .map-truck-body { font-size: 13px; color: #64748b; }
+    .map-truck-driver { color: #3b82f6; font-weight: 600; }
 </style>
 
 <script>
@@ -43,7 +43,7 @@
   const map = L.map('map', { zoomControl: false }).setView([48.0, 68.0], 4);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 20

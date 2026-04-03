@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
 from src.db.models import (
+    TripEventType,
     Driver, DriverDocument, Expense, FuelAnomaly, LocationUpdate,
     RepairStatus, Trip, TripDocument, TripStatus, Vehicle,
     VehicleDocument, VehicleRepair, VehicleStatus, DriverRequest,
@@ -364,6 +365,7 @@ async def vehicle_edit_submit(
     fuel_norm_per_100km: str = Form(default=""),
     maintenance_interval_km: str = Form(default=""),
     last_maintenance_odometer: str = Form(default=""),
+    trailer_plate: str = Form(default=""),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
     async with async_session() as session:
@@ -376,6 +378,7 @@ async def vehicle_edit_submit(
             vehicle.fuel_norm_per_100km = float(fuel_norm_per_100km) if fuel_norm_per_100km.strip() else None
             vehicle.maintenance_interval_km = int(maintenance_interval_km) if maintenance_interval_km.strip() else 60000
             vehicle.last_maintenance_odometer = int(last_maintenance_odometer) if last_maintenance_odometer.strip() else 0
+            vehicle.trailer_plate = trailer_plate.upper().strip() or None
             session.add(vehicle)
             await session.commit()
     return RedirectResponse(url="/panel/drivers", status_code=302)
@@ -754,6 +757,7 @@ async def create_trip_submit(
     planned_arrival: str = Form(default=""),
     price: float = Form(default=None),
     price_currency: str = Form(default="KZT"),
+    planned_distance_km: str = Form(default=""),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
     from datetime import datetime as dt
@@ -763,6 +767,14 @@ async def create_trip_submit(
             return None
         try:
             return dt.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def parse_int(value: str):
+        if not value:
+            return None
+        try:
+            return int(value)
         except ValueError:
             return None
 
@@ -795,10 +807,18 @@ async def create_trip_submit(
             status=status,
             price=price,
             price_currency=price_currency,
+            planned_distance_km=parse_int(planned_distance_km),
         )
         session.add(trip)
         await session.commit()
         await session.refresh(trip)
+
+        # Sync vehicle status
+        veh = (await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))).scalars().first()
+        if veh:
+            veh.status = VehicleStatus.ON_TRIP.value if status == TripStatus.ACTIVE.value else VehicleStatus.AVAILABLE.value
+            await session.commit()
+
         # Eager-load driver for notification
         result = await session.execute(
             select(Trip)
@@ -859,6 +879,12 @@ async def trip_detail(
         )
         open_repairs = repairs_result.scalars().all()
 
+        # For handover forms on active trips
+        drivers_result = await session.execute(select(Driver).order_by(Driver.name))
+        all_drivers = drivers_result.scalars().all()
+        vehicles_result = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
+        all_vehicles = vehicles_result.scalars().all()
+
     # Calculate total expenses in KZT
     total_kzt = sum(
         (e.amount_kzt if e.amount_kzt is not None else e.amount)
@@ -872,6 +898,8 @@ async def trip_detail(
             "locations": locations,
             "total_kzt": total_kzt,
             "open_repairs": open_repairs,
+            "drivers": all_drivers,
+            "vehicles": all_vehicles,
             "user": current_user,
         },
     )
@@ -930,6 +958,7 @@ async def trip_edit_submit(
     end_odometer: str = Form(default=""),
     price: float = Form(default=None),
     price_currency: str = Form(default="KZT"),
+    planned_distance_km: str = Form(default=""),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
     from datetime import datetime as dt
@@ -969,8 +998,18 @@ async def trip_edit_submit(
         trip.end_odometer = parse_int(end_odometer)
         trip.price = price
         trip.price_currency = price_currency
+        trip.planned_distance_km = parse_int(planned_distance_km)
 
         session.add(trip)
+
+        # Sync vehicle status based on trip status
+        veh = (await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))).scalars().first()
+        if veh and veh.status != VehicleStatus.MAINTENANCE.value:
+            if status == TripStatus.ACTIVE.value:
+                veh.status = VehicleStatus.ON_TRIP.value
+            elif status in (TripStatus.COMPLETED.value, TripStatus.PLANNED.value):
+                veh.status = VehicleStatus.AVAILABLE.value
+
         await session.commit()
 
     return RedirectResponse(url=f"/panel/trips/{trip.id}", status_code=302)
@@ -1136,6 +1175,93 @@ async def trip_delete(
             await session.delete(trip)
             await session.commit()
     return RedirectResponse(url="/panel/trips", status_code=302)
+
+
+@router.post("/vehicles/{vehicle_id}/trailer")
+async def vehicle_trailer_update(
+    vehicle_id: int,
+    trailer_plate: str = Form(default=""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        result = await session.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
+        vehicle = result.scalars().first()
+        if vehicle:
+            vehicle.trailer_plate = trailer_plate.strip().upper() or None
+            await session.commit()
+    return RedirectResponse(url="/panel/fleet", status_code=302)
+
+
+@router.post("/trips/{trip_id}/change-driver")
+async def trip_change_driver(
+    trip_id: int,
+    new_driver_id: int = Form(),
+    note: str = Form(default=""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        trip_result = await session.execute(
+            select(Trip).options(selectinload(Trip.driver)).where(Trip.id == trip_id)
+        )
+        trip = trip_result.scalars().first()
+        if trip:
+            old_name = trip.driver.name if trip.driver else str(trip.driver_id)
+            new_drv_result = await session.execute(select(Driver).where(Driver.id == new_driver_id))
+            new_driver = new_drv_result.scalars().first()
+            new_name = new_driver.name if new_driver else str(new_driver_id)
+
+            trip.driver_id = new_driver_id
+            label = f"{old_name} → {new_name}"
+            if note.strip():
+                label += f" | {note.strip()}"
+            session.add(TripEvent(
+                trip_id=trip_id,
+                event_type=TripEventType.DRIVER_CHANGE.value,
+                location_name=label,
+            ))
+            await session.commit()
+    return RedirectResponse(url=f"/panel/trips/{trip_id}", status_code=302)
+
+
+@router.post("/trips/{trip_id}/change-vehicle")
+async def trip_change_vehicle(
+    trip_id: int,
+    new_vehicle_id: int = Form(),
+    note: str = Form(default=""),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    async with async_session() as session:
+        trip_result = await session.execute(
+            select(Trip).options(selectinload(Trip.vehicle)).where(Trip.id == trip_id)
+        )
+        trip = trip_result.scalars().first()
+        if trip:
+            old_plate = trip.vehicle.license_plate if trip.vehicle else str(trip.vehicle_id)
+
+            # Free old vehicle
+            old_veh_result = await session.execute(select(Vehicle).where(Vehicle.id == trip.vehicle_id))
+            old_veh = old_veh_result.scalars().first()
+            if old_veh and old_veh.status != VehicleStatus.MAINTENANCE.value:
+                old_veh.status = VehicleStatus.AVAILABLE.value
+
+            # Assign new vehicle
+            new_veh_result = await session.execute(select(Vehicle).where(Vehicle.id == new_vehicle_id))
+            new_veh = new_veh_result.scalars().first()
+            new_plate = new_veh.license_plate if new_veh else str(new_vehicle_id)
+            if new_veh and new_veh.status != VehicleStatus.MAINTENANCE.value:
+                new_veh.status = VehicleStatus.ON_TRIP.value
+
+            trip.vehicle_id = new_vehicle_id
+            label = f"{old_plate} → {new_plate}"
+            if note.strip():
+                label += f" | {note.strip()}"
+            session.add(TripEvent(
+                trip_id=trip_id,
+                event_type=TripEventType.VEHICLE_CHANGE.value,
+                location_name=label,
+            ))
+            await session.commit()
+    return RedirectResponse(url=f"/panel/trips/{trip_id}", status_code=302)
 
 
 @router.get("/trips/{trip_id}/expenses/add", response_class=HTMLResponse)
@@ -1404,6 +1530,7 @@ async def vehicle_add_form(
 async def vehicle_add_submit(
     request: Request,
     license_plate: str = Form(),
+    trailer_plate: str = Form(default=""),
     make: str = Form(default=""),
     model: str = Form(default=""),
     year: str = Form(default=""),
@@ -1422,6 +1549,7 @@ async def vehicle_add_submit(
             )
         vehicle = Vehicle(
             license_plate=plate,
+            trailer_plate=trailer_plate.upper().strip() or None,
             make=make.strip() or None,
             model=model.strip() or None,
             year=int(year) if year.strip() else None,
@@ -1452,7 +1580,9 @@ async def driver_add_form(
 @router.post("/drivers/add")
 async def driver_add_submit(
     request: Request,
-    name: str = Form(),
+    last_name: str = Form(default=""),
+    first_name: str = Form(default=""),
+    name: str = Form(default=""),
     phone: str = Form(default=""),
     iin: str = Form(default=""),
     vehicle_id: str = Form(default=""),
@@ -1460,6 +1590,9 @@ async def driver_add_submit(
     passport_file: UploadFile = File(default=None),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
+    # Support both split fields (new) and combined name (legacy)
+    combined_name = f"{last_name.strip()} {first_name.strip()}".strip() if (last_name or first_name) else name.strip()
+
     passport_url = None
     if passport_file and passport_file.filename:
         file_bytes = await passport_file.read()
@@ -1473,7 +1606,7 @@ async def driver_add_submit(
     async with async_session() as session:
         driver = Driver(
             tg_id=None,
-            name=name.strip(),
+            name=combined_name,
             phone=phone.strip() or None,
             iin=iin.strip() or None,
             passport_r2_url=passport_url,
@@ -1510,6 +1643,8 @@ async def driver_edit_form(
 async def driver_edit_submit(
     request: Request,
     driver_id: int,
+    last_name: str = Form(default=""),
+    first_name: str = Form(default=""),
     name: str = Form(default=""),
     phone: str = Form(default=""),
     iin: str = Form(default=""),
@@ -1518,14 +1653,16 @@ async def driver_edit_submit(
     passport_file: UploadFile = File(default=None),
     current_user: dict = Depends(get_current_user_from_cookie),
 ):
+    combined_name = f"{last_name.strip()} {first_name.strip()}".strip() if (last_name or first_name) else name.strip()
+
     async with async_session() as session:
         result = await session.execute(select(Driver).where(Driver.id == driver_id))
         driver = result.scalars().first()
         if not driver:
             return RedirectResponse(url="/panel/drivers", status_code=302)
 
-        if name.strip():
-            driver.name = name.strip()
+        if combined_name:
+            driver.name = combined_name
         if phone.strip():
             driver.phone = phone.strip()
         if iin.strip():

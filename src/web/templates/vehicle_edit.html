@@ -26,6 +26,11 @@
     </div>
     <div class="card-body p-5">
         <form method="post" action="/panel/vehicles/{{ vehicle.id }}/edit">
+            <div class="form-row mb-4">
+                <label class="text-muted small fw-bold mb-2 d-block">НОМЕР ПРИЦЕПА</label>
+                <input type="text" name="trailer_plate" value="{{ vehicle.trailer_plate or '' }}" placeholder="Напр: 012 АА 01" style="width: 100%; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
+            </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
                 <div class="form-row">
                     <label class="text-muted small fw-bold mb-2 d-block">МАРКА ТС *</label>

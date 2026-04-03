@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import Cookie, HTTPException
+from fastapi import Cookie, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
@@ -46,3 +46,10 @@ def get_current_user_from_cookie(access_token: str = Cookie(default=None)) -> di
         return {"username": username, "sub": username, "role": payload.get("role", "dispatcher")}
     except JWTError:
         raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
+
+
+def require_admin(current_user: dict = Depends(get_current_user_from_cookie)) -> dict:
+    """Dependency that restricts access to admin role only. Redirects others to dashboard."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=302, headers={"Location": "/panel"})
+    return current_user

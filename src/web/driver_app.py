@@ -109,14 +109,18 @@ async def dashboard(request: Request):
         driver = result.scalars().first()
         
         active_trip = await get_active_trip_for_driver(session, driver_id)
-        
+
         expenses = []
         open_repairs = []
+        trip_vehicle = None
         if active_trip:
             exp_res = await session.execute(select(Expense).where(Expense.trip_id == active_trip.id).order_by(Expense.created_at.desc()))
             expenses = exp_res.scalars().all()
 
             if active_trip.vehicle_id:
+                veh_res = await session.execute(select(Vehicle).where(Vehicle.id == active_trip.vehicle_id))
+                trip_vehicle = veh_res.scalars().first()
+
                 repairs_res = await session.execute(
                     select(VehicleRepair)
                     .where(VehicleRepair.vehicle_id == active_trip.vehicle_id)
@@ -129,6 +133,7 @@ async def dashboard(request: Request):
         "request": request,
         "driver": driver,
         "active_trip": active_trip,
+        "trip_vehicle": trip_vehicle,
         "expenses": expenses,
         "open_repairs": open_repairs,
     })
@@ -204,6 +209,7 @@ async def add_expense_get(request: Request):
         driver = driver_res.scalars().first()
     return templates.TemplateResponse(request, "mobile/add_expense.html", {
         "request": request,
+        "driver": driver,
         "fuel_card_number": driver.fuel_card_number or "" if driver else "",
     })
 
@@ -214,8 +220,8 @@ async def add_expense_post(
     amount: float = Form(...),
     currency: str = Form("KZT"),
     comment: str = Form(""),
-    liters: float = Form(None),
-    odometer: int = Form(None),
+    liters: str = Form(default=""),
+    odometer: str = Form(default=""),
     station: str = Form(""),
     fuel_card_number: str = Form(""),
     receipt: UploadFile = File(None),
@@ -233,6 +239,10 @@ async def add_expense_post(
     }
     fx_rate = FX_RATES.get(currency, 1.0)
     amount_kzt = round(amount * fx_rate, 2)
+
+    # Parse optional numeric fields — form always submits them as strings, even when empty
+    liters_val = float(liters) if liters and liters.strip() else None
+    odometer_val = int(float(odometer)) if odometer and odometer.strip() else None
 
     async with async_session() as session:
         trip = await get_active_trip_for_driver(session, driver_id)
@@ -267,15 +277,15 @@ async def add_expense_post(
             card_photo_file_id=card_url,
             fx_rate=fx_rate,
             amount_kzt=amount_kzt,
-            liters=liters if expense_type == "FUEL" else None,
-            odometer_reading=odometer if expense_type == "FUEL" else None,
+            liters=liters_val if expense_type == "FUEL" else None,
+            odometer_reading=odometer_val if expense_type == "FUEL" else None,
             station=station.strip() or None if expense_type == "FUEL" else None,
         )
         session.add(expense)
         await session.flush()  # get expense.id
 
         # Anomaly check for FUEL: compare consumption vs vehicle norm
-        if expense_type == "FUEL" and liters and odometer and trip.start_odometer:
+        if expense_type == "FUEL" and liters_val and odometer_val and trip.start_odometer:
             # Find previous odometer for this trip (from earlier fuel expenses)
             from sqlalchemy import func as sqlfunc
             prev_odo_result = await session.execute(
@@ -291,10 +301,10 @@ async def add_expense_post(
             )
             prev_odo = prev_odo_result.scalar()
             base_odo = prev_odo or trip.start_odometer
-            km_driven = odometer - base_odo
+            km_driven = odometer_val - base_odo
 
             if km_driven > 10:  # at least 10km to avoid division noise
-                actual_per_100 = (liters / km_driven) * 100
+                actual_per_100 = (liters_val / km_driven) * 100
 
                 # Load vehicle norm
                 from src.db.models import Vehicle as _Vehicle
@@ -629,6 +639,54 @@ async def request_funds_get(request: Request):
         )
         requests = result.scalars().all()
     return templates.TemplateResponse(request, "mobile/request_funds.html", {"request": request, "requests": requests})
+
+@router.get("/camera", response_class=HTMLResponse)
+async def camera_get(request: Request):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        driver_result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = driver_result.scalars().first()
+
+        trip_result = await session.execute(
+            select(Trip).where(Trip.driver_id == driver_id, Trip.status == TripStatus.ACTIVE.value)
+        )
+        active_trip = trip_result.scalars().first()
+
+        vehicle = None
+        if active_trip and active_trip.vehicle_id:
+            veh_result = await session.execute(select(Vehicle).where(Vehicle.id == active_trip.vehicle_id))
+            vehicle = veh_result.scalars().first()
+
+    return templates.TemplateResponse(request, "mobile/camera.html", {
+        "request": request,
+        "driver": driver,
+        "active_trip": active_trip,
+        "vehicle": vehicle,
+        "active_tab": "camera",
+    })
+
+
+@router.post("/camera/upload")
+async def camera_upload(
+    request: Request,
+    file: UploadFile = File(...),
+    trip_id: str = Form(default=""),
+):
+    from fastapi.responses import JSONResponse as _JSONResponse
+    driver_id = await requires_driver(request)
+    file_bytes = await file.read()
+    is_video = file.content_type and "video" in file.content_type
+    ext = "webm" if is_video else "jpg"
+    content_type = file.content_type or ("video/webm" if is_video else "image/jpeg")
+    key = f"camera/{driver_id}_{int(datetime.utcnow().timestamp())}_{uuid.uuid4().hex[:6]}.{ext}"
+    url = await save_uploaded_file(file_bytes, key, content_type)
+    if url and trip_id.strip():
+        async with async_session() as session:
+            label = "Видео с камеры" if is_video else "Фото с камеры"
+            session.add(TripDocument(trip_id=int(trip_id), file_type=label, r2_url=url))
+            await session.commit()
+    return _JSONResponse({"ok": True, "url": url})
+
 
 @router.post("/create-request")
 async def request_funds_post(

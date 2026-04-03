@@ -1,0 +1,419 @@
+{% extends "mobile/base_mobile.html" %}
+{% block title %}Камера — FreightTMS{% endblock %}
+
+{% block content %}
+
+<style>
+    body { overflow: hidden; }
+    #cam-wrap {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        z-index: 50;
+    }
+    #preview-canvas {
+        flex: 1;
+        width: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    #controls {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 16px 24px calc(16px + env(safe-area-inset-bottom));
+        background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+    #capture-btn {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: white;
+        border: 5px solid rgba(255,255,255,0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 0 24px rgba(255,255,255,0.4);
+    }
+    #record-btn {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: rgba(239,68,68,0.85);
+        border: 3px solid rgba(239,68,68,0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    #record-btn.recording {
+        animation: recpulse 1s ease-in-out infinite;
+    }
+    @keyframes recpulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+        50%       { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+    }
+    .cam-overlay-label {
+        background: rgba(0,0,0,0.55);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-family: monospace;
+        font-size: 12px;
+        color: #fff;
+        line-height: 1.6;
+        pointer-events: none;
+    }
+    /* Captured preview */
+    #result-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: #000;
+        z-index: 200;
+        flex-direction: column;
+    }
+    #result-modal.open { display: flex; }
+    #result-media { flex: 1; width: 100%; object-fit: contain; }
+    #result-actions {
+        display: flex;
+        gap: 12px;
+        padding: 16px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+        background: rgba(0,0,0,0.7);
+    }
+    .no-camera {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 16px;
+        color: rgba(255,255,255,0.5);
+        font-size: 14px;
+        text-align: center;
+        padding: 32px;
+    }
+</style>
+
+{# Pass Jinja data to JS #}
+<script>
+    const DRIVER_NAME  = {{ (driver.name or '')|tojson }};
+    const PLATE_TRUCK  = {{ (vehicle.license_plate if vehicle else '')|tojson }};
+    const PLATE_TRAIL  = {{ (vehicle.trailer_plate if vehicle and vehicle.trailer_plate else '')|tojson }};
+    const TRIP_ID      = {{ active_trip.id if active_trip else 'null' }};
+    const UPLOAD_URL   = "/app/camera/upload";
+</script>
+
+<div id="cam-wrap">
+    <video id="video" playsinline autoplay muted style="display:none;"></video>
+    <canvas id="preview-canvas"></canvas>
+
+    <!-- Live overlay info -->
+    <div style="position:absolute; top:16px; left:16px; right:16px; display:flex; justify-content:space-between; align-items:flex-start; pointer-events:none;">
+        <div class="cam-overlay-label">
+            <div style="font-size:15px; font-weight:900; color:#f59e0b;" id="lbl-plate">—</div>
+            <div id="lbl-driver">{{ driver.name or '—' }}</div>
+            <div id="lbl-coords" style="color:#9ca3af;">GPS...</div>
+            <div id="lbl-time" style="color:#9ca3af;"></div>
+        </div>
+        <a href="/app" style="color:white; background:rgba(0,0,0,0.5); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:none; pointer-events:all;">
+            <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+        </a>
+    </div>
+
+    <!-- Recording indicator -->
+    <div id="rec-indicator" style="display:none; position:absolute; top:16px; left:50%; transform:translateX(-50%); background:rgba(239,68,68,0.9); color:white; border-radius:20px; padding:4px 14px; font-size:12px; font-weight:700; pointer-events:none;">
+        ● REC <span id="rec-timer">0:00</span>
+    </div>
+
+    <!-- No camera fallback -->
+    <div id="no-camera" class="no-camera" style="display:none;">
+        <span class="material-symbols-outlined" style="font-size:56px;">no_photography</span>
+        <div>Камера недоступна.<br>Разрешите доступ в настройках браузера.</div>
+        <a href="/app" class="btn btn-ghost" style="color:white;">Назад</a>
+    </div>
+
+    <!-- Controls bar -->
+    <div id="controls">
+        <!-- Flip camera -->
+        <button onclick="flipCamera()" style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.15); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <span class="material-symbols-outlined" style="font-size:22px; color:white;">flip_camera_ios</span>
+        </button>
+
+        <!-- Capture photo -->
+        <button id="capture-btn" onclick="capturePhoto()">
+            <span class="material-symbols-outlined" style="font-size:34px; color:#111;">photo_camera</span>
+        </button>
+
+        <!-- Record video -->
+        <button id="record-btn" onclick="toggleRecord()">
+            <span class="material-symbols-outlined" style="font-size:26px; color:white;" id="rec-icon">videocam</span>
+        </button>
+    </div>
+</div>
+
+<!-- Result modal -->
+<div id="result-modal">
+    <img id="result-img" class="result-media" style="flex:1; width:100%; object-fit:contain; display:none;">
+    <video id="result-video" class="result-media" controls style="flex:1; width:100%; object-fit:contain; display:none;"></video>
+    <div id="result-actions">
+        <button onclick="discardResult()" class="btn btn-ghost" style="flex:1; color:white;">Ещё раз</button>
+        <button onclick="downloadResult()" class="btn btn-ghost" style="flex:1; color:white;">
+            <span class="material-symbols-outlined" style="font-size:18px;">download</span>
+            Скачать
+        </button>
+        <button id="upload-btn" onclick="uploadResult()" class="btn" style="flex:1.5;">
+            <span class="material-symbols-outlined" style="font-size:18px;">cloud_upload</span>
+            Отправить
+        </button>
+    </div>
+</div>
+
+<script>
+(function () {
+    const video      = document.getElementById('video');
+    const canvas     = document.getElementById('preview-canvas');
+    const ctx        = canvas.getContext('2d');
+    const lblPlate   = document.getElementById('lbl-plate');
+    const lblCoords  = document.getElementById('lbl-coords');
+    const lblTime    = document.getElementById('lbl-time');
+    const recIcon    = document.getElementById('rec-icon');
+    const recBtn     = document.getElementById('record-btn');
+    const recIndicator = document.getElementById('rec-indicator');
+    const recTimer   = document.getElementById('rec-timer');
+
+    const plateLabel = PLATE_TRUCK + (PLATE_TRAIL ? ' / ' + PLATE_TRAIL : '');
+    lblPlate.textContent = plateLabel || '— борт не назначен —';
+
+    let lat = null, lon = null;
+    let capturedBlob = null;
+    let capturedExt  = 'jpg';
+    let recording    = false;
+    let mediaRecorder = null;
+    let chunks       = [];
+    let recSeconds   = 0;
+    let recInterval  = null;
+    let facingMode   = 'environment';
+    let currentStream = null;
+    let animFrame    = null;
+
+    // ── Geolocation ──────────────────────────────────────────────
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+            pos => {
+                lat = pos.coords.latitude.toFixed(5);
+                lon = pos.coords.longitude.toFixed(5);
+                lblCoords.textContent = lat + ', ' + lon;
+            },
+            () => { lblCoords.textContent = 'GPS недоступен'; },
+            { enableHighAccuracy: true }
+        );
+    }
+
+    // ── Clock ─────────────────────────────────────────────────────
+    function nowStr() {
+        const n = new Date();
+        const d = n.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
+        const t = n.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        return d + '  ' + t;
+    }
+    setInterval(() => { lblTime.textContent = nowStr(); }, 1000);
+    lblTime.textContent = nowStr();
+
+    // ── Camera start ─────────────────────────────────────────────
+    async function startCamera(facing) {
+        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+        try {
+            currentStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
+                audio: false,
+            });
+            video.srcObject = currentStream;
+            await video.play();
+            scheduleDrawLoop();
+        } catch (e) {
+            document.getElementById('no-camera').style.display = 'flex';
+            console.error('Camera error:', e);
+        }
+    }
+
+    window.flipCamera = function() {
+        facingMode = facingMode === 'environment' ? 'user' : 'environment';
+        startCamera(facingMode);
+    };
+
+    // ── Draw loop ─────────────────────────────────────────────────
+    function scheduleDrawLoop() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        function loop() {
+            drawFrame();
+            animFrame = requestAnimationFrame(loop);
+        }
+        loop();
+    }
+
+    function drawFrame() {
+        if (!video.videoWidth) return;
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        drawOverlay();
+    }
+
+    function drawOverlay() {
+        const W = canvas.width, H = canvas.height;
+        const stripH = Math.round(H * 0.18);
+        const y0 = H - stripH;
+
+        // Semi-transparent strip
+        ctx.fillStyle = 'rgba(0,0,0,0.62)';
+        ctx.fillRect(0, y0, W, stripH);
+
+        const fs  = Math.round(W * 0.033);   // base font size
+        const pad = Math.round(W * 0.018);
+
+        // Plate — large amber
+        ctx.font = `900 ${Math.round(fs * 1.35)}px 'Courier New', monospace`;
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillText(plateLabel || '—', pad, y0 + fs * 1.6);
+
+        // Driver name
+        ctx.font = `bold ${fs}px sans-serif`;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(DRIVER_NAME || '—', pad, y0 + fs * 3.1);
+
+        // Coords
+        ctx.font = `${Math.round(fs * 0.82)}px 'Courier New', monospace`;
+        ctx.fillStyle = '#9ca3af';
+        ctx.fillText(lat && lon ? lat + ', ' + lon : 'GPS...', pad, y0 + fs * 4.3);
+
+        // Timestamp
+        ctx.fillText(nowStr(), pad, y0 + fs * 5.3);
+    }
+
+    // ── Photo capture ─────────────────────────────────────────────
+    window.capturePhoto = function() {
+        if (recording) return;
+        // Draw one final frame to make sure timestamp is fresh
+        drawFrame();
+        canvas.toBlob(blob => {
+            capturedBlob = blob;
+            capturedExt  = 'jpg';
+            showResult(blob, 'image');
+        }, 'image/jpeg', 0.93);
+    };
+
+    // ── Video recording ───────────────────────────────────────────
+    window.toggleRecord = function() {
+        recording ? stopRecord() : startRecord();
+    };
+
+    function startRecord() {
+        chunks = [];
+        const stream = canvas.captureStream(30);
+        const mimeTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+        const mime = mimeTypes.find(m => MediaRecorder.isTypeSupported(m)) || '';
+        mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+            capturedBlob = new Blob(chunks, { type: mediaRecorder.mimeType || 'video/webm' });
+            capturedExt  = 'webm';
+            showResult(capturedBlob, 'video');
+        };
+        mediaRecorder.start(500);
+        recording = true;
+        recIcon.textContent = 'stop';
+        recBtn.classList.add('recording');
+        recSeconds = 0;
+        recIndicator.style.display = 'block';
+        recInterval = setInterval(() => {
+            recSeconds++;
+            const m = Math.floor(recSeconds / 60);
+            const s = recSeconds % 60;
+            recTimer.textContent = m + ':' + String(s).padStart(2, '0');
+        }, 1000);
+    }
+
+    function stopRecord() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        recording = false;
+        recIcon.textContent = 'videocam';
+        recBtn.classList.remove('recording');
+        clearInterval(recInterval);
+        recIndicator.style.display = 'none';
+    }
+
+    // ── Result modal ──────────────────────────────────────────────
+    function showResult(blob, type) {
+        const url = URL.createObjectURL(blob);
+        const modal = document.getElementById('result-modal');
+        const img   = document.getElementById('result-img');
+        const vid   = document.getElementById('result-video');
+        img.style.display = 'none';
+        vid.style.display = 'none';
+        if (type === 'image') {
+            img.src = url;
+            img.style.display = 'block';
+        } else {
+            vid.src = url;
+            vid.style.display = 'block';
+        }
+        modal.classList.add('open');
+    }
+
+    window.discardResult = function() {
+        document.getElementById('result-modal').classList.remove('open');
+        capturedBlob = null;
+    };
+
+    window.downloadResult = function() {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(capturedBlob);
+        const plate = (plateLabel || 'photo').replace(/[^a-zA-Z0-9]/g, '_');
+        a.download = `${plate}_${Date.now()}.${capturedExt}`;
+        a.click();
+    };
+
+    window.uploadResult = async function() {
+        if (!capturedBlob) return;
+        const btn = document.getElementById('upload-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">hourglass_top</span> Отправка...';
+
+        const fd = new FormData();
+        fd.append('file', capturedBlob, 'capture.' + capturedExt);
+        if (TRIP_ID) fd.append('trip_id', TRIP_ID);
+
+        try {
+            const resp = await fetch(UPLOAD_URL, { method: 'POST', body: fd, credentials: 'include' });
+            const data = await resp.json();
+            if (data.ok) {
+                btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Отправлено';
+                setTimeout(() => window.discardResult(), 1800);
+            } else {
+                btn.innerHTML = 'Ошибка — повторить';
+                btn.disabled = false;
+            }
+        } catch (e) {
+            btn.innerHTML = 'Ошибка — повторить';
+            btn.disabled = false;
+        }
+    };
+
+    // ── Start ─────────────────────────────────────────────────────
+    startCamera(facingMode);
+})();
+</script>
+
+{% endblock %}

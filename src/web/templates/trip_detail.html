@@ -134,6 +134,57 @@
             </div>
         </div>
 
+        {% if trip.status == 'ACTIVE' %}
+        <!-- Handover Operations (ACTIVE trips only) -->
+        <div class="card" style="border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.02);">
+            <div class="card-hdr" style="background: var(--surface-low);">
+                <span class="card-title">
+                    <span class="material-symbols-outlined text-warning">swap_horiz</span>
+                    Операции с экипажем
+                </span>
+                <span class="text-muted small">Только для активных рейсов</span>
+            </div>
+            <div class="card-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 20px;">
+                <div>
+                    <div class="text-muted small fw-bold mb-2" style="letter-spacing: 0.08em;">ЗАМЕНА ВОДИТЕЛЯ</div>
+                    <form action="/panel/trips/{{ trip.id }}/change-driver" method="post">
+                        <select name="new_driver_id" required class="mb-2" style="width: 100%;">
+                            <option value="">— новый водитель —</option>
+                            {% for d in drivers %}
+                            {% if d.id != trip.driver_id %}
+                            <option value="{{ d.id }}">{{ d.name or d.tg_id }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="note" placeholder="Причина (необязательно)" class="mb-2" style="width: 100%; font-size: 12px;">
+                        <button type="submit" class="btn btn-xs w-100" style="background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">person_swap</span>
+                            Зафиксировать передачу
+                        </button>
+                    </form>
+                </div>
+                <div>
+                    <div class="text-muted small fw-bold mb-2" style="letter-spacing: 0.08em;">ЗАМЕНА ТЯГАЧА (ПОЛОМКА)</div>
+                    <form action="/panel/trips/{{ trip.id }}/change-vehicle" method="post">
+                        <select name="new_vehicle_id" required class="mb-2" style="width: 100%;">
+                            <option value="">— новый тягач —</option>
+                            {% for v in vehicles %}
+                            {% if v.id != trip.vehicle_id %}
+                            <option value="{{ v.id }}">{{ v.license_plate }}{% if v.make %} ({{ v.make }}){% endif %}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="note" placeholder="Причина (необязательно)" class="mb-2" style="width: 100%; font-size: 12px;">
+                        <button type="submit" class="btn btn-xs w-100" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2);">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">swap_driving_apps</span>
+                            Перебросить груз
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- History & Timeline -->
         <div class="card" style="border: 1px solid var(--border);">
             <div class="card-hdr">
@@ -163,6 +214,9 @@
                                 {% elif ev.event_type == 'CUSTOMS_END' %}🚛 Выезд с СВХ
                                 {% elif ev.event_type == 'UNLOADING_START' %}📦 На загрузке/выгрузке
                                 {% elif ev.event_type == 'UNLOADING_END' %}🏁 Загрузка/выгрузка завершена
+                                {% elif ev.event_type == 'DRIVER_CHANGE' %}🔄 Смена водителя
+                                {% elif ev.event_type == 'VEHICLE_CHANGE' %}🔄 Замена борта
+                                {% elif ev.event_type == 'TRAILER_CHANGE' %}🔄 Замена прицепа
                                 {% else %}{{ ev.event_type }}{% endif %}
                             </td>
                             <td class="text-muted">{{ ev.location_name or '—' }}</td>
@@ -192,20 +246,30 @@
                 </div>
             </div>
             
+            {% if trip.planned_distance_km %}
             <div class="mb-4">
-                <label class="text-muted small fw-bold mb-2 d-block">ПРОБЕГ (ОДОМЕТР)</label>
-                <div style="display: flex; align-items: center; gap: 12px; background: var(--surface-low); padding: 12px; border-radius: 8px;">
-                     <div>
-                         <div class="topbar-meta" style="font-size: 10px;">СТАРТ</div>
-                         <div class="text-white fw-bold">{{ trip.start_odometer or '0' }}</div>
-                     </div>
-                     <span class="text-muted" style="opacity: 0.3;">→</span>
-                     <div>
-                         <div class="topbar-meta" style="font-size: 10px;">ФИНИШ</div>
-                         <div class="text-white fw-bold">{{ trip.end_odometer or '...' }}</div>
-                     </div>
+                <label class="text-muted small fw-bold mb-2 d-block">⛽ ТОПЛИВНЫЙ ПЛАН</label>
+                <div style="background: var(--surface-low); border-radius: 8px; padding: 16px; border-left: 3px solid var(--warning, #f59e0b);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="text-muted small">Расстояние маршрута</span>
+                        <span class="text-white fw-bold mono">{{ trip.planned_distance_km }} км</span>
+                    </div>
+                    {% if trip.vehicle and trip.vehicle.fuel_norm_per_100km %}
+                    {% set planned_liters = (trip.planned_distance_km * trip.vehicle.fuel_norm_per_100km / 100) | round(0, 'ceil') | int %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="text-muted small">Норма расхода борта</span>
+                        <span class="text-white fw-bold mono">{{ trip.vehicle.fuel_norm_per_100km }} л/100км</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border);">
+                        <span class="text-muted small fw-bold">ПОПОЛНИТЬ ТОПЛИВНУЮ КАРТУ</span>
+                        <span style="font-size: 22px; font-weight: 900; font-family: monospace; color: var(--warning, #f59e0b);">≈ {{ planned_liters }} л</span>
+                    </div>
+                    {% else %}
+                    <div class="text-muted small">Норма расхода не задана для этого борта — обновите карточку ТС</div>
+                    {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <div>
                 <label class="text-muted small fw-bold mb-2 d-block">ХАРАКТЕРИСТИКИ</label>

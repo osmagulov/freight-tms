@@ -16,25 +16,25 @@
     
     <style>
         :root {
-            /* Obsidian Premium Palette */
-            --bg: #09090b;
-            --surface-low: #121214;
-            --surface: #18181b;
-            --surface-high: #202023;
-            --surface-highest: #27272a;
-            
+            /* Slate Dark Palette */
+            --bg: #0f172a;
+            --surface-low: #1e293b;
+            --surface: #263244;
+            --surface-high: #2e3d52;
+            --surface-highest: #374a61;
+
             --primary: #3b82f6;
             --primary-glow: rgba(59, 130, 246, 0.5);
             --secondary: #6366f1;
-            
+
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
-            
-            --text: #fafafa;
-            --text-muted: #a1a1aa;
-            --border: rgba(255, 255, 255, 0.08);
-            --border-highlight: rgba(255, 255, 255, 0.15);
+
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.10);
+            --border-highlight: rgba(255, 255, 255, 0.18);
             
             --sidebar-width: 280px;
             --topbar-height: 72px;
@@ -288,6 +288,10 @@
         <a href="/panel/anomalies" class="sb-link {% if '/anomalies' in request.url.path %}active{% endif %}">
             <span class="material-symbols-outlined">warning</span>
             <span data-i18n="anomalies">Аномалии топлива</span>
+        </a>
+        <a href="/panel/map" class="sb-link {% if '/map' in request.url.path %}active{% endif %}">
+            <span class="material-symbols-outlined">satellite_alt</span>
+            <span data-i18n="map">Карта парка</span>
         </a>
         <a href="/panel/geofences" class="sb-link {% if '/geofences' in request.url.path %}active{% endif %}">
             <span class="material-symbols-outlined">share_location</span>

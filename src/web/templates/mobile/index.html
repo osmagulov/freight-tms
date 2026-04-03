@@ -31,9 +31,7 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
-.action-card-icon .material-symbols-outlined {
-    font-size: 32px;
-}
+.action-card-icon { font-size: 32px; }
 
 .action-card-content h3 {
     margin: 0;
@@ -72,11 +70,11 @@
 {% block content %}
 <div style="margin-top: 8px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px;">
     <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--surface-low); border: 2px solid var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--primary); font-size: 20px; box-shadow: 0 0 20px var(--primary-glow);">
-        {{ (driver.name or 'A')[0] }}
+        {{ (driver.name.split(' ')[1] if driver.name and driver.name.split(' ')|length > 1 else (driver.name or 'A'))[0] }}
     </div>
     <div>
         <h2 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.02em;">
-            <span data-i18n="hello">Здравствуйте</span>, {{ driver.name.split(' ')[0] }}!
+            <span data-i18n="hello">Здравствуйте</span>, {{ driver.name.split(' ')[1] if driver.name and driver.name.split(' ')|length > 1 else (driver.name or '') }}!
         </h2>
         <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
             <div class="status-ring {% if active_trip %}text-success{% else %}text-muted{% endif %}" style="background: currentColor;"></div>
@@ -95,30 +93,34 @@
                 <div class="form-label" style="margin-bottom: 4px;">АКТИВНЫЙ МАРШРУТ</div>
                 <div class="text-white fw-bold" style="font-size: 16px;">{{ active_trip.route_details }}</div>
             </div>
-            <span class="badge badge-active" style="padding: 2px 8px; font-size: 9px; font-family: 'JetBrains Mono', monospace;">#TRIP-{{ active_trip.id }}</span>
+            <span class="badge badge-active" style="padding: 2px 8px; font-size: 9px; font-family: monospace;">#TRIP-{{ active_trip.id }}</span>
         </div>
         
+        {% if trip_vehicle %}
         <div style="display: flex; gap: 12px; align-items: center; padding-top: 12px; border-top: 1px solid var(--border);">
-            <span class="material-symbols-outlined text-primary" style="font-size: 18px;">share_location</span>
-            <span class="topbar-meta" style="font-size: 10px;">АВТООТСЛЕЖИВАНИЕ АКТИВНО (РАЗ В ЧАС)</span>
+            <span style="font-size: 16px;">🚛</span>
+            <span class="topbar-meta" style="font-size: 13px; font-family: monospace; font-weight: 800; letter-spacing: 0.05em;">
+                {{ trip_vehicle.license_plate }}{% if trip_vehicle.trailer_plate %} / {{ trip_vehicle.trailer_plate }}{% endif %}
+            </span>
         </div>
+        {% endif %}
     </div>
 
     <!-- Main Actions -->
     <a href="/app/add-expense" class="action-card" style="background: linear-gradient(to right, #3b82f6, #2563eb);">
-        <div class="action-card-icon"><span class="material-symbols-outlined text-white">payments</span></div>
+        <div class="action-card-icon">💳</div>
         <div class="action-card-content">
             <h3 data-i18n="add_expense">ДОБАВИТЬ РАСХОД</h3>
             <p>Топливо, штрафы, ремонт, парковка</p>
         </div>
-        <span class="material-symbols-outlined" style="margin-left: auto; color: white;">chevron_right</span>
+        <span style="margin-left: auto; color: white; font-size: 20px;">›</span>
     </a>
 
     <!-- open repairs warning -->
     {% if open_repairs %}
     <div class="card" style="border: 1px solid var(--danger); background: rgba(239, 68, 68, 0.05); padding: 16px;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--danger);">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+            <span>⚠️</span>
             <span class="fw-bold small" style="letter-spacing: 0.1em;">ГОРЯЩИЕ НЕИСПРАВНОСТИ ({{ open_repairs | length }})</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -135,11 +137,11 @@
     <!-- Secondary Actions -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
         <a href="/app/request-funds" class="btn btn-ghost" style="flex-direction: column; height: 100px; gap: 8px;">
-            <span class="material-symbols-outlined text-primary" style="font-size: 28px;">contact_support</span>
+            <span style="font-size: 28px;">📞</span>
             <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="request_dispatcher">ЗАПРОСЫ</span>
         </a>
         <a href="/app/close-trip" class="btn btn-danger" style="flex-direction: column; height: 100px; gap: 8px;">
-            <span class="material-symbols-outlined" style="font-size: 28px;">flag</span>
+            <span style="font-size: 28px;">🏁</span>
             <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="close_trip">ФИНИШ</span>
         </a>
     </div>
@@ -150,7 +152,7 @@
     <div class="card mt-4" style="border: 2px solid var(--danger); background: var(--bg-body);">
         <div class="card-hdr" style="padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px;">
             <div style="display: flex; align-items: center; gap: 8px; color: var(--danger);">
-                <span class="material-symbols-outlined">error</span>
+                <span>🚫</span>
                 <span class="fw-bold small" data-i18n="rejected_expenses">ОТКЛОНЕННЫЕ РАСХОДЫ</span>
             </div>
         </div>
@@ -177,7 +179,7 @@
     <div class="card mt-4 p-0 overflow-hidden">
         <div class="card-hdr" style="padding: 16px 20px; background: var(--surface-low); border-bottom: 1px solid var(--border);">
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="material-symbols-outlined text-muted" style="font-size: 20px;">history</span>
+                <span>📋</span>
                 <span class="fw-bold small" data-i18n="expense_history">ИСТОРИЯ РАСХОДОВ РЕЙСА</span>
             </div>
         </div>
@@ -186,19 +188,19 @@
             {% for exp in expenses %}
             <div class="expense-item">
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <span class="material-symbols-outlined text-muted" style="font-size: 20px;">
-                        {% if exp.expense_type == 'FUEL' %}local_gas_station
-                        {% elif exp.expense_type == 'FINE' %}report_problem
-                        {% elif exp.expense_type == 'REPAIR' %}construction
-                        {% else %}inventory_2{% endif %}
+                    <span style="font-size: 20px;">
+                        {% if exp.expense_type == 'FUEL' %}⛽
+                        {% elif exp.expense_type == 'FINE' %}👮
+                        {% elif exp.expense_type == 'REPAIR' %}🔧
+                        {% else %}📦{% endif %}
                     </span>
                     <div>
                         <div class="text-white fw-bold small">{% if exp.expense_type == 'FUEL' %}ТОПЛИВО{% elif exp.expense_type == 'FINE' %}ШТРАФ{% elif exp.expense_type == 'REPAIR' %}РЕМОНТ{% else %}ПРОЧЕЕ{% endif %}</div>
-                        <div class="topbar-meta" style="font-size: 9px; font-family: 'JetBrains Mono', monospace;">{{ exp.created_at.strftime('%d.%m %H:%M') }}</div>
+                        <div class="topbar-meta" style="font-size: 9px; font-family: monospace;">{{ exp.created_at.strftime('%d.%m %H:%M') }}</div>
                     </div>
                 </div>
                 <div style="text-align: right;">
-                    <div class="text-white fw-bold small" style="font-family: 'JetBrains Mono', monospace;">{{ "{:,.0f}".format(exp.amount) }} {{ exp.currency }}</div>
+                    <div class="text-white fw-bold small" style="font-family: monospace;">{{ "{:,.0f}".format(exp.amount) }} {{ exp.currency }}</div>
                     {% if exp.status == 'APPROVED' %}<div class="text-success" style="font-size: 8px; font-weight: 800;">ОДОБРЕНО</div>
                     {% elif exp.status == 'REJECTED' %}<div class="text-danger" style="font-size: 8px; font-weight: 800;">ОТКЛОНЕНО</div>
                     {% else %}<div class="text-warning" style="font-size: 8px; font-weight: 800;">ПРОВЕРКА</div>{% endif %}
@@ -217,13 +219,13 @@
     <!-- Vacant State -->
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center;">
         <div style="width: 120px; height: 120px; border-radius: 50%; border: 4px dashed var(--border); display: flex; align-items: center; justify-content: center; margin-bottom: 32px;">
-            <span class="material-symbols-outlined text-muted" style="font-size: 64px; opacity: 0.2;">local_shipping</span>
+            <span style="font-size: 56px; opacity: 0.3;">🚚</span>
         </div>
         <h3 class="text-white fw-bold mb-2" data-i18n="no_active_trip">НЕТ АКТИВНОГО РЕЙСА</h3>
         <p class="topbar-meta small mb-8">Для начала работы необходимо открыть новый рейс и зафиксировать старт маршрута.</p>
         
         <a href="/app/open-trip" class="btn btn-primary" style="height: 64px; font-size: 18px; box-shadow: 0 10px 40px var(--primary-glow);">
-            <span class="material-symbols-outlined" style="font-size: 32px;">play_arrow</span>
+            <span style="font-size: 24px;">▶</span>
             <span data-i18n="start_trip">ОТКРЫТЬ РЕЙС</span>
         </a>
     </div>

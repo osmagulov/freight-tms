@@ -4,9 +4,9 @@
 
 {% block content %}
 
-{% set available_count   = vehicle_data | selectattr('vehicle.status', 'equalto', 'AVAILABLE')   | list | length %}
-{% set on_trip_count     = vehicle_data | selectattr('vehicle.status', 'equalto', 'ON_TRIP')      | list | length %}
-{% set maintenance_count = vehicle_data | selectattr('vehicle.status', 'equalto', 'MAINTENANCE')  | list | length %}
+{% set maintenance_count = vehicle_data | selectattr('vehicle.status', 'equalto', 'MAINTENANCE') | list | length %}
+{% set on_trip_count     = vehicle_data | selectattr('active_trip') | list | length %}
+{% set available_count   = vehicle_data | length - on_trip_count - maintenance_count %}
 
 <div class="page-hdr">
     <div>
@@ -66,6 +66,22 @@
                     <div class="badge badge-ghost text-white" style="background: var(--surface-low); border: 1px solid var(--border); font-size: 13px; font-weight: 700; padding: 6px 12px; font-family: 'JetBrains Mono', monospace;">
                         {{ vehicle.license_plate }}
                     </div>
+                    <div style="display: flex; align-items: center; gap: 4px; margin-top: 3px; padding-left: 2px;" onclick="event.stopPropagation()">
+                        {% if vehicle.trailer_plate %}
+                        <span class="topbar-meta" style="font-size: 10px; font-family: monospace;">▸ {{ vehicle.trailer_plate }}</span>
+                        {% else %}
+                        <span class="topbar-meta" style="font-size: 10px; font-style: italic;">▸ без прицепа</span>
+                        {% endif %}
+                        <button onclick="toggleTrailerForm({{ vehicle.id }})" class="btn btn-xs btn-ghost" style="padding: 0 4px; height: 18px; font-size: 10px; opacity: 0.5;" title="Изменить прицеп">
+                            <span class="material-symbols-outlined" style="font-size: 12px;">edit</span>
+                        </button>
+                    </div>
+                    <div id="trailer-form-{{ vehicle.id }}" style="display:none; margin-top: 6px;" onclick="event.stopPropagation()">
+                        <form action="/panel/vehicles/{{ vehicle.id }}/trailer" method="post" style="display: flex; gap: 4px;">
+                            <input type="text" name="trailer_plate" value="{{ vehicle.trailer_plate or '' }}" placeholder="AB 202" style="width: 90px; height: 28px; font-size: 11px; font-family: monospace; text-transform: uppercase; padding: 0 8px;">
+                            <button type="submit" class="btn btn-xs" style="height: 28px; padding: 0 10px;">✓</button>
+                        </form>
+                    </div>
                 </td>
                 <td>
                     <div class="fw-bold text-white">
@@ -74,10 +90,13 @@
                     {% if vehicle.year %}<div class="topbar-meta" style="font-size: 11px;">Выпуск: {{ vehicle.year }}</div>{% endif %}
                 </td>
                 <td>
-                    {% if vehicle.status == 'AVAILABLE' %}<span class="badge badge-pending" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);" data-i18n="status_available">Свободен</span>
-                    {% elif vehicle.status == 'ON_TRIP' %}<span class="badge badge-active" data-i18n="status_on_trip">В рейсе</span>
-                    {% elif vehicle.status == 'MAINTENANCE' %}<span class="badge badge-cancelled" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);" data-i18n="status_maintenance">На ТО</span>
-                    {% else %}<span class="badge">{{ vehicle.status }}</span>{% endif %}
+                    {% if vehicle.status == 'MAINTENANCE' %}
+                        <span class="badge badge-cancelled" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2);" data-i18n="status_maintenance">На ТО</span>
+                    {% elif active_trip %}
+                        <span class="badge badge-active" data-i18n="status_on_trip">В рейсе</span>
+                    {% else %}
+                        <span class="badge badge-pending" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);" data-i18n="status_available">Свободен</span>
+                    {% endif %}
                 </td>
                 <td>
                     {% if open_repairs > 0 %}
@@ -132,5 +151,12 @@
     <a href="/panel/vehicles/add" class="btn btn-xs mt-3">+ Добавить борт</a>
 </div>
 {% endif %}
+
+<script>
+function toggleTrailerForm(id) {
+    const el = document.getElementById('trailer-form-' + id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
 
 {% endblock %}

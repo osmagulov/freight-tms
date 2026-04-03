@@ -32,9 +32,15 @@
     </div>
     <div class="card-body p-5">
         <form method="post" action="/panel/vehicles/add">
-            <div class="form-row mb-4">
-                <label class="text-muted small fw-bold mb-2 d-block" data-i18n="license_plate">ГОСУДАРСТВЕННЫЙ НОМЕР *</label>
-                <input type="text" name="license_plate" placeholder="018 АВ 01" required autofocus style="width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 800; letter-spacing: 0.05em;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                <div class="form-row">
+                    <label class="text-muted small fw-bold mb-2 d-block" data-i18n="license_plate">ГОСУДАРСТВЕННЫЙ НОМЕР *</label>
+                    <input type="text" name="license_plate" placeholder="018 АВ 01" required autofocus style="width: 100%; font-size: 16px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">
+                </div>
+                <div class="form-row">
+                    <label class="text-muted small fw-bold mb-2 d-block">НОМЕР ПРИЦЕПА</label>
+                    <input type="text" name="trailer_plate" placeholder="012 АА 01" style="width: 100%; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
+                </div>
             </div>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">

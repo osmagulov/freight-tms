@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Водитель | Freight TMS</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <!-- No external fonts: system-ui only for speed -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
@@ -37,7 +37,7 @@
         body {
             background-color: var(--bg-body);
             color: var(--text);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             margin: 0;
             padding: 0;
             min-height: 100vh;
@@ -281,6 +281,12 @@
         .badge-pending { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
         .badge-cancelled { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
         
+        /* Hide unloaded icon font — all icons replaced with emoji */
+        .material-symbols-outlined { display: none !important; }
+
+        /* Utility: hidden elements */
+        .hidden { display: none !important; }
+
         {% block extra_css %}{% endblock %}
     </style>
     {% block head %}{% endblock %}
@@ -289,7 +295,7 @@
 <body>
     <header>
         <div class="header-logo">
-            <span class="material-symbols-outlined icon">local_shipping</span>
+            <span style="color: var(--primary);">🚚</span>
             <span>FREIGHT<span style="color: var(--primary);">TMS</span></span>
         </div>
         
@@ -311,19 +317,23 @@
     {% if driver %}
     <nav class="tab-bar">
         <a href="/app" class="tab-item {% if active_tab == 'dashboard' %}active{% endif %}">
-            <span class="material-symbols-outlined">dashboard</span>
+            <span style="font-size: 22px;">🏠</span>
             <span data-i18n="tab_home">Главная</span>
         </a>
-        <a href="/app/requests" class="tab-item {% if active_tab == 'requests' %}active{% endif %}">
-            <span class="material-symbols-outlined">send_to_mobile</span>
+        <a href="/app/request-funds" class="tab-item {% if active_tab == 'requests' %}active{% endif %}">
+            <span style="font-size: 22px;">📤</span>
             <span data-i18n="request_dispatcher">Запросы</span>
         </a>
+        <a href="/app/camera" class="tab-item {% if active_tab == 'camera' %}active{% endif %}">
+            <span class="material-symbols-outlined" style="font-size: 24px;">photo_camera</span>
+            <span>Камера</span>
+        </a>
         <a href="/app/documents" class="tab-item {% if active_tab == 'documents' %}active{% endif %}">
-            <span class="material-symbols-outlined">folder_shared</span>
+            <span style="font-size: 22px;">📁</span>
             <span data-i18n="my_documents">Документы</span>
         </a>
         <a href="/app/logout" class="tab-item">
-            <span class="material-symbols-outlined">logout</span>
+            <span style="font-size: 22px;">🚪</span>
             <span data-i18n="exit">Выход</span>
         </a>
     </nav>

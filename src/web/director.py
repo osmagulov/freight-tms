@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from src.db.database import async_session
 from src.db.models import Driver, Expense, FuelAnomaly, Trip, Vehicle
-from src.web.auth import get_current_user_from_cookie
+from src.web.auth import require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ async def director_summary(
     request: Request,
     from_date: str | None = None,
     to_date: str | None = None,
-    current_user: dict = Depends(get_current_user_from_cookie),
+    current_user: dict = Depends(require_admin),
 ):
     from_dt, to_dt = _parse_date_range(from_date, to_date)
     fd_str = from_dt.strftime("%Y-%m-%d")
@@ -77,15 +77,15 @@ async def director_summary(
         )
         active_trips = active_trips_result.scalar() or 0
 
-        # Total Revenue (Price)
-        # Note: In a real scenario we'd use FX rates for non-KZT. 
-        # For now, we sum where KZT and show separate if needed, or assume KZT for simplicity in MVP.
+        # Total Revenue grouped by currency
         revenue_result = await session.execute(
-            select(func.sum(Trip.price)).where(
-                Trip.created_at >= from_dt, Trip.created_at <= to_dt
-            )
+            select(Trip.price_currency, func.sum(Trip.price).label("total"))
+            .where(Trip.created_at >= from_dt, Trip.created_at <= to_dt, Trip.price.isnot(None))
+            .group_by(Trip.price_currency)
         )
-        total_revenue = revenue_result.scalar() or 0
+        revenue_by_currency = {row.price_currency or "KZT": row.total or 0 for row in revenue_result.all()}
+        # Keep total_revenue for backward compat (sum of all, currency-agnostic)
+        total_revenue = sum(revenue_by_currency.values())
 
         # Per-driver analytics
         driver_stats_result = await session.execute(
@@ -135,6 +135,34 @@ async def director_summary(
         )
         vehicles = vehicles_result.scalars().all()
 
+        # Upcoming fuel needs: active + planned trips with planned_distance_km set
+        fuel_plan_result = await session.execute(
+            select(Trip, Vehicle)
+            .join(Vehicle, Trip.vehicle_id == Vehicle.id)
+            .where(
+                Trip.status.in_(["ACTIVE", "PLANNED"]),
+                Trip.planned_distance_km.isnot(None),
+                Vehicle.fuel_norm_per_100km.isnot(None),
+            )
+            .order_by(Trip.planned_departure.asc().nullslast())
+        )
+        fuel_plan_rows = fuel_plan_result.all()
+        fuel_plan = []
+        total_planned_liters = 0
+        for trip, vehicle in fuel_plan_rows:
+            liters = round(trip.planned_distance_km * vehicle.fuel_norm_per_100km / 100)
+            total_planned_liters += liters
+            fuel_plan.append({
+                "trip_id": trip.id,
+                "route": trip.route_details or f"Рейс #{trip.id}",
+                "plate": vehicle.license_plate,
+                "trailer": vehicle.trailer_plate,
+                "distance_km": trip.planned_distance_km,
+                "liters": liters,
+                "departure": trip.planned_departure,
+                "status": trip.status,
+            })
+
     grand_total = sum(row.total_kzt or 0 for row in summary)
     fuel_total_liters = fuel_row.total_liters if fuel_row and fuel_row.total_liters else 0
     fuel_total_kzt = fuel_row.total_kzt if fuel_row and fuel_row.total_kzt else 0
@@ -160,7 +188,10 @@ async def director_summary(
             "avg_price_per_liter": avg_price_per_liter,
             "pending_count": pending_count,
             "total_revenue": total_revenue,
+            "revenue_by_currency": revenue_by_currency,
             "total_profit": total_revenue - grand_total,
+            "fuel_plan": fuel_plan,
+            "total_planned_liters": total_planned_liters,
         },
     )
 
@@ -170,7 +201,7 @@ async def director_trucks(
     request: Request,
     from_date: str | None = None,
     to_date: str | None = None,
-    current_user: dict = Depends(get_current_user_from_cookie),
+    current_user: dict = Depends(require_admin),
 ):
     from_dt, to_dt = _parse_date_range(from_date, to_date)
     fd_str = from_dt.strftime("%Y-%m-%d")
@@ -217,7 +248,7 @@ async def director_export(
     to_date: str | None = None,
     vehicle_id: int | None = None,
     driver_id: int | None = None,
-    current_user: dict = Depends(get_current_user_from_cookie),
+    current_user: dict = Depends(require_admin),
 ):
     from_dt, to_dt = _parse_date_range(from_date, to_date)
 
@@ -275,7 +306,7 @@ async def director_export(
 @router.get("/anomalies", response_class=HTMLResponse)
 async def director_anomalies(
     request: Request,
-    current_user: dict = Depends(get_current_user_from_cookie),
+    current_user: dict = Depends(require_admin),
 ):
     async with async_session() as session:
         result = await session.execute(
@@ -296,7 +327,7 @@ async def director_anomalies(
 @router.get("/drivers", response_class=HTMLResponse)
 async def director_driver_pick(
     request: Request,
-    current_user: dict = Depends(get_current_user_from_cookie),
+    current_user: dict = Depends(require_admin),
 ):
     async with async_session() as session:
         result = await session.execute(
@@ -315,7 +346,7 @@ async def director_driver_history(
     driver_id: int,
     from_date: str | None = None,
     to_date: str | None = None,
-    current_user: dict = Depends(get_current_user_from_cookie),
+    current_user: dict = Depends(require_admin),
 ):
     from_dt, to_dt = _parse_date_range(from_date, to_date)
     fd_str = from_dt.strftime("%Y-%m-%d")
@@ -427,7 +458,7 @@ async def director_rating(
     request: Request,
     from_date: str | None = None,
     to_date: str | None = None,
-    current_user: dict = Depends(get_current_user_from_cookie),
+    current_user: dict = Depends(require_admin),
 ):
     from_dt, to_dt = _parse_date_range(from_date, to_date)
     fd_str = from_dt.strftime("%Y-%m-%d")
