@@ -146,8 +146,18 @@
         </div>
         {% endif %}
 
-        <div class="topbar-meta mt-3" style="font-size: 9px; text-align: right; opacity: 0.5;">
-            {{ req.created_at.strftime('%d.%m %H:%M') }}
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
+            <div class="topbar-meta" style="font-size: 9px; opacity: 0.5;">
+                {{ req.created_at.strftime('%d.%m %H:%M') }}
+            </div>
+            {% if req.status == 'PENDING' %}
+            <form method="POST" action="/app/cancel-request/{{ req.id }}" onsubmit="return confirm('Отменить заявку?')">
+                <button type="submit" class="btn btn-xs btn-ghost" style="color: var(--danger); font-size: 11px; padding: 4px 12px; border: 1px solid rgba(239,68,68,0.3); border-radius: 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                    ОТМЕНИТЬ
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
     {% endfor %}

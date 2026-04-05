@@ -264,6 +264,9 @@
         <a href="/panel/requests" class="sb-link {% if '/requests' in request.url.path %}active{% endif %}">
             <span class="material-symbols-outlined">contact_support</span>
             <span data-i18n="requests">Запросы водителей</span>
+            {% if pending_requests_count and pending_requests_count > 0 %}
+            <span class="sb-badge" style="background: var(--danger);">{{ pending_requests_count }}</span>
+            {% endif %}
         </a>
 
         <div class="sb-section-lbl" data-i18n="fleet">Транспорт и Кадры</div>

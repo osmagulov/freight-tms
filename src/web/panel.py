@@ -33,6 +33,15 @@ from src.services.maintenance import get_maintenance_dashboard_data
 logger = logging.getLogger(__name__)
 
 
+async def get_pending_requests_count() -> int:
+    """Get count of pending driver requests for sidebar badge."""
+    async with async_session() as session:
+        result = await session.execute(
+            select(func.count(DriverRequest.id)).where(DriverRequest.status == RequestStatus.PENDING)
+        )
+        return result.scalar() or 0
+
+
 async def notify_driver_expense_decision(expense: Expense, approved: bool, rejection_comment: str = None) -> None:
     """Send Telegram message to driver about expense approval or rejection."""
     from src.main import ptb_app  # deferred import — ptb_app is set at lifespan startup
@@ -269,8 +278,9 @@ async def list_drivers(
             .order_by(Driver.created_at.desc())
         )
         rows = result.all()  # List of (Driver, Vehicle|None) tuples
+    prc = await get_pending_requests_count()
     return templates.TemplateResponse(request, "drivers.html",
-        {"request": request, "rows": rows, "user": current_user},
+        {"request": request, "rows": rows, "user": current_user, "pending_requests_count": prc},
     )
 
 
@@ -615,7 +625,8 @@ async def list_requests(
         history = res_hist.scalars().all()
 
     return templates.TemplateResponse(request, "requests.html", {
-        "request": request, "pending": pending, "history": history
+        "request": request, "pending": pending, "history": history,
+        "user": current_user, "pending_requests_count": len(pending),
     })
 
 @router.post("/requests/{req_id}/resolve")

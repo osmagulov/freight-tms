@@ -711,3 +711,21 @@ async def request_funds_post(
         session.add(new_req)
         await session.commit()
     return RedirectResponse("/app/request-funds", status_code=302)
+
+
+@router.post("/cancel-request/{request_id}")
+async def cancel_request(request: Request, request_id: int):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        result = await session.execute(
+            select(DriverRequest).where(
+                DriverRequest.id == request_id,
+                DriverRequest.driver_id == driver_id,
+                DriverRequest.status == RequestStatus.PENDING,
+            )
+        )
+        req = result.scalars().first()
+        if req:
+            await session.delete(req)
+            await session.commit()
+    return RedirectResponse("/app/request-funds", status_code=302)

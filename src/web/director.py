@@ -125,6 +125,13 @@ async def director_summary(
         )
         pending_count = pending_result.scalar() or 0
 
+        # Pending driver requests count
+        from src.db.models import DriverRequest, RequestStatus
+        prc_result = await session.execute(
+            select(func.count(DriverRequest.id)).where(DriverRequest.status == RequestStatus.PENDING)
+        )
+        pending_requests_count = prc_result.scalar() or 0
+
         drivers_result = await session.execute(
             select(Driver).where(Driver.status == "ACTIVE").order_by(Driver.name)
         )
@@ -187,6 +194,7 @@ async def director_summary(
             "fuel_count": fuel_count,
             "avg_price_per_liter": avg_price_per_liter,
             "pending_count": pending_count,
+            "pending_requests_count": pending_requests_count,
             "total_revenue": total_revenue,
             "revenue_by_currency": revenue_by_currency,
             "total_profit": total_revenue - grand_total,
