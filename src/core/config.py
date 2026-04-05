@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _warn_insecure_defaults(self) -> "Settings":
         if self.JWT_SECRET_KEY == "change-in-production":
+            if self.DATABASE_URL.startswith("postgresql"):
+                raise ValueError(
+                    "SECURITY: JWT_SECRET_KEY is set to the insecure default 'change-in-production'. "
+                    "Refusing to start with PostgreSQL. "
+                    "Generate a key: python -c \"import secrets; print(secrets.token_hex(32))\""
+                )
             logger.warning(
                 "SECURITY: JWT_SECRET_KEY is set to the default value. "
                 "Set a strong random secret via the JWT_SECRET_KEY env var before going to production. "

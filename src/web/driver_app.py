@@ -89,7 +89,7 @@ async def login_post(request: Request, phone: str = Form(...), password: str = F
             
         token = create_driver_token(driver.id)
         response = RedirectResponse(url="/app/", status_code=302)
-        response.set_cookie("driver_token", token, max_age=365*24*3600, httponly=True)
+        response.set_cookie("driver_token", token, max_age=365*24*3600, httponly=True, secure=True, samesite="lax")
         return response
 
 @router.get("/logout")
@@ -385,7 +385,7 @@ async def parse_receipt(request: Request, receipt: UploadFile = File(...)):
         if l_match:
             try:
                 liters = float(l_match.group(1).replace(',', '.'))
-            except: pass
+            except (ValueError, AttributeError): pass
 
         # Extract Amount
         a_match = re.search(r'(?:сумма|итого|всего|total|sum|к оплате)\s*[:=]?\s*(\d+[ \d]*[.,]\d+)', text_lower)
@@ -393,7 +393,7 @@ async def parse_receipt(request: Request, receipt: UploadFile = File(...)):
             try:
                 cleaned = a_match.group(1).replace(' ', '').replace(',', '.')
                 amount = float(cleaned)
-            except: pass
+            except (ValueError, AttributeError): pass
                 
         # Currency Heuristic
         if 'rub' in text_lower or 'руб' in text_lower or '₽' in text: currency = "RUB"
@@ -681,10 +681,20 @@ async def camera_upload(
     key = f"camera/{driver_id}_{int(datetime.utcnow().timestamp())}_{uuid.uuid4().hex[:6]}.{ext}"
     url = await save_uploaded_file(file_bytes, key, content_type)
     if url and trip_id.strip():
-        async with async_session() as session:
-            label = "Видео с камеры" if is_video else "Фото с камеры"
-            session.add(TripDocument(trip_id=int(trip_id), file_type=label, r2_url=url))
-            await session.commit()
+        try:
+            tid = int(trip_id)
+        except (ValueError, TypeError):
+            tid = None
+        if tid:
+            async with async_session() as session:
+                # Verify trip belongs to this driver
+                trip_check = await session.execute(
+                    select(Trip).where(Trip.id == tid, Trip.driver_id == driver_id)
+                )
+                if trip_check.scalars().first():
+                    label = "Видео с камеры" if is_video else "Фото с камеры"
+                    session.add(TripDocument(trip_id=tid, file_type=label, r2_url=url))
+                    await session.commit()
     return _JSONResponse({"ok": True, "url": url})
 
 

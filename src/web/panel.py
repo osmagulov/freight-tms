@@ -4,7 +4,7 @@ from pathlib import Path
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, update as sa_update, delete
@@ -486,8 +486,8 @@ async def docs_generate_excel_post(
                     "truck_plate": trip.vehicle.license_plate if trip.vehicle else "",
                     "trailer_plate": trip.vehicle.license_plate if trip.vehicle else "", # Fallback to tractor plate
                     "client_name": trip.client_name or "",
-                    "cargo_name": trip.cargo_name or "",
-                    "cargo_weight": str(trip.cargo_weight) if trip.cargo_weight else "",
+                    "cargo_name": trip.load_info or "",
+                    "cargo_weight": "",
                     "price": str(trip.price) if trip.price else "",
                 }
                 

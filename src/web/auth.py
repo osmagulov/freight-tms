@@ -43,7 +43,7 @@ def get_current_user_from_cookie(access_token: str = Cookie(default=None)) -> di
         username: str = payload.get("sub")
         if not username:
             raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
-        return {"username": username, "sub": username, "role": payload.get("role", "dispatcher")}
+        return {"username": username, "sub": username, "role": payload.get("role", "pending")}
     except JWTError:
         raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
 
