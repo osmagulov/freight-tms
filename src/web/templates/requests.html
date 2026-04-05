@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Заявки от водителей — Freight TMS{% endblock %}
-{% block header %}📢 Очередь запросов{% endblock %}
+{% block header %}Очередь запросов{% endblock %}
 
 {% block extra_css %}
 .req-card {
@@ -10,13 +10,36 @@
     padding: 20px;
     margin-bottom: 12px;
     transition: border-color 0.2s;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
 }
 .req-card:hover { border-color: var(--primary); }
 .req-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.req-desc { color: white; font-size: 14px; line-height: 1.5; margin: 12px 0; padding: 12px; background: var(--bg-body); border-radius: 8px; }
-.req-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.req-actions input[type="text"] { flex: 1; min-width: 120px; height: 36px; font-size: 13px; background: var(--surface-low); border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; color: white; }
-.req-actions .btn { height: 36px; min-width: 80px; }
+.req-desc {
+    color: white; font-size: 14px; line-height: 1.5;
+    margin: 12px 0; padding: 12px;
+    background: var(--bg-body); border-radius: 8px;
+    word-break: break-word;
+}
+.req-actions {
+    display: flex; gap: 8px; align-items: stretch;
+    flex-direction: column;
+}
+.req-actions input[type="text"] {
+    width: 100%; height: 40px; font-size: 13px;
+    background: var(--surface-low); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0 12px; color: white;
+    box-sizing: border-box;
+}
+.req-btns {
+    display: flex; gap: 8px;
+}
+.req-btns .btn {
+    flex: 1; height: 40px; min-width: 0;
+    font-size: 13px; font-weight: 800;
+    justify-content: center;
+}
 {% endblock %}
 
 {% block content %}
@@ -34,7 +57,7 @@
     {% endif %}
 </div>
 
-<div class="card mb-5" style="border: 1px solid var(--border);">
+<div class="card mb-5" style="border: 1px solid var(--border); overflow: hidden;">
     <div class="card-hdr" style="background: var(--surface-low);">
         <span class="card-title">
             <span class="material-symbols-outlined text-warning">pending_actions</span>
@@ -46,10 +69,10 @@
         {% for req in pending %}
         <div class="req-card">
             <div class="req-meta">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--primary); border: 1px solid var(--border);">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--primary); border: 1px solid var(--border); flex-shrink: 0;">
                     {{ req.driver.name[:1] if req.driver else 'D' }}
                 </div>
-                <a href="/panel/drivers" class="fw-bold text-white" style="text-decoration: none; font-size: 15px;">{{ req.driver.name }}</a>
+                <span class="fw-bold text-white" style="font-size: 15px;">{{ req.driver.name }}</span>
                 {% if req.trip %}
                 <a href="/panel/trips/{{ req.trip.id }}" class="badge badge-ghost" style="font-size: 10px;">#{{ req.trip.id }}</a>
                 {% endif %}
@@ -72,12 +95,14 @@
 
             <form method="post" action="/panel/requests/{{ req.id }}/resolve" class="req-actions">
                 <input type="text" name="comment" placeholder="Комментарий к решению...">
-                <button type="submit" name="action" value="APPROVE" class="btn btn-xs" style="background: var(--success); color: white; font-weight: 800;">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">check</span> ОДОБРИТЬ
-                </button>
-                <button type="submit" name="action" value="REJECT" class="btn btn-xs btn-ghost" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.3); font-weight: 800;">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">close</span> ОТКЛОНИТЬ
-                </button>
+                <div class="req-btns">
+                    <button type="submit" name="action" value="APPROVE" class="btn" style="background: var(--success); color: white;">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">check</span> ОДОБРИТЬ
+                    </button>
+                    <button type="submit" name="action" value="REJECT" class="btn btn-ghost" style="color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">close</span> ОТКЛОНИТЬ
+                    </button>
+                </div>
             </form>
         </div>
         {% endfor %}
@@ -90,7 +115,7 @@
     {% endif %}
 </div>
 
-<div class="card" style="border: 1px solid var(--border);">
+<div class="card" style="border: 1px solid var(--border); overflow: hidden;">
     <div class="card-hdr">
         <span class="card-title text-muted" style="font-size: 13px;">
             <span class="material-symbols-outlined" style="font-size: 18px;">history</span>
@@ -98,16 +123,16 @@
         </span>
     </div>
     {% if history %}
-    <div class="table-wrap" style="border: none; border-radius: 0;">
+    <div style="overflow-x: auto;">
         <table class="small">
             <thead>
                 <tr>
-                    <th>ВРЕМЯ РЕШЕНИЯ</th>
+                    <th>ВРЕМЯ</th>
                     <th>ВОДИТЕЛЬ</th>
                     <th>ТИП</th>
                     <th>ЗАПРОС</th>
                     <th>СТАТУС</th>
-                    <th>ОТВЕТ ДИСПЕТЧЕРА</th>
+                    <th>ОТВЕТ</th>
                 </tr>
             </thead>
             <tbody>
@@ -116,21 +141,21 @@
                     <td class="text-muted">{{ req.resolved_at.strftime('%d.%m %H:%M') if req.resolved_at else '—' }}</td>
                     <td class="fw-bold text-white">{{ req.driver.name }}</td>
                     <td>
-                        {% if req.request_type == 'BORDER_QUEUE' %}<span class="text-muted">Граница/СВХ</span>
+                        {% if req.request_type == 'BORDER_QUEUE' %}<span class="text-muted">Граница</span>
                         {% elif req.request_type == 'PER_DIEM' %}<span class="text-muted">Суточные</span>
                         {% elif req.request_type == 'FOREIGN_EXPENSE' %}<span class="text-muted">Ин. расходы</span>
                         {% elif req.request_type == 'REPAIR' %}<span class="text-danger">Поломка</span>
-                        {% else %}<span class="text-muted">Сообщение/ЧП</span>{% endif %}
+                        {% else %}<span class="text-muted">Прочее</span>{% endif %}
                     </td>
                     <td>
-                        <div class="text-white">{{ req.description }}</div>
+                        <div class="text-white" style="max-width: 300px; word-break: break-word;">{{ req.description }}</div>
                         {% if req.amount %}<div class="text-primary fw-bold" style="font-size: 10px;">{{ req.amount }} {{ req.currency }}</div>{% endif %}
                     </td>
                     <td>
-                        {% if req.status == 'RESOLVED' %}<span class="badge badge-ghost" style="color: var(--success); background: rgba(16, 185, 129, 0.05);">Выполнено</span>
-                        {% else %}<span class="badge badge-ghost" style="color: var(--danger); background: rgba(239, 68, 68, 0.05);">Отклонено</span>{% endif %}
+                        {% if req.status == 'RESOLVED' %}<span class="badge badge-ghost" style="color: var(--success); background: rgba(16, 185, 129, 0.05);">OK</span>
+                        {% else %}<span class="badge badge-ghost" style="color: var(--danger); background: rgba(239, 68, 68, 0.05);">Отказ</span>{% endif %}
                     </td>
-                    <td class="text-muted italic">{{ req.resolution_comment or '—' }}</td>
+                    <td class="text-muted italic" style="max-width: 200px; word-break: break-word;">{{ req.resolution_comment or '—' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

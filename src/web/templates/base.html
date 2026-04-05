@@ -144,12 +144,13 @@
         .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-highest); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 
         /* ── Main Content Area ── */
-        .main-wrap { 
-            margin-left: calc(var(--sidebar-width) + 24px); 
-            padding-top: var(--topbar-height); 
+        .main-wrap {
+            margin-left: calc(var(--sidebar-width) + 24px);
+            padding-top: var(--topbar-height);
             min-height: 100vh;
+            overflow-x: hidden;
         }
-        .content-container { padding: 40px; max-width: 1400px; margin: 0 auto; }
+        .content-container { padding: 40px; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
 
         /* ── Common Components ── */
         .card { 
