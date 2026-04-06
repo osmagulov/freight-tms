@@ -2,236 +2,248 @@
 {% block title %}Камера — FreightTMS{% endblock %}
 
 {% block content %}
-
 <style>
     body { overflow: hidden; }
     #cam-wrap {
-        position: fixed;
-        inset: 0;
-        background: #000;
-        display: flex;
-        flex-direction: column;
-        z-index: 50;
+        position: fixed; inset: 0; background: #000;
+        display: flex; flex-direction: column; z-index: 50;
     }
-    #preview-canvas {
-        flex: 1;
-        width: 100%;
-        object-fit: cover;
-        display: block;
-    }
+    #preview-canvas { flex: 1; width: 100%; object-fit: cover; display: block; }
     #controls {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
+        position: absolute; bottom: 0; left: 0; right: 0;
         padding: 16px 24px calc(16px + env(safe-area-inset-bottom));
-        background: linear-gradient(transparent, rgba(0,0,0,0.8));
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
+        background: linear-gradient(transparent, rgba(0,0,0,0.85));
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
     #capture-btn {
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        background: white;
-        border: 5px solid rgba(255,255,255,0.4);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        box-shadow: 0 0 24px rgba(255,255,255,0.4);
+        width: 72px; height: 72px; border-radius: 50%; background: white;
+        border: 5px solid rgba(255,255,255,0.4); cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; box-shadow: 0 0 24px rgba(255,255,255,0.4);
     }
     #record-btn {
-        width: 54px;
-        height: 54px;
-        border-radius: 50%;
-        background: rgba(239,68,68,0.85);
-        border: 3px solid rgba(239,68,68,0.4);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
+        width: 54px; height: 54px; border-radius: 50%;
+        background: rgba(239,68,68,0.85); border: 3px solid rgba(239,68,68,0.4);
+        cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    #record-btn.recording {
-        animation: recpulse 1s ease-in-out infinite;
-    }
+    #record-btn.recording { animation: recpulse 1s ease-in-out infinite; }
     @keyframes recpulse {
         0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
         50%       { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
     }
-    .cam-overlay-label {
-        background: rgba(0,0,0,0.55);
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-family: monospace;
-        font-size: 12px;
-        color: #fff;
-        line-height: 1.6;
-        pointer-events: none;
-    }
-    /* Captured preview */
     #result-modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: #000;
-        z-index: 200;
-        flex-direction: column;
+        display: none; position: fixed; inset: 0;
+        background: #000; z-index: 200; flex-direction: column;
     }
     #result-modal.open { display: flex; }
     #result-media { flex: 1; width: 100%; object-fit: contain; }
     #result-actions {
-        display: flex;
-        gap: 12px;
-        padding: 16px;
+        display: flex; gap: 12px; padding: 16px;
         padding-bottom: calc(16px + env(safe-area-inset-bottom));
         background: rgba(0,0,0,0.7);
     }
     .no-camera {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        gap: 16px;
-        color: rgba(255,255,255,0.5);
-        font-size: 14px;
-        text-align: center;
-        padding: 32px;
+        position: absolute; inset: 0; display: flex;
+        align-items: center; justify-content: center;
+        flex-direction: column; gap: 16px; color: rgba(255,255,255,0.5);
+        font-size: 14px; text-align: center; padding: 32px;
     }
+    #rec-indicator {
+        display: none; position: absolute; top: 16px; left: 50%;
+        transform: translateX(-50%); background: rgba(239,68,68,0.9);
+        color: white; border-radius: 20px; padding: 4px 14px;
+        font-size: 12px; font-weight: 700; pointer-events: none;
+    }
+    #status-bar {
+        position: absolute; top: 12px; left: 12px; right: 52px;
+        display: flex; gap: 6px; align-items: center; pointer-events: none;
+        flex-wrap: wrap;
+    }
+    .status-pill {
+        background: rgba(0,0,0,0.55); border-radius: 20px;
+        padding: 4px 10px; font-size: 11px; color: rgba(255,255,255,0.8);
+        font-family: monospace;
+    }
+    .status-pill.gps-ok { color: #34d399; }
+    .status-pill.weather-ok { color: #60a5fa; }
 </style>
 
-{# Pass Jinja data to JS #}
 <script>
-    const DRIVER_NAME  = {{ (driver.name or '')|tojson }};
-    const PLATE_TRUCK  = {{ (vehicle.license_plate if vehicle else '')|tojson }};
-    const PLATE_TRAIL  = {{ (vehicle.trailer_plate if vehicle and vehicle.trailer_plate else '')|tojson }};
-    const TRIP_ID      = {{ active_trip.id if active_trip else 'null' }};
-    const UPLOAD_URL   = "/app/camera/upload";
+    const DRIVER_NAME = {{ (driver.name or '')|tojson }};
+    const PLATE_TRUCK = {{ (vehicle.license_plate if vehicle else '')|tojson }};
+    const PLATE_TRAIL = {{ (vehicle.trailer_plate if vehicle and vehicle.trailer_plate else '')|tojson }};
+    const TRIP_ID     = {{ active_trip.id if active_trip else 'null' }};
+    const UPLOAD_URL  = "/app/camera/upload";
 </script>
 
 <div id="cam-wrap">
     <video id="video" playsinline autoplay muted style="display:none;"></video>
     <canvas id="preview-canvas"></canvas>
 
-    <!-- Live overlay info -->
-    <div style="position:absolute; top:16px; left:16px; right:16px; display:flex; justify-content:space-between; align-items:flex-start; pointer-events:none;">
-        <div class="cam-overlay-label">
-            <div style="font-size:15px; font-weight:900; color:#f59e0b;" id="lbl-plate">—</div>
-            <div id="lbl-driver">{{ driver.name or '—' }}</div>
-            <div id="lbl-coords" style="color:#9ca3af;">GPS...</div>
-            <div id="lbl-time" style="color:#9ca3af;"></div>
-        </div>
-        <a href="/app" style="color:white; background:rgba(0,0,0,0.5); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:none; pointer-events:all;">
-            <span class="material-symbols-outlined" style="font-size:20px;">close</span>
-        </a>
+    <!-- Status pills -->
+    <div id="status-bar">
+        <span class="status-pill" id="pill-gps">GPS…</span>
+        <span class="status-pill" id="pill-weather">Погода…</span>
+        <span class="status-pill" id="pill-loc">—</span>
     </div>
 
-    <!-- Recording indicator -->
-    <div id="rec-indicator" style="display:none; position:absolute; top:16px; left:50%; transform:translateX(-50%); background:rgba(239,68,68,0.9); color:white; border-radius:20px; padding:4px 14px; font-size:12px; font-weight:700; pointer-events:none;">
-        ● REC <span id="rec-timer">0:00</span>
-    </div>
+    <!-- Close button -->
+    <a href="/app" style="position:absolute;top:12px;right:12px;color:white;background:rgba(0,0,0,0.5);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;text-decoration:none;z-index:10;">
+        <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+    </a>
 
-    <!-- No camera fallback -->
+    <div id="rec-indicator">● REC <span id="rec-timer">0:00</span></div>
+
     <div id="no-camera" class="no-camera" style="display:none;">
         <span class="material-symbols-outlined" style="font-size:56px;">no_photography</span>
         <div>Камера недоступна.<br>Разрешите доступ в настройках браузера.</div>
         <a href="/app" class="btn btn-ghost" style="color:white;">Назад</a>
     </div>
 
-    <!-- Controls bar -->
     <div id="controls">
-        <!-- Flip camera -->
-        <button onclick="flipCamera()" style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.15); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-            <span class="material-symbols-outlined" style="font-size:22px; color:white;">flip_camera_ios</span>
+        <button onclick="flipCamera()" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <span class="material-symbols-outlined" style="font-size:22px;color:white;">flip_camera_ios</span>
         </button>
-
-        <!-- Capture photo -->
         <button id="capture-btn" onclick="capturePhoto()">
-            <span class="material-symbols-outlined" style="font-size:34px; color:#111;">photo_camera</span>
+            <span class="material-symbols-outlined" style="font-size:34px;color:#111;">photo_camera</span>
         </button>
-
-        <!-- Record video -->
         <button id="record-btn" onclick="toggleRecord()">
-            <span class="material-symbols-outlined" style="font-size:26px; color:white;" id="rec-icon">videocam</span>
+            <span class="material-symbols-outlined" style="font-size:26px;color:white;" id="rec-icon">videocam</span>
         </button>
     </div>
 </div>
 
 <!-- Result modal -->
 <div id="result-modal">
-    <img id="result-img" class="result-media" style="flex:1; width:100%; object-fit:contain; display:none;">
-    <video id="result-video" class="result-media" controls style="flex:1; width:100%; object-fit:contain; display:none;"></video>
+    <img id="result-img" style="flex:1;width:100%;object-fit:contain;display:none;">
+    <video id="result-video" controls style="flex:1;width:100%;object-fit:contain;display:none;"></video>
     <div id="result-actions">
-        <button onclick="discardResult()" class="btn btn-ghost" style="flex:1; color:white;">Ещё раз</button>
-        <button onclick="downloadResult()" class="btn btn-ghost" style="flex:1; color:white;">
-            <span class="material-symbols-outlined" style="font-size:18px;">download</span>
-            Скачать
+        <button onclick="discardResult()" class="btn btn-ghost" style="flex:1;color:white;">Ещё раз</button>
+        <button onclick="downloadResult()" class="btn btn-ghost" style="flex:1;color:white;">
+            <span class="material-symbols-outlined" style="font-size:18px;">download</span> Скачать
         </button>
         <button id="upload-btn" onclick="uploadResult()" class="btn" style="flex:1.5;">
-            <span class="material-symbols-outlined" style="font-size:18px;">cloud_upload</span>
-            Отправить
+            <span class="material-symbols-outlined" style="font-size:18px;">cloud_upload</span> Отправить
         </button>
     </div>
 </div>
 
 <script>
 (function () {
-    const video      = document.getElementById('video');
-    const canvas     = document.getElementById('preview-canvas');
-    const ctx        = canvas.getContext('2d');
-    const lblPlate   = document.getElementById('lbl-plate');
-    const lblCoords  = document.getElementById('lbl-coords');
-    const lblTime    = document.getElementById('lbl-time');
-    const recIcon    = document.getElementById('rec-icon');
-    const recBtn     = document.getElementById('record-btn');
-    const recIndicator = document.getElementById('rec-indicator');
-    const recTimer   = document.getElementById('rec-timer');
-
-    const plateLabel = PLATE_TRUCK + (PLATE_TRAIL ? ' / ' + PLATE_TRAIL : '');
-    lblPlate.textContent = plateLabel || '— борт не назначен —';
+    // ── State ─────────────────────────────────────────────────────
+    const video        = document.getElementById('video');
+    const canvas       = document.getElementById('preview-canvas');
+    const ctx          = canvas.getContext('2d');
+    const pillGPS      = document.getElementById('pill-gps');
+    const pillWeather  = document.getElementById('pill-weather');
+    const pillLoc      = document.getElementById('pill-loc');
 
     let lat = null, lon = null;
-    let capturedBlob = null;
-    let capturedExt  = 'jpg';
-    let recording    = false;
-    let mediaRecorder = null;
-    let chunks       = [];
-    let recSeconds   = 0;
-    let recInterval  = null;
-    let facingMode   = 'environment';
-    let currentStream = null;
-    let animFrame    = null;
+    let locationName   = '';
+    let weatherText    = '';
+    let weatherTemp    = null;
+    let capturedBlob   = null;
+    let capturedExt    = 'jpg';
+    let recording      = false;
+    let mediaRecorder  = null;
+    let chunks         = [];
+    let recSeconds     = 0;
+    let recInterval    = null;
+    let facingMode     = 'environment';
+    let currentStream  = null;
+    let animFrame      = null;
 
-    // ── Geolocation ──────────────────────────────────────────────
+    const plateLabel   = PLATE_TRUCK + (PLATE_TRAIL ? ' / ' + PLATE_TRAIL : '');
+    const deviceModel  = getDeviceModel();
+
+    // ── Device model ──────────────────────────────────────────────
+    function getDeviceModel() {
+        const ua = navigator.userAgent;
+        if (/iPhone/.test(ua))  { const m = ua.match(/iPhone OS ([\d_]+)/); return 'iPhone' + (m ? ' iOS ' + m[1].replace(/_/g,'.') : ''); }
+        if (/iPad/.test(ua))    return 'iPad';
+        if (/Android/.test(ua)) { const m = ua.match(/;\s*(.+?)\s+Build\//); return m ? m[1] : 'Android'; }
+        return 'Mobile';
+    }
+
+    // ── GPS ───────────────────────────────────────────────────────
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(
             pos => {
-                lat = pos.coords.latitude.toFixed(5);
-                lon = pos.coords.longitude.toFixed(5);
-                lblCoords.textContent = lat + ', ' + lon;
+                const newLat = pos.coords.latitude;
+                const newLon = pos.coords.longitude;
+                const changed = (Math.abs(newLat - lat) > 0.001 || Math.abs(newLon - lon) > 0.001);
+                lat = newLat; lon = newLon;
+                pillGPS.textContent = lat.toFixed(4) + ', ' + lon.toFixed(4);
+                pillGPS.className = 'status-pill gps-ok';
+                if (changed || !locationName) {
+                    fetchLocation(lat, lon);
+                    fetchWeather(lat, lon);
+                }
             },
-            () => { lblCoords.textContent = 'GPS недоступен'; },
+            () => { pillGPS.textContent = 'GPS недоступен'; },
             { enableHighAccuracy: true }
         );
     }
 
-    // ── Clock ─────────────────────────────────────────────────────
-    function nowStr() {
-        const n = new Date();
-        const d = n.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
-        const t = n.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-        return d + '  ' + t;
+    // ── Reverse geocode (Nominatim) ───────────────────────────────
+    async function fetchLocation(la, lo) {
+        try {
+            const r = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${la}&lon=${lo}&format=json&accept-language=ru`,
+                { headers: { 'Accept-Language': 'ru' } }
+            );
+            const d = await r.json();
+            const addr = d.address || {};
+            locationName = (addr.city || addr.town || addr.village || addr.county || '') +
+                           (addr.country ? ', ' + addr.country : '');
+            pillLoc.textContent = locationName || '—';
+        } catch(e) { locationName = ''; }
     }
-    setInterval(() => { lblTime.textContent = nowStr(); }, 1000);
-    lblTime.textContent = nowStr();
 
-    // ── Camera start ─────────────────────────────────────────────
+    // ── Weather (Open-Meteo) ──────────────────────────────────────
+    const WMO_CODES = {
+        0:'Ясно', 1:'Преим. ясно', 2:'Переменная облачность', 3:'Пасмурно',
+        45:'Туман', 48:'Изморозь', 51:'Слабая морось', 53:'Морось', 55:'Сильная морось',
+        61:'Слабый дождь', 63:'Дождь', 65:'Сильный дождь',
+        71:'Слабый снег', 73:'Снег', 75:'Сильный снег', 77:'Ледяные зёрна',
+        80:'Ливень', 81:'Сильный ливень', 82:'Очень сильный ливень',
+        85:'Снегопад', 86:'Сильный снегопад',
+        95:'Гроза', 96:'Гроза с градом', 99:'Сильная гроза с градом',
+    };
+    async function fetchWeather(la, lo) {
+        try {
+            const r = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}` +
+                `&current=temperature_2m,weathercode&wind_speed_unit=ms`
+            );
+            const d = await r.json();
+            const cur = d.current || {};
+            weatherTemp = Math.round(cur.temperature_2m);
+            weatherText = WMO_CODES[cur.weathercode] || 'Неизвестно';
+            pillWeather.textContent = weatherText + ' ' + weatherTemp + '°C';
+            pillWeather.className = 'status-pill weather-ok';
+        } catch(e) { weatherText = ''; weatherTemp = null; }
+    }
+
+    // ── Time helpers ──────────────────────────────────────────────
+    const DAYS = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+    function nowParts() {
+        const n = new Date();
+        const HH   = String(n.getHours()).padStart(2,'0');
+        const MM   = String(n.getMinutes()).padStart(2,'0');
+        const SS   = String(n.getSeconds()).padStart(2,'0');
+        const YYYY = n.getFullYear();
+        const mo   = String(n.getMonth()+1).padStart(2,'0');
+        const DD   = String(n.getDate()).padStart(2,'0');
+        return {
+            time: HH + ':' + MM,
+            sec:  SS,
+            date: YYYY + '/' + mo + '/' + DD,
+            day:  DAYS[n.getDay()],
+        };
+    }
+
+    // ── Camera ────────────────────────────────────────────────────
     async function startCamera(facing) {
         if (currentStream) currentStream.getTracks().forEach(t => t.stop());
         try {
@@ -242,12 +254,10 @@
             video.srcObject = currentStream;
             await video.play();
             scheduleDrawLoop();
-        } catch (e) {
+        } catch(e) {
             document.getElementById('no-camera').style.display = 'flex';
-            console.error('Camera error:', e);
         }
     }
-
     window.flipCamera = function() {
         facingMode = facingMode === 'environment' ? 'user' : 'environment';
         startCamera(facingMode);
@@ -256,56 +266,156 @@
     // ── Draw loop ─────────────────────────────────────────────────
     function scheduleDrawLoop() {
         if (animFrame) cancelAnimationFrame(animFrame);
-        function loop() {
-            drawFrame();
-            animFrame = requestAnimationFrame(loop);
-        }
+        function loop() { drawFrame(); animFrame = requestAnimationFrame(loop); }
         loop();
     }
-
     function drawFrame() {
         if (!video.videoWidth) return;
         canvas.width  = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0);
-        drawOverlay();
+        drawStamp();
     }
 
-    function drawOverlay() {
+    // ── Mark Camera style stamp ───────────────────────────────────
+    function drawStamp() {
         const W = canvas.width, H = canvas.height;
-        const stripH = Math.round(H * 0.18);
-        const y0 = H - stripH;
+        const p = nowParts();
 
-        // Semi-transparent strip
-        ctx.fillStyle = 'rgba(0,0,0,0.62)';
-        ctx.fillRect(0, y0, W, stripH);
+        // Scale relative to image width
+        const scale  = W / 1080;
+        const fs     = Math.round(28 * scale);   // base font size
+        const pad    = Math.round(24 * scale);
+        const lh     = Math.round(fs * 1.55);    // line height
+        const rr     = Math.round(14 * scale);   // border radius
 
-        const fs  = Math.round(W * 0.033);   // base font size
-        const pad = Math.round(W * 0.018);
+        // Count lines to draw
+        const lines = [
+            { type: 'header' },
+            { type: 'time',    text: p.time },
+            { type: 'date',    text: p.date + '  ' + p.day },
+        ];
+        if (locationName)                lines.push({ type: 'loc',  text: locationName });
+        if (weatherText && weatherTemp !== null) lines.push({ type: 'weather', text: weatherText + '  +' + weatherTemp + '°C' });
+        if (lat && lon) {
+            lines.push({ type: 'gps1', text: lat.toFixed(3) + '°N   ' + lon.toFixed(3) + '°E' });
+            lines.push({ type: 'gps2', text: lat.toFixed(5) + ',  ' + lon.toFixed(5) });
+        }
+        lines.push({ type: 'device', text: deviceModel });
+        if (DRIVER_NAME)   lines.push({ type: 'driver', text: DRIVER_NAME });
+        if (plateLabel)    lines.push({ type: 'plate',  text: plateLabel });
 
-        // Plate — large amber
-        ctx.font = `900 ${Math.round(fs * 1.35)}px 'Courier New', monospace`;
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillText(plateLabel || '—', pad, y0 + fs * 1.6);
+        const panelH = Math.round(pad * 1.5) + lines.length * lh + Math.round(pad * 0.8);
+        const panelW = Math.round(W * 0.62);
+        const x0 = pad;
+        const y0 = H - panelH - pad;
 
-        // Driver name
-        ctx.font = `bold ${fs}px sans-serif`;
+        // Background panel — rounded rect
+        ctx.save();
+        ctx.globalAlpha = 0.80;
+        ctx.fillStyle   = '#0a0f1a';
+        roundRect(ctx, x0, y0, panelW, panelH, rr);
+        ctx.fill();
+        ctx.restore();
+
+        // Blue left accent bar
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(x0, y0 + rr, Math.round(4 * scale), panelH - rr * 2);
+
+        let cy = y0 + Math.round(pad * 1.4);
+
+        lines.forEach(line => {
+            const tx = x0 + Math.round(18 * scale);
+
+            if (line.type === 'header') {
+                // App badge row
+                ctx.font = `900 ${Math.round(fs * 0.88)}px sans-serif`;
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillText('FreightTMS', tx, cy);
+                // Verified badge
+                const badgeX = tx + ctx.measureText('FreightTMS').width + Math.round(8 * scale);
+                drawVerifiedBadge(ctx, badgeX, cy - Math.round(fs * 0.72), Math.round(fs * 0.85), scale);
+                cy += lh;
+                return;
+            }
+
+            let icon = '';
+            let color = '#ffffff';
+            let font  = `${fs}px sans-serif`;
+
+            switch (line.type) {
+                case 'time':
+                    // Green checkmark + big time
+                    ctx.font = `900 ${Math.round(fs * 1.25)}px monospace`;
+                    ctx.fillStyle = '#34d399';
+                    ctx.fillText('✓', tx, cy);
+                    ctx.font = `900 ${Math.round(fs * 1.25)}px monospace`;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(line.text, tx + Math.round(fs * 1.1), cy);
+                    cy += Math.round(lh * 1.3);
+                    return;
+                case 'date':    icon = '📅'; color = '#93c5fd'; font = `bold ${fs}px sans-serif`; break;
+                case 'loc':     icon = '📍'; color = '#fbbf24'; font = `bold ${Math.round(fs*0.92)}px sans-serif`; break;
+                case 'weather': icon = '🌤'; color = '#60a5fa'; font = `bold ${fs}px sans-serif`; break;
+                case 'gps1':    icon = '⊕'; color = '#9ca3af'; font = `${Math.round(fs*0.82)}px monospace`; break;
+                case 'gps2':    icon = ' '; color = '#6b7280'; font = `${Math.round(fs*0.78)}px monospace`; break;
+                case 'device':  icon = '📱'; color = '#d1d5db'; font = `${Math.round(fs*0.85)}px sans-serif`; break;
+                case 'driver':  icon = '👤'; color = '#ffffff'; font = `bold ${fs}px sans-serif`; break;
+                case 'plate':
+                    ctx.font = `900 ${Math.round(fs * 1.05)}px 'Courier New', monospace`;
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillText(line.text, tx, cy);
+                    cy += lh;
+                    return;
+            }
+
+            ctx.font = font;
+            ctx.fillStyle = color;
+            ctx.fillText(icon + '  ' + line.text, tx, cy);
+            cy += lh;
+        });
+
+        // Divider line above plate
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth   = Math.round(scale);
+        ctx.beginPath();
+        ctx.moveTo(x0 + Math.round(14*scale), cy - Math.round(lh * 0.5));
+        ctx.lineTo(x0 + panelW - Math.round(14*scale), cy - Math.round(lh * 0.5));
+        ctx.stroke();
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    function drawVerifiedBadge(ctx, x, y, size, scale) {
+        // Small blue circle with checkmark
+        ctx.save();
+        ctx.fillStyle = '#3b82f6';
+        ctx.beginPath();
+        ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(DRIVER_NAME || '—', pad, y0 + fs * 3.1);
-
-        // Coords
-        ctx.font = `${Math.round(fs * 0.82)}px 'Courier New', monospace`;
-        ctx.fillStyle = '#9ca3af';
-        ctx.fillText(lat && lon ? lat + ', ' + lon : 'GPS...', pad, y0 + fs * 4.3);
-
-        // Timestamp
-        ctx.fillText(nowStr(), pad, y0 + fs * 5.3);
+        ctx.font = `900 ${Math.round(size * 0.7)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('✓', x + size/2, y + size * 0.78);
+        ctx.textAlign = 'left';
+        ctx.restore();
     }
 
     // ── Photo capture ─────────────────────────────────────────────
     window.capturePhoto = function() {
         if (recording) return;
-        // Draw one final frame to make sure timestamp is fresh
         drawFrame();
         canvas.toBlob(blob => {
             capturedBlob = blob;
@@ -315,14 +425,12 @@
     };
 
     // ── Video recording ───────────────────────────────────────────
-    window.toggleRecord = function() {
-        recording ? stopRecord() : startRecord();
-    };
+    window.toggleRecord = function() { recording ? stopRecord() : startRecord(); };
 
     function startRecord() {
         chunks = [];
         const stream = canvas.captureStream(30);
-        const mimeTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+        const mimeTypes = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'];
         const mime = mimeTypes.find(m => MediaRecorder.isTypeSupported(m)) || '';
         mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -333,43 +441,40 @@
         };
         mediaRecorder.start(500);
         recording = true;
-        recIcon.textContent = 'stop';
-        recBtn.classList.add('recording');
+        document.getElementById('rec-icon').textContent = 'stop';
+        document.getElementById('record-btn').classList.add('recording');
         recSeconds = 0;
-        recIndicator.style.display = 'block';
+        document.getElementById('rec-indicator').style.display = 'block';
         recInterval = setInterval(() => {
             recSeconds++;
-            const m = Math.floor(recSeconds / 60);
-            const s = recSeconds % 60;
-            recTimer.textContent = m + ':' + String(s).padStart(2, '0');
+            const m = Math.floor(recSeconds/60), s = recSeconds%60;
+            document.getElementById('rec-timer').textContent = m + ':' + String(s).padStart(2,'0');
         }, 1000);
     }
 
     function stopRecord() {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
         recording = false;
-        recIcon.textContent = 'videocam';
-        recBtn.classList.remove('recording');
+        document.getElementById('rec-icon').textContent = 'videocam';
+        document.getElementById('record-btn').classList.remove('recording');
         clearInterval(recInterval);
-        recIndicator.style.display = 'none';
+        document.getElementById('rec-indicator').style.display = 'none';
     }
 
     // ── Result modal ──────────────────────────────────────────────
     function showResult(blob, type) {
-        const url = URL.createObjectURL(blob);
+        const url   = URL.createObjectURL(blob);
         const modal = document.getElementById('result-modal');
         const img   = document.getElementById('result-img');
         const vid   = document.getElementById('result-video');
-        img.style.display = 'none';
-        vid.style.display = 'none';
-        if (type === 'image') {
-            img.src = url;
-            img.style.display = 'block';
-        } else {
-            vid.src = url;
-            vid.style.display = 'block';
-        }
+        img.style.display = 'none'; vid.style.display = 'none';
+        if (type === 'image') { img.src = url; img.style.display = 'block'; }
+        else                  { vid.src = url; vid.style.display = 'block'; }
         modal.classList.add('open');
+        // Reset upload button
+        const btn = document.getElementById('upload-btn');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">cloud_upload</span> Отправить';
     }
 
     window.discardResult = function() {
@@ -378,10 +483,10 @@
     };
 
     window.downloadResult = function() {
+        if (!capturedBlob) return;
         const a = document.createElement('a');
         a.href = URL.createObjectURL(capturedBlob);
-        const plate = (plateLabel || 'photo').replace(/[^a-zA-Z0-9]/g, '_');
-        a.download = `${plate}_${Date.now()}.${capturedExt}`;
+        a.download = (plateLabel || 'photo').replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now() + '.' + capturedExt;
         a.click();
     };
 
@@ -389,24 +494,29 @@
         if (!capturedBlob) return;
         const btn = document.getElementById('upload-btn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">hourglass_top</span> Отправка...';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">hourglass_top</span> Отправка…';
 
         const fd = new FormData();
         fd.append('file', capturedBlob, 'capture.' + capturedExt);
-        if (TRIP_ID) fd.append('trip_id', TRIP_ID);
+        if (TRIP_ID) fd.append('trip_id', String(TRIP_ID));
 
         try {
             const resp = await fetch(UPLOAD_URL, { method: 'POST', body: fd, credentials: 'include' });
+            if (resp.status === 302 || resp.redirected) {
+                // Auth expired — redirect to login
+                window.location.href = '/app/login';
+                return;
+            }
             const data = await resp.json();
             if (data.ok) {
-                btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Отправлено';
-                setTimeout(() => window.discardResult(), 1800);
+                btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Отправлено!';
+                setTimeout(() => window.discardResult(), 2000);
             } else {
                 btn.innerHTML = 'Ошибка — повторить';
                 btn.disabled = false;
             }
-        } catch (e) {
-            btn.innerHTML = 'Ошибка — повторить';
+        } catch(e) {
+            btn.innerHTML = 'Ошибка сети — повторить';
             btn.disabled = false;
         }
     };
