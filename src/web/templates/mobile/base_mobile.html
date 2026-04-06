@@ -316,19 +316,19 @@
 
     {% if driver %}
     <nav class="tab-bar">
-        <a href="/app" class="tab-item {% if active_tab == 'dashboard' %}active{% endif %}">
+        <a href="/app" class="tab-item {% if active_tab|default('') == 'dashboard' %}active{% endif %}">
             <span style="font-size: 22px;">🏠</span>
             <span data-i18n="tab_home">Главная</span>
         </a>
-        <a href="/app/request-funds" class="tab-item {% if active_tab == 'requests' %}active{% endif %}">
+        <a href="/app/request-funds" class="tab-item {% if active_tab|default('') == 'requests' %}active{% endif %}">
             <span style="font-size: 22px;">📤</span>
             <span data-i18n="request_dispatcher">Запросы</span>
         </a>
-        <a href="/app/camera" class="tab-item {% if active_tab == 'camera' %}active{% endif %}">
+        <a href="/app/camera" class="tab-item {% if active_tab|default('') == 'camera' %}active{% endif %}">
             <span class="material-symbols-outlined" style="font-size: 24px;">photo_camera</span>
             <span>Камера</span>
         </a>
-        <a href="/app/documents" class="tab-item {% if active_tab == 'documents' %}active{% endif %}">
+        <a href="/app/documents" class="tab-item {% if active_tab|default('') == 'documents' %}active{% endif %}">
             <span style="font-size: 22px;">📁</span>
             <span data-i18n="my_documents">Документы</span>
         </a>

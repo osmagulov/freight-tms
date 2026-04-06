@@ -151,7 +151,11 @@ async def open_trip_get(request: Request):
     async with async_session() as session:
         v_res = await session.execute(select(Vehicle).order_by(Vehicle.license_plate))
         vehicles = v_res.scalars().all()
-    return templates.TemplateResponse(request, "mobile/open_trip.html", {"request": request, "vehicles": vehicles})
+        driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = driver_res.scalars().first()
+    return templates.TemplateResponse(request, "mobile/open_trip.html", {
+        "request": request, "vehicles": vehicles, "driver": driver, "active_tab": "",
+    })
 
 @router.post("/open-trip")
 async def open_trip_post(
@@ -222,6 +226,7 @@ async def add_expense_get(request: Request):
         return templates.TemplateResponse(request, "mobile/add_expense.html", {
             "request": request,
             "driver": driver,
+            "active_tab": "",
         })
     except HTTPException:
         raise
@@ -459,7 +464,12 @@ async def parse_receipt(request: Request, receipt: UploadFile = File(...)):
 @router.get("/close-trip", response_class=HTMLResponse)
 async def close_trip_get(request: Request):
     driver_id = await requires_driver(request)
-    return templates.TemplateResponse(request, "mobile/close_trip.html", {"request": request})
+    async with async_session() as session:
+        driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = driver_res.scalars().first()
+    return templates.TemplateResponse(request, "mobile/close_trip.html", {
+        "request": request, "driver": driver, "active_tab": "",
+    })
 
 @router.post("/close-trip")
 async def close_trip_post(
@@ -511,11 +521,12 @@ async def documents_get(request: Request):
             trip_docs = td_res.scalars().all()
             
     return templates.TemplateResponse(request, "mobile/documents.html", {
-        "request": request, 
-        "driver": driver, 
-        "docs": docs, 
+        "request": request,
+        "driver": driver,
+        "docs": docs,
         "active_trip": trip,
-        "trip_docs": trip_docs
+        "trip_docs": trip_docs,
+        "active_tab": "documents",
     })
 
 
@@ -599,7 +610,11 @@ async def report_repair_get(request: Request):
         trip = await get_active_trip_for_driver(session, driver_id)
         if not trip:
             return RedirectResponse("/app/", status_code=302)
-    return templates.TemplateResponse(request, "mobile/report_repair.html", {"request": request})
+        driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = driver_res.scalars().first()
+    return templates.TemplateResponse(request, "mobile/report_repair.html", {
+        "request": request, "driver": driver, "active_tab": "",
+    })
 
 
 @router.post("/report-repair")
@@ -638,7 +653,11 @@ async def trip_event_get(request: Request):
             select(TripEvent).where(TripEvent.trip_id == trip.id).order_by(TripEvent.created_at.desc())
         )
         events = result.scalars().all()
-    return templates.TemplateResponse(request, "mobile/report_event.html", {"request": request, "events": events})
+        driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = driver_res.scalars().first()
+    return templates.TemplateResponse(request, "mobile/report_event.html", {
+        "request": request, "events": events, "driver": driver, "active_tab": "",
+    })
 
 
 @router.post("/trip-event")
@@ -671,7 +690,11 @@ async def request_funds_get(request: Request):
             select(DriverRequest).where(DriverRequest.driver_id == driver_id).order_by(DriverRequest.created_at.desc())
         )
         requests = result.scalars().all()
-    return templates.TemplateResponse(request, "mobile/request_funds.html", {"request": request, "requests": requests})
+        driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = driver_res.scalars().first()
+    return templates.TemplateResponse(request, "mobile/request_funds.html", {
+        "request": request, "requests": requests, "driver": driver, "active_tab": "requests",
+    })
 
 @router.get("/camera", response_class=HTMLResponse)
 async def camera_get(request: Request):
