@@ -235,111 +235,121 @@ async def add_expense_post(
         "RUB": 5.2,    # 1 RUB ≈ 5.2 KZT
         "USD": 450.0,  # 1 USD ≈ 450 KZT
         "EUR": 490.0,  # 1 EUR ≈ 490 KZT
+        "CNY": 62.0,   # 1 CNY ≈ 62 KZT
         "TRY": 13.5,   # 1 TRY ≈ 13.5 KZT
     }
     fx_rate = FX_RATES.get(currency, 1.0)
     amount_kzt = round(amount * fx_rate, 2)
 
     # Parse optional numeric fields — form always submits them as strings, even when empty
-    liters_val = float(liters) if liters and liters.strip() else None
-    odometer_val = int(float(odometer)) if odometer and odometer.strip() else None
+    try:
+        liters_val = float(liters) if liters and liters.strip() else None
+    except (ValueError, TypeError):
+        liters_val = None
+    try:
+        odometer_val = int(float(odometer)) if odometer and odometer.strip() else None
+    except (ValueError, TypeError):
+        odometer_val = None
 
-    async with async_session() as session:
-        trip = await get_active_trip_for_driver(session, driver_id)
-        if not trip:
-            return RedirectResponse(url="/app/", status_code=302)
+    try:
+        async with async_session() as session:
+            trip = await get_active_trip_for_driver(session, driver_id)
+            if not trip:
+                return RedirectResponse(url="/app/", status_code=302)
 
-        receipt_url = None
-        if receipt and receipt.filename:
-            file_bytes = await receipt.read()
-            ext = receipt.filename.split('.')[-1] if '.' in receipt.filename else 'jpg'
-            key = f"expenses/receipt_{uuid.uuid4()}.{ext}"
-            receipt_url = await save_uploaded_file(file_bytes, key, content_type=receipt.content_type)
+            receipt_url = None
+            if receipt and receipt.filename:
+                file_bytes = await receipt.read()
+                ext = receipt.filename.split('.')[-1] if '.' in receipt.filename else 'jpg'
+                key = f"expenses/receipt_{uuid.uuid4()}.{ext}"
+                receipt_url = await save_uploaded_file(file_bytes, key, content_type=receipt.content_type)
 
-        card_url = None
-        if card_photo and card_photo.filename:
-            file_bytes = await card_photo.read()
-            ext = card_photo.filename.split('.')[-1] if '.' in card_photo.filename else 'jpg'
-            key = f"expenses/card_{uuid.uuid4()}.{ext}"
-            card_url = await save_uploaded_file(file_bytes, key, content_type=card_photo.content_type)
+            card_url = None
+            if card_photo and card_photo.filename:
+                file_bytes = await card_photo.read()
+                ext = card_photo.filename.split('.')[-1] if '.' in card_photo.filename else 'jpg'
+                key = f"expenses/card_{uuid.uuid4()}.{ext}"
+                card_url = await save_uploaded_file(file_bytes, key, content_type=card_photo.content_type)
 
-        final_comment = comment.strip()
-        if expense_type == "FUEL" and fuel_card_number.strip():
-            final_comment = f"[Оплата: {fuel_card_number.strip()}] {final_comment}".strip()
+            final_comment = comment.strip()
+            if expense_type == "FUEL" and fuel_card_number.strip() and fuel_card_number.strip() != "CASH":
+                final_comment = f"[Оплата: {fuel_card_number.strip()}] {final_comment}".strip()
 
-        expense = Expense(
-            trip_id=trip.id,
-            expense_type=expense_type,
-            amount=amount,
-            currency=currency,
-            comment=final_comment or None,
-            photo_file_id=receipt_url,
-            card_photo_file_id=card_url,
-            fx_rate=fx_rate,
-            amount_kzt=amount_kzt,
-            liters=liters_val if expense_type == "FUEL" else None,
-            odometer_reading=odometer_val if expense_type == "FUEL" else None,
-            station=station.strip() or None if expense_type == "FUEL" else None,
-        )
-        session.add(expense)
-        await session.flush()  # get expense.id
-
-        # Anomaly check for FUEL: compare consumption vs vehicle norm
-        if expense_type == "FUEL" and liters_val and odometer_val and trip.start_odometer:
-            # Find previous odometer for this trip (from earlier fuel expenses)
-            from sqlalchemy import func as sqlfunc
-            prev_odo_result = await session.execute(
-                select(Expense.odometer_reading)
-                .where(
-                    Expense.trip_id == trip.id,
-                    Expense.expense_type == "FUEL",
-                    Expense.odometer_reading != None,
-                    Expense.id != expense.id,
-                )
-                .order_by(Expense.odometer_reading.desc())
-                .limit(1)
+            expense = Expense(
+                trip_id=trip.id,
+                expense_type=expense_type,
+                amount=amount,
+                currency=currency,
+                comment=final_comment or None,
+                photo_file_id=receipt_url,
+                card_photo_file_id=card_url,
+                fx_rate=fx_rate,
+                amount_kzt=amount_kzt,
+                liters=liters_val if expense_type == "FUEL" else None,
+                odometer_reading=odometer_val if expense_type == "FUEL" else None,
+                station=(station.strip() or None) if expense_type == "FUEL" else None,
             )
-            prev_odo = prev_odo_result.scalar()
-            base_odo = prev_odo or trip.start_odometer
-            km_driven = odometer_val - base_odo
+            session.add(expense)
+            await session.flush()  # get expense.id
 
-            if km_driven > 10:  # at least 10km to avoid division noise
-                actual_per_100 = (liters_val / km_driven) * 100
-
-                # Load vehicle norm
-                from src.db.models import Vehicle as _Vehicle
-                veh_res = await session.execute(
-                    select(_Vehicle).where(_Vehicle.id == trip.vehicle_id)
-                )
-                vehicle = veh_res.scalars().first()
-                norm = vehicle.fuel_norm_per_100km if vehicle and vehicle.fuel_norm_per_100km else 30.0
-                threshold = norm * 1.15  # 15% over norm triggers anomaly
-
-                if actual_per_100 > threshold:
-                    excess_pct = round((actual_per_100 - norm) / norm * 100, 1)
-                    from src.db.models import FuelAnomaly
-                    anomaly = FuelAnomaly(
-                        expense_id=expense.id,
-                        vehicle_id=trip.vehicle_id,
-                        trip_id=trip.id,
-                        actual_per_100km=round(actual_per_100, 2),
-                        norm_per_100km=norm,
-                        threshold_per_100km=threshold,
-                        excess_percent=excess_pct,
+            # Anomaly check for FUEL: compare consumption vs vehicle norm
+            if expense_type == "FUEL" and liters_val and odometer_val and trip.start_odometer:
+                try:
+                    prev_odo_result = await session.execute(
+                        select(Expense.odometer_reading)
+                        .where(
+                            Expense.trip_id == trip.id,
+                            Expense.expense_type == "FUEL",
+                            Expense.odometer_reading != None,
+                            Expense.id != expense.id,
+                        )
+                        .order_by(Expense.odometer_reading.desc())
+                        .limit(1)
                     )
-                    session.add(anomaly)
+                    prev_odo = prev_odo_result.scalar()
+                    base_odo = prev_odo or trip.start_odometer
+                    km_driven = odometer_val - base_odo
 
-        # Save fuel card number to driver profile for auto-fill ONLY if it's currently empty, to avoid overwriting with CASH/other card
-        if expense_type == "FUEL" and fuel_card_number.strip():
-            if not fuel_card_number.strip().lower().startswith("нал"):
+                    if km_driven > 10:
+                        actual_per_100 = (liters_val / km_driven) * 100
+                        veh_res = await session.execute(
+                            select(Vehicle).where(Vehicle.id == trip.vehicle_id)
+                        )
+                        vehicle = veh_res.scalars().first()
+                        norm = vehicle.fuel_norm_per_100km if vehicle and vehicle.fuel_norm_per_100km else 30.0
+                        threshold = norm * 1.15
+
+                        if actual_per_100 > threshold:
+                            excess_pct = round((actual_per_100 - norm) / norm * 100, 1)
+                            from src.db.models import FuelAnomaly
+                            anomaly = FuelAnomaly(
+                                expense_id=expense.id,
+                                vehicle_id=trip.vehicle_id,
+                                trip_id=trip.id,
+                                actual_per_100km=round(actual_per_100, 2),
+                                norm_per_100km=norm,
+                                threshold_per_100km=threshold,
+                                excess_percent=excess_pct,
+                            )
+                            session.add(anomaly)
+                except Exception as anomaly_err:
+                    logger.warning(f"Fuel anomaly check failed (non-critical): {anomaly_err}")
+
+            # Save fuel card number to driver profile for auto-fill
+            if expense_type == "FUEL" and fuel_card_number.strip() and fuel_card_number.strip() != "CASH":
                 driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
                 driver = driver_res.scalars().first()
                 if driver and not driver.fuel_card_number:
                     driver.fuel_card_number = fuel_card_number.strip()
 
-        await session.commit()
+            await session.commit()
 
-    return RedirectResponse(url="/app/", status_code=302)
+        return RedirectResponse(url="/app/", status_code=302)
+
+    except Exception as e:
+        logger.error(f"add_expense_post error for driver {driver_id}: {e}", exc_info=True)
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 # --- AI RECEIPT PARSING ---
 @router.post("/parse-receipt")

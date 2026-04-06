@@ -162,7 +162,7 @@
             -webkit-backdrop-filter: blur(16px);
             border-top: 1px solid var(--border);
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             padding-bottom: var(--safe-area-inset-bottom);
             height: calc(64px + var(--safe-area-inset-bottom));
             z-index: 1000;
@@ -712,7 +712,12 @@
                         } else if (response.ok) {
                             window.location.reload();
                         } else {
-                            alert("Ошибка на сервере. Попробуйте еще раз.");
+                            let errMsg = "Ошибка на сервере. Попробуйте еще раз.";
+                            try {
+                                const errData = await response.json();
+                                if (errData.error) errMsg = "Ошибка: " + errData.error;
+                            } catch(_) {}
+                            alert(errMsg);
                             if (loader) loader.classList.add('hidden');
                         }
                     } catch (error) {
