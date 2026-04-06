@@ -103,40 +103,46 @@ async def dashboard(request: Request):
     driver_id = await get_current_driver(request)
     if not driver_id:
         return RedirectResponse("/app/login", status_code=302)
-        
-    async with async_session() as session:
-        result = await session.execute(select(Driver).where(Driver.id == driver_id))
-        driver = result.scalars().first()
-        
-        active_trip = await get_active_trip_for_driver(session, driver_id)
 
-        expenses = []
-        open_repairs = []
-        trip_vehicle = None
-        if active_trip:
-            exp_res = await session.execute(select(Expense).where(Expense.trip_id == active_trip.id).order_by(Expense.created_at.desc()))
-            expenses = exp_res.scalars().all()
+    try:
+        async with async_session() as session:
+            result = await session.execute(select(Driver).where(Driver.id == driver_id))
+            driver = result.scalars().first()
+            if not driver:
+                return RedirectResponse("/app/login", status_code=302)
 
-            if active_trip.vehicle_id:
-                veh_res = await session.execute(select(Vehicle).where(Vehicle.id == active_trip.vehicle_id))
-                trip_vehicle = veh_res.scalars().first()
+            active_trip = await get_active_trip_for_driver(session, driver_id)
 
-                repairs_res = await session.execute(
-                    select(VehicleRepair)
-                    .where(VehicleRepair.vehicle_id == active_trip.vehicle_id)
-                    .where(VehicleRepair.status.in_([RepairStatus.OPEN, RepairStatus.IN_PROGRESS]))
-                    .order_by(VehicleRepair.created_at.desc())
-                )
-                open_repairs = repairs_res.scalars().all()
+            expenses = []
+            open_repairs = []
+            trip_vehicle = None
+            if active_trip:
+                exp_res = await session.execute(select(Expense).where(Expense.trip_id == active_trip.id).order_by(Expense.created_at.desc()))
+                expenses = exp_res.scalars().all()
 
-    return templates.TemplateResponse(request, "mobile/index.html", {
-        "request": request,
-        "driver": driver,
-        "active_trip": active_trip,
-        "trip_vehicle": trip_vehicle,
-        "expenses": expenses,
-        "open_repairs": open_repairs,
-    })
+                if active_trip.vehicle_id:
+                    veh_res = await session.execute(select(Vehicle).where(Vehicle.id == active_trip.vehicle_id))
+                    trip_vehicle = veh_res.scalars().first()
+
+                    repairs_res = await session.execute(
+                        select(VehicleRepair)
+                        .where(VehicleRepair.vehicle_id == active_trip.vehicle_id)
+                        .where(VehicleRepair.status.in_([RepairStatus.OPEN, RepairStatus.IN_PROGRESS]))
+                        .order_by(VehicleRepair.created_at.desc())
+                    )
+                    open_repairs = repairs_res.scalars().all()
+
+        return templates.TemplateResponse(request, "mobile/index.html", {
+            "request": request,
+            "driver": driver,
+            "active_trip": active_trip,
+            "trip_vehicle": trip_vehicle,
+            "expenses": expenses,
+            "open_repairs": open_repairs,
+        })
+    except Exception as e:
+        logger.error(f"Dashboard error for driver {driver_id}: {e}", exc_info=True)
+        return HTMLResponse(f"<h2>Ошибка загрузки: {e}</h2><p><a href='/app/'>Обновить</a></p>", status_code=500)
 
 # --- OPEN TRIP ---
 @router.get("/open-trip", response_class=HTMLResponse)
@@ -200,18 +206,21 @@ async def open_trip_post(
 @router.get("/add-expense", response_class=HTMLResponse)
 async def add_expense_get(request: Request):
     driver_id = await requires_driver(request)
-    async with async_session() as session:
-        trip = await get_active_trip_for_driver(session, driver_id)
-        if not trip:
-            return RedirectResponse("/app/", status_code=302)
-        # Load driver's saved fuel card number
-        driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
-        driver = driver_res.scalars().first()
-    return templates.TemplateResponse(request, "mobile/add_expense.html", {
-        "request": request,
-        "driver": driver,
-        "fuel_card_number": driver.fuel_card_number or "" if driver else "",
-    })
+    try:
+        async with async_session() as session:
+            trip = await get_active_trip_for_driver(session, driver_id)
+            if not trip:
+                return RedirectResponse("/app/", status_code=302)
+            driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
+            driver = driver_res.scalars().first()
+        return templates.TemplateResponse(request, "mobile/add_expense.html", {
+            "request": request,
+            "driver": driver,
+            "fuel_card_number": (driver.fuel_card_number or "") if driver else "",
+        })
+    except Exception as e:
+        logger.error(f"add_expense_get error for driver {driver_id}: {e}", exc_info=True)
+        return HTMLResponse(f"<h2>Ошибка: {e}</h2><p><a href='/app/'>Назад</a></p>", status_code=500)
 
 @router.post("/add-expense")
 async def add_expense_post(
