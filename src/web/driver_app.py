@@ -205,7 +205,10 @@ async def open_trip_post(
 # --- ADD EXPENSE ---
 @router.get("/add-expense", response_class=HTMLResponse)
 async def add_expense_get(request: Request):
-    driver_id = await requires_driver(request)
+    try:
+        driver_id = await requires_driver(request)
+    except HTTPException:
+        raise  # Let the 302 redirect pass through
     try:
         async with async_session() as session:
             trip = await get_active_trip_for_driver(session, driver_id)
@@ -213,14 +216,23 @@ async def add_expense_get(request: Request):
                 return RedirectResponse("/app/", status_code=302)
             driver_res = await session.execute(select(Driver).where(Driver.id == driver_id))
             driver = driver_res.scalars().first()
+            if not driver:
+                logger.error(f"Driver {driver_id} not found in DB but has valid token")
+                return RedirectResponse("/app/login", status_code=302)
         return templates.TemplateResponse(request, "mobile/add_expense.html", {
             "request": request,
             "driver": driver,
-            "fuel_card_number": (driver.fuel_card_number or "") if driver else "",
         })
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"add_expense_get error for driver {driver_id}: {e}", exc_info=True)
-        return HTMLResponse(f"<h2>Ошибка: {e}</h2><p><a href='/app/'>Назад</a></p>", status_code=500)
+        return HTMLResponse(
+            f"<html><body style='background:#0f172a;color:white;padding:40px;font-family:sans-serif'>"
+            f"<h2>Ошибка загрузки формы</h2><pre style='color:#ef4444'>{e}</pre>"
+            f"<p><a href='/app/' style='color:#3b82f6'>← Назад</a></p></body></html>",
+            status_code=500
+        )
 
 @router.post("/add-expense")
 async def add_expense_post(
@@ -355,6 +367,8 @@ async def add_expense_post(
 
         return RedirectResponse(url="/app/", status_code=302)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"add_expense_post error for driver {driver_id}: {e}", exc_info=True)
         from fastapi.responses import JSONResponse
