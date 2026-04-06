@@ -1,0 +1,197 @@
+{% extends "mobile/base_mobile.html" %}
+{% block title %}Мой профиль — FreightTMS{% endblock %}
+
+{% block content %}
+<style>
+    .profile-photo-wrap {
+        display: flex; flex-direction: column; align-items: center;
+        padding: 24px 0 16px;
+    }
+    .profile-avatar {
+        width: 96px; height: 96px; border-radius: 50%;
+        object-fit: cover; border: 3px solid var(--primary);
+        background: var(--surface-high);
+    }
+    .avatar-placeholder {
+        width: 96px; height: 96px; border-radius: 50%;
+        background: var(--surface-high); border: 3px solid var(--primary);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 36px; font-weight: 900; color: var(--primary);
+    }
+    .photo-upload-label {
+        margin-top: 10px; color: var(--primary); font-size: 13px;
+        font-weight: 700; cursor: pointer; display: flex;
+        align-items: center; gap: 6px;
+    }
+    .profile-section {
+        background: var(--surface); border-radius: 16px;
+        padding: 16px; margin-bottom: 12px;
+    }
+    .profile-section-title {
+        font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
+        text-transform: uppercase; color: var(--text-muted);
+        margin-bottom: 12px;
+    }
+    .profile-field { margin-bottom: 14px; }
+    .profile-field label {
+        display: block; font-size: 11px; color: var(--text-muted);
+        font-weight: 700; margin-bottom: 4px; text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+    .profile-field input {
+        width: 100%; height: 46px; background: var(--surface-low);
+        border: 1px solid var(--border); border-radius: 10px;
+        padding: 0 14px; color: white; font-size: 15px;
+        box-sizing: border-box; font-family: inherit;
+    }
+    .profile-field input:focus {
+        outline: none; border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .expiry-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 11px; border-radius: 6px; padding: 2px 8px;
+        margin-top: 4px; font-weight: 700;
+    }
+    .expiry-ok    { background: rgba(16,185,129,0.12); color: #10b981; }
+    .expiry-warn  { background: rgba(245,158,11,0.12);  color: #f59e0b; }
+    .expiry-exp   { background: rgba(239,68,68,0.12);   color: #ef4444; }
+</style>
+
+<div style="padding: 0 16px 80px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0 8px;">
+        <h2 style="font-size:20px;font-weight:900;">Мой профиль</h2>
+        <a href="/app/" style="color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:4px;font-size:13px;">
+            <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span> Назад
+        </a>
+    </div>
+
+    <form method="post" action="/app/profile" enctype="multipart/form-data">
+
+        <!-- Profile photo -->
+        <div class="profile-photo-wrap">
+            {% if driver.profile_photo_url %}
+            <img src="{{ driver.profile_photo_url }}" class="profile-avatar" id="avatar-img" alt="Фото">
+            {% else %}
+            <div class="avatar-placeholder" id="avatar-placeholder">
+                {{ (driver.name or 'Д')[:1].upper() }}
+            </div>
+            <img src="" class="profile-avatar" id="avatar-img" style="display:none;" alt="Фото">
+            {% endif %}
+            <label class="photo-upload-label" for="profile_photo">
+                <span class="material-symbols-outlined" style="font-size:16px;">photo_camera</span>
+                Изменить фото
+            </label>
+            <input type="file" name="profile_photo" id="profile_photo"
+                   accept="image/*" capture="user" style="display:none;"
+                   onchange="previewPhoto(this)">
+        </div>
+
+        <!-- Personal info -->
+        <div class="profile-section">
+            <div class="profile-section-title">Личные данные</div>
+
+            <div class="profile-field">
+                <label>ФИО</label>
+                <input type="text" name="name" value="{{ driver.name or '' }}"
+                       placeholder="Фамилия Имя Отчество">
+            </div>
+            <div class="profile-field">
+                <label>Телефон</label>
+                <input type="tel" name="phone" value="{{ driver.phone or '' }}"
+                       placeholder="+7 XXX XXX XX XX">
+            </div>
+            <div class="profile-field">
+                <label>ИИН</label>
+                <input type="text" name="iin" value="{{ driver.iin or '' }}"
+                       placeholder="000000000000" maxlength="12" inputmode="numeric">
+            </div>
+        </div>
+
+        <!-- Driver license -->
+        <div class="profile-section">
+            <div class="profile-section-title">Водительское удостоверение</div>
+
+            <div class="profile-field">
+                <label>Номер прав</label>
+                <input type="text" name="license_number" value="{{ driver.license_number or '' }}"
+                       placeholder="XX000000000">
+                {% if driver.license_expiry %}
+                    {% set _today = today %}
+                    {% set days = (driver.license_expiry - _today).days %}
+                    {% if days < 0 %}
+                    <span class="expiry-badge expiry-exp">⚠ Просрочено {{ driver.license_expiry.strftime('%d.%m.%Y') }}</span>
+                    {% elif days < 90 %}
+                    <span class="expiry-badge expiry-warn">⚡ Истекает {{ driver.license_expiry.strftime('%d.%m.%Y') }}</span>
+                    {% else %}
+                    <span class="expiry-badge expiry-ok">✓ Действует до {{ driver.license_expiry.strftime('%d.%m.%Y') }}</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="profile-field">
+                <label>Срок действия</label>
+                <input type="date" name="license_expiry"
+                       value="{{ driver.license_expiry.isoformat() if driver.license_expiry else '' }}">
+            </div>
+        </div>
+
+        <!-- Passport -->
+        <div class="profile-section">
+            <div class="profile-section-title">Паспорт</div>
+
+            <div class="profile-field">
+                <label>Номер паспорта</label>
+                <input type="text" name="passport_number" value="{{ driver.passport_number or '' }}"
+                       placeholder="N00000000">
+                {% if driver.passport_expiry %}
+                    {% set _today = today %}
+                    {% set days = (driver.passport_expiry - _today).days %}
+                    {% if days < 0 %}
+                    <span class="expiry-badge expiry-exp">⚠ Просрочен {{ driver.passport_expiry.strftime('%d.%m.%Y') }}</span>
+                    {% elif days < 180 %}
+                    <span class="expiry-badge expiry-warn">⚡ Истекает {{ driver.passport_expiry.strftime('%d.%m.%Y') }}</span>
+                    {% else %}
+                    <span class="expiry-badge expiry-ok">✓ Действует до {{ driver.passport_expiry.strftime('%d.%m.%Y') }}</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="profile-field">
+                <label>Срок действия</label>
+                <input type="date" name="passport_expiry"
+                       value="{{ driver.passport_expiry.isoformat() if driver.passport_expiry else '' }}">
+            </div>
+        </div>
+
+        <!-- Payment -->
+        <div class="profile-section">
+            <div class="profile-section-title">Оплата</div>
+            <div class="profile-field">
+                <label>Номер топливной карты</label>
+                <input type="text" name="fuel_card_number" value="{{ driver.fuel_card_number or '' }}"
+                       placeholder="0000 0000 0000 0000" inputmode="numeric">
+            </div>
+        </div>
+
+        <button type="submit" class="btn" style="width:100%;height:52px;font-size:16px;font-weight:900;">
+            <span class="material-symbols-outlined" style="font-size:20px;">save</span>
+            Сохранить изменения
+        </button>
+    </form>
+</div>
+
+<script>
+function previewPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = document.getElementById('avatar-img');
+        const placeholder = document.getElementById('avatar-placeholder');
+        img.src = e.target.result;
+        img.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+</script>
+
+{% endblock %}

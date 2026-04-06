@@ -68,21 +68,68 @@
 {% endblock %}
 
 {% block content %}
-<div style="margin-top: 8px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px;">
-    <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--surface-low); border: 2px solid var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--primary); font-size: 20px; box-shadow: 0 0 20px var(--primary-glow);">
-        {{ (driver.name.split(' ')[1] if driver.name and driver.name.split(' ')|length > 1 else (driver.name or 'A'))[0] }}
-    </div>
-    <div>
-        <h2 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.02em;">
-            <span data-i18n="hello">Здравствуйте</span>, {{ driver.name.split(' ')[1] if driver.name and driver.name.split(' ')|length > 1 else (driver.name or '') }}!
+<!-- Driver header -->
+<div style="margin-top: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px;">
+    <a href="/app/profile" style="flex-shrink:0; text-decoration:none;">
+        {% if driver.profile_photo_url %}
+        <img src="{{ driver.profile_photo_url }}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);box-shadow:0 0 16px var(--primary-glow);" alt="">
+        {% else %}
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-low);border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--primary);font-size:22px;box-shadow:0 0 16px var(--primary-glow);">
+            {{ (driver.name or 'Д')[:1].upper() }}
+        </div>
+        {% endif %}
+    </a>
+    <div style="flex:1;min-width:0;">
+        <h2 style="margin:0;font-size:17px;font-weight:800;letter-spacing:-0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            <span data-i18n="hello">Здравствуйте</span>, {{ driver.name.split()[1] if driver.name and driver.name.split()|length > 1 else (driver.name or 'Водитель') }}!
         </h2>
-        <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
-            <div class="status-ring {% if active_trip %}text-success{% else %}text-muted{% endif %}" style="background: currentColor;"></div>
-            <span class="topbar-meta" style="font-size: 11px; font-weight: 700;">
-                {% if active_trip %}<span data-i18n="in_trip">В РЕЙСЕ</span>{% else %}<span data-i18n="no_active_trip">ГРАФИК СВОБОДЕН</span>{% endif %}
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;">
+            <div class="status-ring {% if active_trip %}text-success{% else %}text-muted{% endif %}" style="background:currentColor;"></div>
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);">
+                {% if active_trip %}В РЕЙСЕ{% else %}ГРАФИК СВОБОДЕН{% endif %}
             </span>
+            {% if driver.phone %}
+            <span style="font-size:11px;color:var(--text-muted);">· {{ driver.phone }}</span>
+            {% endif %}
         </div>
     </div>
+    <a href="/app/profile" style="flex-shrink:0;color:var(--text-muted);display:flex;align-items:center;text-decoration:none;">
+        <span class="material-symbols-outlined" style="font-size:22px;">manage_accounts</span>
+    </a>
+</div>
+
+<!-- Driver info card -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:8px;">
+    {% if driver.iin %}
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:11px;color:var(--text-muted);font-weight:700;">ИИН</span>
+        <span style="font-size:13px;font-family:monospace;color:white;font-weight:800;">{{ driver.iin }}</span>
+    </div>
+    {% endif %}
+    {% if driver.license_number %}
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:11px;color:var(--text-muted);font-weight:700;">ВУ</span>
+        <span style="font-size:13px;font-family:monospace;color:white;font-weight:800;">{{ driver.license_number }}{% if driver.license_expiry %} · <span style="font-size:11px;color:var(--text-muted);">до {{ driver.license_expiry.strftime('%d.%m.%Y') }}</span>{% endif %}</span>
+    </div>
+    {% endif %}
+    {% if driver.passport_number %}
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:11px;color:var(--text-muted);font-weight:700;">ПАСПОРТ</span>
+        <span style="font-size:13px;font-family:monospace;color:white;font-weight:800;">{{ driver.passport_number }}{% if driver.passport_expiry %} · <span style="font-size:11px;color:var(--text-muted);">до {{ driver.passport_expiry.strftime('%d.%m.%Y') }}</span>{% endif %}</span>
+    </div>
+    {% endif %}
+    {% if driver.fuel_card_number %}
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:11px;color:var(--text-muted);font-weight:700;">ТОПЛ. КАРТА</span>
+        <span style="font-size:13px;font-family:monospace;color:#f59e0b;font-weight:800;">{{ driver.fuel_card_number }}</span>
+    </div>
+    {% endif %}
+    {% if not driver.iin and not driver.license_number and not driver.passport_number and not driver.fuel_card_number %}
+    <a href="/app/profile" style="color:var(--primary);font-size:13px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;">
+        <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+        Заполнить данные профиля
+    </a>
+    {% endif %}
 </div>
 
 {% if active_trip %}

@@ -65,6 +65,11 @@ class Driver(Base):
     language = Column(String, default="ru", nullable=False)
     password_hash = Column(String, nullable=True)     # For PWA login
     fuel_card_number = Column(String, nullable=True)  # Saved fuel card number for auto-fill
+    profile_photo_url = Column(String, nullable=True) # Profile photo (R2 or local)
+    license_number = Column(String(32), nullable=True)  # Driver license number
+    license_expiry = Column(Date, nullable=True)        # License expiry date
+    passport_number = Column(String(32), nullable=True) # Passport number
+    passport_expiry = Column(Date, nullable=True)       # Passport expiry date
     status = Column(String, default=DriverStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)

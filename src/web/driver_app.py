@@ -795,3 +795,83 @@ async def cancel_request(request: Request, request_id: int):
             await session.delete(req)
             await session.commit()
     return RedirectResponse("/app/request-funds", status_code=302)
+
+
+# --- DRIVER PROFILE ---
+@router.get("/profile", response_class=HTMLResponse)
+async def profile_get(request: Request):
+    driver_id = await requires_driver(request)
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        if not driver:
+            return RedirectResponse("/app/login", status_code=302)
+    from datetime import date as date_type
+    today = date_type.today()
+    return templates.TemplateResponse(request, "mobile/profile.html", {
+        "request": request,
+        "driver": driver,
+        "active_tab": "",
+        "today": today,
+    })
+
+
+@router.post("/profile")
+async def profile_post(
+    request: Request,
+    name: str = Form(""),
+    phone: str = Form(""),
+    iin: str = Form(""),
+    license_number: str = Form(""),
+    license_expiry: str = Form(""),
+    passport_number: str = Form(""),
+    passport_expiry: str = Form(""),
+    fuel_card_number: str = Form(""),
+    profile_photo: UploadFile = File(None),
+):
+    driver_id = await requires_driver(request)
+    from datetime import date as date_type
+
+    async with async_session() as session:
+        result = await session.execute(select(Driver).where(Driver.id == driver_id))
+        driver = result.scalars().first()
+        if not driver:
+            return RedirectResponse("/app/login", status_code=302)
+
+        if name.strip():
+            driver.name = name.strip()
+        if phone.strip():
+            driver.phone = phone.strip()
+        if iin.strip():
+            driver.iin = iin.strip()
+        if license_number.strip():
+            driver.license_number = license_number.strip()
+        if passport_number.strip():
+            driver.passport_number = passport_number.strip()
+        if fuel_card_number.strip():
+            driver.fuel_card_number = fuel_card_number.strip()
+
+        if license_expiry.strip():
+            try:
+                driver.license_expiry = date_type.fromisoformat(license_expiry.strip())
+            except ValueError:
+                pass
+        if passport_expiry.strip():
+            try:
+                driver.passport_expiry = date_type.fromisoformat(passport_expiry.strip())
+            except ValueError:
+                pass
+
+        if profile_photo and profile_photo.filename:
+            file_bytes = await profile_photo.read()
+            ext = profile_photo.filename.rsplit(".", 1)[-1].lower() if "." in profile_photo.filename else "jpg"
+            key = f"profiles/{driver_id}/photo.{ext}"
+            photo_url = await save_uploaded_file(
+                file_bytes, key, content_type=profile_photo.content_type or "image/jpeg"
+            )
+            if photo_url:
+                driver.profile_photo_url = photo_url
+
+        await session.commit()
+
+    return RedirectResponse("/app/profile", status_code=302)
