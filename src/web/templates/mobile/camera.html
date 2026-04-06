@@ -33,14 +33,19 @@
     }
     #result-modal {
         display: none; position: fixed; inset: 0;
-        background: #000; z-index: 200; flex-direction: column;
+        background: #000; z-index: 9999; flex-direction: column;
     }
     #result-modal.open { display: flex; }
-    #result-media { flex: 1; width: 100%; object-fit: contain; }
     #result-actions {
-        display: flex; gap: 12px; padding: 16px;
-        padding-bottom: calc(16px + env(safe-area-inset-bottom));
-        background: rgba(0,0,0,0.7);
+        display: flex; flex-direction: column; gap: 10px;
+        padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+        background: rgba(0,0,0,0.92);
+    }
+    #result-actions .action-row { display: flex; gap: 10px; }
+    .big-btn {
+        flex: 1; height: 56px; border-radius: 14px; border: none;
+        font-size: 16px; font-weight: 800; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .no-camera {
         position: absolute; inset: 0; display: flex;
@@ -66,6 +71,7 @@
     }
     .status-pill.gps-ok { color: #34d399; }
     .status-pill.weather-ok { color: #60a5fa; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
 <script>
@@ -118,13 +124,29 @@
     <img id="result-img" style="flex:1;width:100%;object-fit:contain;display:none;">
     <video id="result-video" controls style="flex:1;width:100%;object-fit:contain;display:none;"></video>
     <div id="result-actions">
-        <button onclick="discardResult()" class="btn btn-ghost" style="flex:1;color:white;">Ещё раз</button>
-        <button onclick="downloadResult()" class="btn btn-ghost" style="flex:1;color:white;">
-            <span class="material-symbols-outlined" style="font-size:18px;">download</span> Скачать
+        <!-- Upload to app — primary action -->
+        <button id="upload-btn" class="big-btn" onclick="uploadResult()"
+                style="background:#3b82f6;color:white;width:100%;">
+            <span class="material-symbols-outlined" style="font-size:22px;">cloud_upload</span>
+            Загрузить в приложение
         </button>
-        <button id="upload-btn" onclick="uploadResult()" class="btn" style="flex:1.5;">
-            <span class="material-symbols-outlined" style="font-size:18px;">cloud_upload</span> Отправить
-        </button>
+        <!-- Save + Retake row -->
+        <div class="action-row">
+            <button class="big-btn" onclick="saveToGallery()"
+                    style="background:#1e293b;color:#34d399;border:1px solid rgba(52,211,153,0.3);">
+                <span class="material-symbols-outlined" style="font-size:20px;">save_alt</span>
+                Сохранить
+            </button>
+            <button class="big-btn" onclick="discardResult()"
+                    style="background:#1e293b;color:#94a3b8;border:1px solid rgba(255,255,255,0.1);">
+                <span class="material-symbols-outlined" style="font-size:20px;">replay</span>
+                Переснять
+            </button>
+        </div>
+        <!-- iOS hint -->
+        <div id="ios-hint" style="display:none;text-align:center;color:#64748b;font-size:12px;padding-bottom:4px;">
+            На iOS: нажмите и удержите фото → «Сохранить»
+        </div>
     </div>
 </div>
 
@@ -462,19 +484,37 @@
     }
 
     // ── Result modal ──────────────────────────────────────────────
+    let resultObjectUrl = null;
+
     function showResult(blob, type) {
-        const url   = URL.createObjectURL(blob);
+        if (resultObjectUrl) URL.revokeObjectURL(resultObjectUrl);
+        resultObjectUrl = URL.createObjectURL(blob);
+
         const modal = document.getElementById('result-modal');
         const img   = document.getElementById('result-img');
         const vid   = document.getElementById('result-video');
-        img.style.display = 'none'; vid.style.display = 'none';
-        if (type === 'image') { img.src = url; img.style.display = 'block'; }
-        else                  { vid.src = url; vid.style.display = 'block'; }
-        modal.classList.add('open');
+        img.style.display = 'none';
+        vid.style.display = 'none';
+
+        if (type === 'image') {
+            img.src = resultObjectUrl;
+            img.style.display = 'block';
+        } else {
+            vid.src = resultObjectUrl;
+            vid.style.display = 'block';
+        }
+
         // Reset upload button
         const btn = document.getElementById('upload-btn');
         btn.disabled = false;
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">cloud_upload</span> Отправить';
+        btn.style.background = '#3b82f6';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:22px;">cloud_upload</span> Загрузить в приложение';
+
+        // Show iOS hint for save
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        document.getElementById('ios-hint').style.display = isIOS ? 'block' : 'none';
+
+        modal.classList.add('open');
     }
 
     window.discardResult = function() {
@@ -482,19 +522,31 @@
         capturedBlob = null;
     };
 
-    window.downloadResult = function() {
+    // Save to gallery — download on Android, show hint on iOS
+    window.saveToGallery = function() {
         if (!capturedBlob) return;
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+            // iOS: can't force save to Photos — show instructions
+            alert('На iPhone нажмите и удержите фото выше, затем выберите «Сохранить изображение»');
+            return;
+        }
+        // Android & Desktop: trigger download
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(capturedBlob);
-        a.download = (plateLabel || 'photo').replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now() + '.' + capturedExt;
+        a.href = resultObjectUrl;
+        const name = (plateLabel || 'photo').replace(/[^a-zA-Z0-9]/g, '_');
+        a.download = name + '_' + Date.now() + '.' + capturedExt;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
     };
 
     window.uploadResult = async function() {
         if (!capturedBlob) return;
         const btn = document.getElementById('upload-btn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">hourglass_top</span> Отправка…';
+        btn.style.background = '#1e40af';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:22px;animation:spin 1s linear infinite;">hourglass_top</span> Отправка…';
 
         const fd = new FormData();
         fd.append('file', capturedBlob, 'capture.' + capturedExt);
@@ -502,21 +554,23 @@
 
         try {
             const resp = await fetch(UPLOAD_URL, { method: 'POST', body: fd, credentials: 'include' });
-            if (resp.status === 302 || resp.redirected) {
-                // Auth expired — redirect to login
+            if (resp.redirected || resp.url.includes('/login')) {
                 window.location.href = '/app/login';
                 return;
             }
             const data = await resp.json();
             if (data.ok) {
-                btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> Отправлено!';
-                setTimeout(() => window.discardResult(), 2000);
+                btn.style.background = '#059669';
+                btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:22px;">check_circle</span> Загружено в приложение!';
+                setTimeout(() => window.discardResult(), 2200);
             } else {
-                btn.innerHTML = 'Ошибка — повторить';
+                btn.style.background = '#dc2626';
+                btn.innerHTML = 'Ошибка — нажмите ещё раз';
                 btn.disabled = false;
             }
         } catch(e) {
-            btn.innerHTML = 'Ошибка сети — повторить';
+            btn.style.background = '#dc2626';
+            btn.innerHTML = 'Нет сети — нажмите ещё раз';
             btn.disabled = false;
         }
     };
