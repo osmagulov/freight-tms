@@ -438,17 +438,39 @@
     // ── Photo capture ─────────────────────────────────────────────
     window.capturePhoto = function() {
         if (recording) return;
-        // Ensure latest frame with stamp is drawn
+
+        // If video not ready — show error
+        if (!video.videoWidth) {
+            alert('Камера ещё загружается, попробуйте снова');
+            return;
+        }
+
+        // Draw final frame with stamp
         drawFrame();
-        // Use toDataURL (sync, works on all browsers including iOS Safari)
+
+        // toDataURL — sync, works everywhere including iOS Safari
         const dataURL = canvas.toDataURL('image/jpeg', 0.93);
+
+        // Sanity check
+        if (!dataURL || dataURL === 'data:,') {
+            alert('Ошибка захвата фото. Попробуйте снова.');
+            return;
+        }
+
         capturedExt = 'jpg';
-        // Convert dataURL to Blob
-        const byteStr = atob(dataURL.split(',')[1]);
-        const arr = new Uint8Array(byteStr.length);
-        for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
-        capturedBlob = new Blob([arr], { type: 'image/jpeg' });
+
+        // Convert dataURL → Blob for upload
+        try {
+            const byteStr = atob(dataURL.split(',')[1]);
+            const arr = new Uint8Array(byteStr.length);
+            for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+            capturedBlob = new Blob([arr], { type: 'image/jpeg' });
+        } catch(e) {
+            capturedBlob = null;
+        }
+
         showResult(dataURL, 'image');
+        console.log('capturePhoto: showResult called, blob size=', capturedBlob ? capturedBlob.size : 0);
     };
 
     // ── Video recording ───────────────────────────────────────────
@@ -519,14 +541,14 @@
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         document.getElementById('ios-hint').style.display = isIOS ? 'block' : 'none';
 
-        // Force show modal
-        modal.style.display = 'flex';
-        modal.classList.add('open');
+        // Force show modal above everything
+        modal.style.cssText = 'display:flex !important; position:fixed !important; inset:0 !important; z-index:99999 !important; background:#000 !important; flex-direction:column !important;';
+        console.log('showResult: modal shown, type=', type);
     }
 
     window.discardResult = function() {
         const modal = document.getElementById('result-modal');
-        modal.style.display = 'none';
+        modal.style.cssText = 'display:none !important;';
         modal.classList.remove('open');
         capturedBlob = null;
         resultDataURL = null;
