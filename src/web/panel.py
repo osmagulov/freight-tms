@@ -398,21 +398,182 @@ async def vehicle_edit_submit(
 async def list_expenses(
     request: Request,
     current_user: dict = Depends(get_current_user_from_cookie),
+    tab: str = "pending",
+    expense_type: str = "",
+    driver_id: int = None,
+    date_from: str = "",
+    date_to: str = "",
 ):
     async with async_session() as session:
-        result = await session.execute(
+        q = (
             select(Expense)
             .join(Trip, Expense.trip_id == Trip.id)
-            .join(Driver, Trip.driver_id == Driver.id)
-            .where(Expense.status == "PENDING")
+            .options(selectinload(Expense.trip).selectinload(Trip.driver))
             .order_by(Expense.created_at.desc())
-            .options(
-                selectinload(Expense.trip).selectinload(Trip.driver)
-            )
         )
-        expenses = result.scalars().all()
-    return templates.TemplateResponse(request, "expenses.html",
-        {"request": request, "expenses": expenses, "user": current_user},
+        if tab == "pending":
+            q = q.where(Expense.status == "PENDING")
+        elif tab == "fuel":
+            q = q.where(Expense.expense_type == "FUEL")
+        elif tab == "repair":
+            q = q.where(Expense.expense_type == "REPAIR")
+        elif tab == "per_diem":
+            q = q.where(Expense.expense_type == "PER_DIEM")
+        elif tab == "other":
+            q = q.where(Expense.expense_type.in_(["FINE", "OTHER"]))
+        # tab == "all" — no type filter
+
+        if expense_type:
+            q = q.where(Expense.expense_type == expense_type)
+        if driver_id:
+            q = q.join(Driver, Trip.driver_id == Driver.id).where(Driver.id == driver_id)
+        if date_from:
+            try:
+                q = q.where(Expense.created_at >= datetime.fromisoformat(date_from))
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                q = q.where(Expense.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+            except ValueError:
+                pass
+
+        expenses = (await session.execute(q)).scalars().all()
+
+        # Counts for tab badges
+        counts = {}
+        for t, flt in [
+            ("pending", Expense.status == "PENDING"),
+            ("fuel", Expense.expense_type == "FUEL"),
+            ("repair", Expense.expense_type == "REPAIR"),
+            ("per_diem", Expense.expense_type == "PER_DIEM"),
+            ("other", Expense.expense_type.in_(["FINE", "OTHER"])),
+        ]:
+            counts[t] = (await session.execute(select(func.count(Expense.id)).where(flt))).scalar() or 0
+
+        drivers = (await session.execute(select(Driver).order_by(Driver.name))).scalars().all()
+
+    return templates.TemplateResponse(request, "expenses.html", {
+        "request": request,
+        "expenses": expenses,
+        "user": current_user,
+        "tab": tab,
+        "counts": counts,
+        "drivers": drivers,
+        "filter_driver_id": driver_id,
+        "filter_date_from": date_from,
+        "filter_date_to": date_to,
+    })
+
+
+@router.get("/expenses/export")
+async def export_expenses(
+    request: Request,
+    current_user: dict = Depends(get_current_user_from_cookie),
+    expense_type: str = "",
+    date_from: str = "",
+    date_to: str = "",
+    driver_id: int = None,
+):
+    """Download expenses as Excel file."""
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from fastapi.responses import StreamingResponse
+
+    async with async_session() as session:
+        q = (
+            select(Expense)
+            .join(Trip, Expense.trip_id == Trip.id)
+            .options(selectinload(Expense.trip).selectinload(Trip.driver))
+            .order_by(Expense.created_at.desc())
+        )
+        if expense_type:
+            q = q.where(Expense.expense_type == expense_type)
+        if driver_id:
+            q = q.where(Trip.driver_id == driver_id)
+        if date_from:
+            try:
+                q = q.where(Expense.created_at >= datetime.fromisoformat(date_from))
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                q = q.where(Expense.created_at <= datetime.fromisoformat(date_to + "T23:59:59"))
+            except ValueError:
+                pass
+        expenses = (await session.execute(q)).scalars().all()
+
+    type_labels = {
+        "FUEL": "Топливо", "REPAIR": "Ремонт", "FINE": "Штраф",
+        "PER_DIEM": "Суточные", "OTHER": "Прочее",
+    }
+    status_labels = {"PENDING": "На проверке", "APPROVED": "Одобрен", "REJECTED": "Отклонён"}
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    sheet_title = type_labels.get(expense_type, "Все расходы")
+    ws.title = sheet_title
+
+    # Header style
+    hdr_font = Font(bold=True, color="FFFFFF", size=11)
+    hdr_fill = PatternFill("solid", fgColor="1E3A5F")
+
+    headers = ["#", "Дата", "Водитель", "Рейс", "Тип", "Сумма", "Валюта", "Сумма KZT",
+               "Статус", "Литры", "Одометр", "АЗС", "Комментарий"]
+    ws.append(headers)
+    for col, cell in enumerate(ws[1], 1):
+        cell.font = hdr_font
+        cell.fill = hdr_fill
+        cell.alignment = Alignment(horizontal="center")
+
+    # Column widths
+    widths = [5, 18, 22, 8, 12, 12, 8, 14, 14, 8, 12, 18, 30]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # Data rows
+    zebra = PatternFill("solid", fgColor="F0F4FA")
+    for i, e in enumerate(expenses, 1):
+        driver_name = e.trip.driver.name if e.trip and e.trip.driver else "—"
+        trip_id = f"#{e.trip.id}" if e.trip else "—"
+        row = [
+            i,
+            e.created_at.strftime("%d.%m.%Y %H:%M") if e.created_at else "—",
+            driver_name,
+            trip_id,
+            type_labels.get(e.expense_type, e.expense_type),
+            float(e.amount) if e.amount else 0,
+            e.currency or "KZT",
+            float(e.amount_kzt) if e.amount_kzt else float(e.amount or 0),
+            status_labels.get(e.status, e.status),
+            float(e.liters) if e.liters else "",
+            e.odometer_reading or "",
+            e.station or "",
+            e.comment or "",
+        ]
+        ws.append(row)
+        if i % 2 == 0:
+            for cell in ws[ws.max_row]:
+                cell.fill = zebra
+
+    # Summary row
+    ws.append([])
+    ws.append(["", "", "", "", "ИТОГО:", f"=SUM(F2:F{len(expenses)+1})", "", f"=SUM(H2:H{len(expenses)+1})"])
+    total_row = ws[ws.max_row]
+    for cell in total_row:
+        cell.font = Font(bold=True)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    type_slug = expense_type.lower() if expense_type else "all"
+    filename = f"expenses_{type_slug}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
