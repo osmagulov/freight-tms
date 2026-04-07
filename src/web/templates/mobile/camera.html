@@ -438,12 +438,17 @@
     // ── Photo capture ─────────────────────────────────────────────
     window.capturePhoto = function() {
         if (recording) return;
+        // Ensure latest frame with stamp is drawn
         drawFrame();
-        canvas.toBlob(blob => {
-            capturedBlob = blob;
-            capturedExt  = 'jpg';
-            showResult(blob, 'image');
-        }, 'image/jpeg', 0.93);
+        // Use toDataURL (sync, works on all browsers including iOS Safari)
+        const dataURL = canvas.toDataURL('image/jpeg', 0.93);
+        capturedExt = 'jpg';
+        // Convert dataURL to Blob
+        const byteStr = atob(dataURL.split(',')[1]);
+        const arr = new Uint8Array(byteStr.length);
+        for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+        capturedBlob = new Blob([arr], { type: 'image/jpeg' });
+        showResult(dataURL, 'image');
     };
 
     // ── Video recording ───────────────────────────────────────────
@@ -484,12 +489,10 @@
     }
 
     // ── Result modal ──────────────────────────────────────────────
-    let resultObjectUrl = null;
+    let resultDataURL = null;
 
-    function showResult(blob, type) {
-        if (resultObjectUrl) URL.revokeObjectURL(resultObjectUrl);
-        resultObjectUrl = URL.createObjectURL(blob);
-
+    // srcOrBlob: dataURL string for photos, Blob for video
+    function showResult(srcOrBlob, type) {
         const modal = document.getElementById('result-modal');
         const img   = document.getElementById('result-img');
         const vid   = document.getElementById('result-video');
@@ -497,10 +500,12 @@
         vid.style.display = 'none';
 
         if (type === 'image') {
-            img.src = resultObjectUrl;
+            resultDataURL = srcOrBlob; // already a dataURL
+            img.src = resultDataURL;
             img.style.display = 'block';
         } else {
-            vid.src = resultObjectUrl;
+            resultDataURL = null;
+            vid.src = URL.createObjectURL(srcOrBlob);
             vid.style.display = 'block';
         }
 
@@ -510,30 +515,35 @@
         btn.style.background = '#3b82f6';
         btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:22px;">cloud_upload</span> Загрузить в приложение';
 
-        // Show iOS hint for save
+        // iOS hint
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         document.getElementById('ios-hint').style.display = isIOS ? 'block' : 'none';
 
+        // Force show modal
+        modal.style.display = 'flex';
         modal.classList.add('open');
     }
 
     window.discardResult = function() {
-        document.getElementById('result-modal').classList.remove('open');
+        const modal = document.getElementById('result-modal');
+        modal.style.display = 'none';
+        modal.classList.remove('open');
         capturedBlob = null;
+        resultDataURL = null;
     };
 
-    // Save to gallery — download on Android, show hint on iOS
+    // Save to gallery
     window.saveToGallery = function() {
-        if (!capturedBlob) return;
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         if (isIOS) {
-            // iOS: can't force save to Photos — show instructions
-            alert('На iPhone нажмите и удержите фото выше, затем выберите «Сохранить изображение»');
+            alert('На iPhone: нажмите и удержите фото выше → «Сохранить изображение»');
             return;
         }
-        // Android & Desktop: trigger download
+        // Android & Desktop: dataURL download
+        const src = resultDataURL || (capturedBlob ? URL.createObjectURL(capturedBlob) : null);
+        if (!src) return;
         const a = document.createElement('a');
-        a.href = resultObjectUrl;
+        a.href = src;
         const name = (plateLabel || 'photo').replace(/[^a-zA-Z0-9]/g, '_');
         a.download = name + '_' + Date.now() + '.' + capturedExt;
         document.body.appendChild(a);
