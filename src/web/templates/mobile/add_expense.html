@@ -118,18 +118,27 @@
 
     <!-- 📸 Photo Upload Zone -->
     <div class="input-container">
-        <label class="form-label" data-i18n="receipt_photo">ФОТОГРАФИЯ ДОКУМЕНТА (ЧЕК/АКТ)</label>
-        <div class="photo-upload-zone" id="upload-zone">
-            <div id="scan-bar" class="scanning-bar"></div>
-            <span class="material-symbols-outlined text-primary" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;">add_a_photo</span>
-            <div class="text-white fw-bold small">НАЖМИТЕ, ЧТОБЫ СДЕЛАТЬ ФОТО</div>
-            <div class="topbar-meta" style="font-size: 10px; margin-top: 4px;">JPEG, PNG или PDF до 10МБ</div>
-            <input type="file" name="receipt" id="receipt-input" accept="image/*" capture="environment" onchange="onReceiptSelected()">
+        <label class="form-label" data-i18n="receipt_photo">ФОТО ЧЕКА (НЕОБЯЗАТЕЛЬНО)</label>
+        <div style="display: flex; gap: 10px;">
+            <!-- Gallery -->
+            <label style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:80px; background:var(--surface-low); border:1px solid var(--border); border-radius:12px; cursor:pointer; font-size:11px; font-weight:800; color:var(--text-muted);">
+                <span class="material-symbols-outlined" style="font-size:28px; color:var(--primary);">photo_library</span>
+                ИЗ ГАЛЕРЕИ
+                <input type="file" name="receipt" id="receipt-input" accept="image/*" onchange="onReceiptSelected(this)" style="display:none;">
+            </label>
+            <!-- Camera -->
+            <label style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:80px; background:var(--surface-low); border:1px solid var(--border); border-radius:12px; cursor:pointer; font-size:11px; font-weight:800; color:var(--text-muted);">
+                <span class="material-symbols-outlined" style="font-size:28px; color:var(--primary);">photo_camera</span>
+                СФОТОГРАФИРОВАТЬ
+                <input type="file" name="receipt" id="receipt-camera" accept="image/*" capture="environment" onchange="onReceiptSelected(this)" style="display:none;">
+            </label>
         </div>
-        
-        <!-- AI Status Pill -->
-        <div id="ai-status-container" style="display: none; text-align: center;">
-            <div id="ai-status" class="ai-pill"></div>
+        <!-- Preview -->
+        <div id="receipt-preview" style="display:none; margin-top:10px; position:relative;">
+            <img id="receipt-img" style="width:100%; max-height:180px; object-fit:cover; border-radius:10px; border:1px solid var(--border);">
+            <button type="button" onclick="clearReceipt()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;border-radius:50%;width:28px;height:28px;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+            </button>
         </div>
     </div>
 
@@ -236,52 +245,38 @@
         }
     }
 
-    function onReceiptSelected() {
-        const type = document.getElementById('expense_type').value;
-        if (type !== 'FUEL') return;
-
-        const fileInput = document.getElementById('receipt-input');
-        const file = fileInput.files[0];
+    function onReceiptSelected(input) {
+        const file = input.files[0];
         if (!file) return;
 
-        const container = document.getElementById('ai-status-container');
-        const statusDiv = document.getElementById('ai-status');
-        const scanBar = document.getElementById('scan-bar');
-        
-        container.style.display = 'block';
-        scanBar.style.display = 'block';
-        statusDiv.style.background = 'rgba(245, 158, 11, 0.1)';
-        statusDiv.style.color = 'var(--warning)';
-        statusDiv.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">psychopomp</span> АНАЛИЗ ЧЕКА СИСТЕМОЙ...';
+        // Sync the other input so form submits correct file
+        // (only one file input named "receipt" should have a file)
+        const other = input.id === 'receipt-input'
+            ? document.getElementById('receipt-camera')
+            : document.getElementById('receipt-input');
+        // Clear the other so only one is submitted
+        other.value = '';
+        // Copy file to the canonical receipt-input if camera was used
+        if (input.id === 'receipt-camera') {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById('receipt-input').files = dt.files;
+        }
 
-        const formData = new FormData();
-        formData.append('receipt', file);
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('receipt-img').src = e.target.result;
+            document.getElementById('receipt-preview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
 
-        fetch('/app/parse-receipt', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(data => {
-                scanBar.style.display = 'none';
-                if (data.ok) {
-                    if (data.liters) document.getElementById('liters').value = data.liters;
-                    if (data.amount) document.getElementById('amount').value = data.amount;
-                    if (data.station) document.getElementById('station').value = data.station;
-                    if (data.currency) document.getElementById('currency').value = data.currency;
-
-                    statusDiv.style.background = 'rgba(16, 185, 129, 0.1)';
-                    statusDiv.style.color = 'var(--success)';
-                    statusDiv.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">check_circle</span> ДАННЫЕ РАСПОЗНАНЫ';
-                } else {
-                    statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
-                    statusDiv.style.color = 'var(--danger)';
-                    statusDiv.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">info</span> СБОЙ РАСПОЗНАВАНИЯ';
-                }
-            })
-            .catch(() => {
-                scanBar.style.display = 'none';
-                statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
-                statusDiv.style.color = 'var(--danger)';
-                statusDiv.innerHTML = 'ОШИБКА СЕТИ';
-            });
+    function clearReceipt() {
+        document.getElementById('receipt-input').value = '';
+        document.getElementById('receipt-camera').value = '';
+        document.getElementById('receipt-preview').style.display = 'none';
+        document.getElementById('receipt-img').src = '';
     }
 
     onTypeChange();
